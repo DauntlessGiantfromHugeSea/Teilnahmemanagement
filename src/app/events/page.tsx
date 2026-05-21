@@ -133,9 +133,18 @@ function EventTable({
                 {e._count.participants}
                 {e.capacity ? <span className="text-slate-400"> / {e.capacity}</span> : null}
               </td>
-              <td className="text-right">
+              <td className="text-right whitespace-nowrap">
+                <a
+                  href={`/anmeldung/${e.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-700 hover:underline text-xs mr-3"
+                  title="Öffentliche Anmeldeseite in neuem Tab öffnen"
+                >
+                  Anmeldelink ↗
+                </a>
                 <Link href={`/events/${e.id}`} className="text-brand-700 hover:underline text-sm">
-                  oeffnen
+                  öffnen
                 </Link>
               </td>
             </tr>
