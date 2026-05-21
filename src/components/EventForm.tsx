@@ -211,7 +211,75 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">5. Kapazität &amp; Notizen</h2>
+          <h2 className="font-semibold text-slate-800">5. Öffentliche Anmeldeseite</h2>
+          <p className="text-xs text-slate-500">
+            Optionale Felder, die das Aussehen der öffentlichen Anmeldeseite
+            (<code className="text-[11px]">/anmeldung/{`<id>`}</code>) anpassen.
+          </p>
+        </div>
+        <div>
+          <label className="label">Untertitel / Kicker</label>
+          <input
+            name="subtitle"
+            defaultValue={event?.subtitle ?? ""}
+            placeholder="z. B. Einführung ins Flüssigbodenverfahren"
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Hero-Bild URL</label>
+          <input
+            name="heroImageUrl"
+            type="url"
+            defaultValue={event?.heroImageUrl ?? ""}
+            placeholder="https://fb-akademie.de/wp-content/uploads/..."
+            className="input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Großes Bild oben auf der Anmeldeseite. Querformat empfohlen, z. B. 1600×600.
+          </p>
+        </div>
+        <div>
+          <label className="label">Eigenes Logo URL (optional)</label>
+          <input
+            name="logoUrl"
+            type="url"
+            defaultValue={event?.logoUrl ?? ""}
+            placeholder="https://..."
+            className="input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Leer lassen für das Standard-Logo der FB-Akademie.
+          </p>
+        </div>
+        <div>
+          <label className="label">Ausführliche Beschreibung</label>
+          <textarea
+            name="longDescription"
+            rows={5}
+            defaultValue={event?.longDescription ?? ""}
+            placeholder="Wer sollte teilnehmen, was wird vermittelt, etc."
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Programm / Bullet-Punkte</label>
+          <textarea
+            name="agenda"
+            rows={5}
+            defaultValue={event?.agenda ?? ""}
+            placeholder="Ein Punkt pro Zeile, z. B.:&#10;Grundlagen Flüssigboden&#10;Praxiseinsatz Geoponton&#10;Q&amp;A mit Referent"
+            className="input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Wird als Liste mit Häkchen-Icons unter dem Hero-Bild dargestellt.
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-slate-800">6. Kapazität &amp; Interne Notizen</h2>
         </div>
         <div>
           <label className="label">Max. Teilnehmerzahl</label>

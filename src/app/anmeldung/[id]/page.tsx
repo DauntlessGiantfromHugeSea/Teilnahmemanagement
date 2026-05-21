@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Script from "next/script";
+/* eslint-disable @next/next/no-img-element */
 import { prisma } from "@/lib/db";
 import { basePriceCents, formatEUR } from "@/lib/pricing";
 import { DayOption } from "@prisma/client";
@@ -28,46 +29,140 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
 
   const fmt = (d?: Date | null) =>
     d ? d.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" }) : null;
+  const fmtShort = (d?: Date | null) =>
+    d ? d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : null;
   const day1 = fmt(ev.day1Date);
   const day2 = fmt(ev.day2Date);
+  const dateBadge = ev.day2Date && day1 && day2 ? `${fmtShort(ev.day1Date)} – ${fmtShort(ev.day2Date)}` : (fmtShort(ev.day1Date) ?? "Termin offen");
 
   const isTwoDay = !!ev.day2Date;
   const priceDay1 = basePriceCents(ev.training, "DAY_1");
   const priceDay2 = basePriceCents(ev.training, "DAY_2");
   const priceBoth = basePriceCents(ev.training, "BOTH");
-  const defaultDay: DayOption = isTwoDay ? "BOTH" : "DAY_1";
   const singlePrice = basePriceCents(ev.training, "DAY_1");
 
+  const agendaItems = (ev.agenda ?? "")
+    .split(/\r?\n/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   return (
-    <div className="min-h-screen flex items-start justify-center px-4 py-8 bg-transparent">
-      <div className="w-full max-w-xl">
-        <div className="card p-6 sm:p-8">
-          {(isPast || isFull) ? (
-            <div className="text-center py-8">
-              <h1 className="text-xl font-semibold mb-2">
-                {isPast ? "Anmeldung geschlossen" : "Veranstaltung ausgebucht"}
-              </h1>
-              <p className="text-sm text-slate-600">
-                {isPast
-                  ? "Diese Veranstaltung hat bereits stattgefunden."
-                  : "Diese Veranstaltung ist leider voll belegt."}
-              </p>
+    <div className="min-h-screen bg-transparent">
+      <div className="w-full max-w-3xl mx-auto px-4 py-6 sm:py-10">
+        {/* Hero */}
+        <div className="card overflow-hidden">
+          {ev.heroImageUrl ? (
+            <div className="relative aspect-[16/7] bg-brand-900">
+              <img
+                src={ev.heroImageUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              {ev.logoUrl && (
+                <img
+                  src={ev.logoUrl}
+                  alt="Logo"
+                  className="absolute top-4 right-4 h-10 sm:h-12 w-auto bg-white/95 rounded p-1.5 shadow"
+                />
+              )}
+              <div className="absolute left-4 sm:left-6 right-4 sm:right-6 bottom-4 sm:bottom-6 text-white">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3">
+                  {dateBadge}
+                </div>
+                {ev.subtitle && (
+                  <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-1">
+                    {ev.subtitle}
+                  </div>
+                )}
+                <h1 className="text-xl sm:text-3xl font-semibold leading-tight">{ev.title}</h1>
+              </div>
             </div>
           ) : (
-            <>
-              <div className="flex items-start justify-between gap-3 mb-6">
-                <div>
-                  <h1 className="text-xl font-semibold">Verbindliche Anmeldung</h1>
-                  <p className="text-sm text-slate-500 mt-1">{ev.title}</p>
-                </div>
-                <span className="inline-flex items-center gap-1 rounded-full border border-brand-200 text-brand-700 px-3 py-1 text-xs font-medium whitespace-nowrap">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <rect x="3" y="11" width="18" height="11" rx="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                  </svg>
-                  SSL-verschlüsselt
-                </span>
+            <div className="bg-gradient-to-br from-brand-500 to-brand-700 text-white p-6 sm:p-10">
+              {ev.logoUrl && (
+                <img
+                  src={ev.logoUrl}
+                  alt="Logo"
+                  className="float-right h-10 sm:h-12 w-auto bg-white/95 rounded p-1.5 mb-3"
+                />
+              )}
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3">
+                {dateBadge}
               </div>
+              {ev.subtitle && (
+                <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-1">
+                  {ev.subtitle}
+                </div>
+              )}
+              <h1 className="text-xl sm:text-3xl font-semibold leading-tight">{ev.title}</h1>
+            </div>
+          )}
+
+          {/* Meta-Leiste */}
+          <div className="border-t border-slate-100 px-5 sm:px-6 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <Meta icon="cal" label={day2 ? `${day1} – ${day2}` : day1 ?? "Termin folgt"} />
+            {(ev.startTime || ev.endTime) && (
+              <Meta
+                icon="clock"
+                label={`${ev.startTime ?? "?"}${ev.endTime ? ` – ${ev.endTime}` : ""} Uhr`}
+              />
+            )}
+            <Meta
+              icon={ev.format === "WEBINAR" ? "online" : "place"}
+              label={ev.format === "WEBINAR" ? "Online (Webinar)" : ev.location ?? "Ort folgt"}
+            />
+            <Meta icon="shield" label="SSL-verschlüsselt" />
+          </div>
+        </div>
+
+        {(isPast || isFull) ? (
+          <div className="card mt-6 p-8 text-center">
+            <h2 className="text-lg font-semibold mb-2">
+              {isPast ? "Anmeldung geschlossen" : "Veranstaltung ausgebucht"}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {isPast
+                ? "Diese Veranstaltung hat bereits stattgefunden."
+                : "Diese Veranstaltung ist leider voll belegt."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Inhalt: Beschreibung + Agenda */}
+            {(ev.longDescription || agendaItems.length > 0) && (
+              <div className="card mt-6 p-6 sm:p-8 space-y-5">
+                {ev.longDescription && (
+                  <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">
+                    {ev.longDescription}
+                  </p>
+                )}
+                {agendaItems.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-brand-700 mb-3">
+                      Programm
+                    </h3>
+                    <ul className="space-y-2">
+                      {agendaItems.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <svg className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <span className="text-slate-700">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Formular */}
+            <div className="card mt-6 p-6 sm:p-8">
+              <h2 className="text-lg font-semibold mb-1">Verbindliche Anmeldung</h2>
+              <p className="text-sm text-slate-500 mb-6">
+                Ihre Daten werden verschlüsselt übertragen.
+              </p>
 
               {searchParams.error && (
                 <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
@@ -84,7 +179,6 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                 </div>
                 <input type="hidden" name="ts" value={String(Date.now())} />
 
-                {/* Buchungsoption als visuelle Karten */}
                 {isTwoDay ? (
                   <section>
                     <div className="label">Ich melde mich an für *</div>
@@ -94,7 +188,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                         value="BOTH"
                         defaultChecked
                         title="Beide Tage (Kombi)"
-                        subtitle={`${day1} - ${day2}`}
+                        subtitle={`${day1} – ${day2}`}
                         price={formatEUR(priceBoth)}
                         highlight
                       />
@@ -114,25 +208,24 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                       />
                     </div>
                   </section>
-                ) : (
+                ) : singlePrice > 0 ? (
                   <section className="rounded-xl border border-brand-200 bg-brand-50/40 p-4">
                     <div className="text-xs uppercase tracking-wide text-brand-700 font-semibold mb-1">
                       Termin
                     </div>
                     <div className="flex items-baseline justify-between gap-3 flex-wrap">
                       <div className="font-medium">{day1 ?? "noch offen"}</div>
-                      {singlePrice > 0 && (
-                        <div className="text-sm">
-                          <span className="font-semibold">{formatEUR(singlePrice)}</span>
-                          <span className="text-slate-500 ml-1">zzgl. 19 % MwSt.</span>
-                        </div>
-                      )}
+                      <div className="text-sm">
+                        <span className="font-semibold">{formatEUR(singlePrice)}</span>
+                        <span className="text-slate-500 ml-1">zzgl. 19 % MwSt.</span>
+                      </div>
                     </div>
                     <input type="hidden" name="dayOption" value="DAY_1" />
                   </section>
+                ) : (
+                  <input type="hidden" name="dayOption" value="DAY_1" />
                 )}
 
-                {/* Persoenliche Daten */}
                 <section className="space-y-3">
                   <div className="label">Ihre Daten</div>
                   <Field name="name" label="Nachname, Vorname" required />
@@ -152,7 +245,6 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                   </div>
                 </section>
 
-                {/* Rechnung */}
                 <section className="space-y-3">
                   <div className="label">Rechnung</div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -195,19 +287,68 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                   </span>
                 </label>
 
-                <button className="btn-primary w-full text-base py-3">Jetzt verbindlich anmelden</button>
+                <button className="btn-primary w-full text-base py-3">
+                  Jetzt verbindlich anmelden
+                </button>
               </form>
+            </div>
+          </>
+        )}
 
-              {basePriceCents(ev.training, defaultDay) > 0 && (
-                <p className="mt-4 text-xs text-slate-500 text-center">
-                  Alle Preise zzgl. 19 % MwSt. Die Rechnung wird Ihnen nach der Anmeldung zugesandt.
-                </p>
-              )}
-            </>
-          )}
-        </div>
+        <p className="text-center text-xs text-slate-400 mt-6 tracking-wider uppercase">
+          Flüssigboden Akademie
+        </p>
       </div>
     </div>
+  );
+}
+
+function Meta({ icon, label }: { icon: "cal" | "clock" | "place" | "online" | "shield"; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-slate-600">
+      <Icon name={icon} className="h-4 w-4 text-brand-500" />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function Icon({ name, className }: { name: string; className: string }) {
+  const paths: Record<string, React.ReactNode> = {
+    cal: (
+      <>
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M3 9h18M8 3v4M16 3v4" />
+      </>
+    ),
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" strokeLinecap="round" />
+      </>
+    ),
+    place: (
+      <>
+        <path d="M12 22s-7-7.5-7-12a7 7 0 0 1 14 0c0 4.5-7 12-7 12z" />
+        <circle cx="12" cy="10" r="2.5" />
+      </>
+    ),
+    online: (
+      <>
+        <rect x="3" y="5" width="18" height="12" rx="2" />
+        <path d="M8 21h8M12 17v4" strokeLinecap="round" />
+      </>
+    ),
+    shield: (
+      <>
+        <path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6l8-3z" />
+        <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
+  };
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={className}>
+      {paths[name]}
+    </svg>
   );
 }
 
@@ -238,20 +379,12 @@ function OptionCard({
         className="peer sr-only"
         required
       />
-      <div
-        className={
-          "rounded-xl border bg-white p-4 cursor-pointer transition " +
-          "border-slate-200 hover:border-brand-300 " +
-          "peer-checked:border-brand-500 peer-checked:ring-2 peer-checked:ring-brand-500/30 peer-checked:bg-brand-50/60"
-        }
-      >
+      <div className="rounded-xl border bg-white p-4 cursor-pointer transition border-slate-200 hover:border-brand-300 peer-checked:border-brand-500 peer-checked:ring-2 peer-checked:ring-brand-500/30 peer-checked:bg-brand-50/60">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium">{title}</span>
-              {highlight && (
-                <span className="badge bg-brand-100 text-brand-700">empfohlen</span>
-              )}
+              {highlight && <span className="badge bg-brand-100 text-brand-700">empfohlen</span>}
             </div>
             <div className="text-xs text-slate-500 mt-0.5">{subtitle}</div>
           </div>

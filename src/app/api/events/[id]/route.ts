@@ -75,6 +75,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       location: format === "WEBINAR" ? null : strOrNull(f.get("location")),
       meetingUrl: format === "PRESENCE" ? null : strOrNull(f.get("meetingUrl")),
       capacity: intOrNull(f.get("capacity")),
+      subtitle: strOrNull(f.get("subtitle")),
+      longDescription: strOrNull(f.get("longDescription")),
+      agenda: strOrNull(f.get("agenda")),
+      heroImageUrl: strOrNull(f.get("heroImageUrl")),
+      logoUrl: strOrNull(f.get("logoUrl")),
       notes: notesPlain ? encryptField(notesPlain) : null,
     },
   });
