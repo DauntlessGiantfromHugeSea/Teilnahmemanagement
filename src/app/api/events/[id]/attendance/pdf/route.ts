@@ -169,7 +169,7 @@ export async function GET(
       y += 22;
     }
     const p = filtered[i];
-    drawRow(doc, startX, y, i + 1, p, day === null);
+    drawRow(doc, startX, y, i + 1, p, day === null, ev.day1Date, ev.day2Date);
     y += ROW_HEIGHT;
   }
 
@@ -243,7 +243,9 @@ function drawRow(
   y: number,
   num: number,
   p: any | undefined,
-  showDayBadge: boolean
+  showDayBadge: boolean,
+  day1?: Date | null,
+  day2?: Date | null
 ) {
   // Vertikale Trenner + unterer Rahmen
   doc.strokeColor(rgb(BORDER)).lineWidth(0.4);
@@ -276,12 +278,21 @@ function drawRow(
     { width: COLS[1].width - 12, ellipsis: true }
   );
   if (showDayBadge) {
-    doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8).text(
-      dayLabel(p.dayOption),
-      cx + 6,
-      y + 24,
-      { width: COLS[1].width - 12 }
-    );
+    const fmt = (d?: Date | null) => d ? d.toLocaleDateString("de-DE") : "";
+    const dateLine =
+      p.dayOption === "DAY_1"
+        ? fmt(day1)
+        : p.dayOption === "DAY_2"
+        ? fmt(day2)
+        : [fmt(day1), fmt(day2)].filter(Boolean).join(", ");
+    if (dateLine) {
+      doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8).text(
+        dateLine,
+        cx + 6,
+        y + 24,
+        { width: COLS[1].width - 12 }
+      );
+    }
   }
   cx += COLS[1].width;
 
