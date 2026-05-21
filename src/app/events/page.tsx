@@ -40,11 +40,22 @@ export default async function EventsPage() {
 
   return (
     <Shell session={s} active="events">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-semibold">Veranstaltungen</h1>
-        {canWriteGlobal(s) && (
-          <Link href="/events/new" className="btn-primary">Neue Veranstaltung</Link>
-        )}
+        <div className="flex gap-2 flex-wrap">
+          <a
+            href="/anmeldung"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-secondary"
+            title="Öffentliche Übersicht aller Anmeldungen anzeigen"
+          >
+            Anmelde-Übersicht ↗
+          </a>
+          {canWriteGlobal(s) && (
+            <Link href="/events/new" className="btn-primary">Neue Veranstaltung</Link>
+          )}
+        </div>
       </div>
 
       <section className="mb-6">
