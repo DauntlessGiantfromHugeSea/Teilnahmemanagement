@@ -12,7 +12,6 @@ interface Props {
 const PRIMARY = [
   { id: "dashboard", href: "/dashboard", label: "Dashboard", roles: ["ADMIN", "EDITOR", "ACCOUNTING", "VIEWER"] },
   { id: "events", href: "/events", label: "Veranstaltungen", roles: ["ADMIN", "EDITOR", "ACCOUNTING", "VIEWER"] },
-  { id: "trainings", href: "/trainings", label: "Schulungen", roles: ["ADMIN", "EDITOR"] },
   { id: "accounting", href: "/accounting", label: "Buchhaltung", roles: ["ADMIN", "ACCOUNTING"] },
 ];
 
@@ -35,6 +34,7 @@ export function Shell({ session, active, children }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <div className="h-1 bg-brand-500" />
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-8">
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
@@ -46,20 +46,23 @@ export function Shell({ session, active, children }: Props) {
                 key={n.id}
                 href={n.href}
                 className={
-                  "px-3 py-1.5 rounded-md text-sm font-medium transition " +
+                  "relative px-3 py-1.5 rounded-md text-sm font-medium transition " +
                   (active === n.id
                     ? "text-brand-700 bg-brand-50"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100")
                 }
               >
                 {n.label}
+                {active === n.id && (
+                  <span className="absolute -bottom-[15px] left-2 right-2 h-0.5 bg-brand-500 rounded-full" />
+                )}
               </Link>
             ))}
           </nav>
           <details className="relative shrink-0">
-            <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-slate-100 pl-2 pr-1 py-1">
+            <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-brand-50 pl-2 pr-1 py-1">
               <span className="hidden sm:block text-sm text-slate-700">{session.name}</span>
-              <span className="h-8 w-8 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold flex items-center justify-center">
+              <span className="h-8 w-8 rounded-full bg-brand-500 text-white text-xs font-semibold flex items-center justify-center">
                 {initials}
               </span>
             </summary>

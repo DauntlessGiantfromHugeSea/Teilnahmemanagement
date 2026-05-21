@@ -41,35 +41,31 @@ export async function POST(req: Request) {
   if (!s || !canWriteGlobal(s)) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
 
-  // Schulung: bestehende waehlen oder inline neu anlegen
-  let trainingId = String(f.get("trainingId") ?? "");
-  const trainingMode = String(f.get("trainingMode") ?? "");
-  if (trainingMode === "new") {
-    const newTitle = String(f.get("newTrainingTitle") ?? "").trim();
-    if (!newTitle) return new NextResponse("Schulungstitel fehlt", { status: 400 });
-    const t = await prisma.training.create({
-      data: {
-        title: newTitle,
-        description: strOrNull(f.get("newTrainingDescription")),
-        priceDay1: priceCents(f.get("newTrainingPriceDay1")),
-        priceDay2: priceCents(f.get("newTrainingPriceDay2")),
-        priceBoth: priceCents(f.get("newTrainingPriceBoth")),
-      },
-    });
-    trainingId = t.id;
-    await audit({ actorId: s.uid, action: "CREATE", entityType: "Training", entityId: t.id });
-  }
-  if (!trainingId) return new NextResponse("trainingId fehlt", { status: 400 });
+  const title = String(f.get("title") ?? "").trim();
+  if (!title) return new NextResponse("Titel fehlt", { status: 400 });
 
   const format = formatOrDefault(f.get("format"));
+  const description = strOrNull(f.get("description"));
   const notesPlain = String(f.get("notes") ?? "").trim();
+
+  // Training inline mit den uebergebenen Preisen anlegen
+  const training = await prisma.training.create({
+    data: {
+      title,
+      description,
+      priceDay1: priceCents(f.get("priceDay1")),
+      priceDay2: format === "WEBINAR" ? 0 : priceCents(f.get("priceDay2")),
+      priceBoth: format === "WEBINAR" ? 0 : priceCents(f.get("priceBoth")),
+    },
+  });
+  await audit({ actorId: s.uid, action: "CREATE", entityType: "Training", entityId: training.id });
 
   const ev = await prisma.event.create({
     data: {
-      title: String(f.get("title") ?? "").trim(),
-      trainingId,
+      title,
+      trainingId: training.id,
       format,
-      description: strOrNull(f.get("description")),
+      description,
       day1Date: dateOrNull(f.get("day1Date")),
       day2Date: format === "WEBINAR" ? null : dateOrNull(f.get("day2Date")),
       startTime: strOrNull(f.get("startTime")),

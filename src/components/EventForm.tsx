@@ -2,10 +2,9 @@ import type { Event, Training, EventFormat } from "@prisma/client";
 
 interface Props {
   event?: Event;
-  trainings: Training[];
+  training?: Training;
   action: string;
   allowAddAnother?: boolean;
-  allowInlineTraining?: boolean;
 }
 
 function dateInputValue(d?: Date | null) {
@@ -19,7 +18,7 @@ function eurInputValue(cents?: number | null) {
   return (cents / 100).toFixed(2);
 }
 
-export function EventForm({ event, trainings, action, allowAddAnother, allowInlineTraining }: Props) {
+export function EventForm({ event, training, action, allowAddAnother }: Props) {
   const format: EventFormat = event?.format ?? "PRESENCE";
 
   return (
@@ -65,8 +64,8 @@ export function EventForm({ event, trainings, action, allowAddAnother, allowInli
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">2. Grunddaten</h2>
-          <p className="text-xs text-slate-500">Titel der Veranstaltung und Inhalt.</p>
+          <h2 className="font-semibold text-slate-800">2. Inhalt</h2>
+          <p className="text-xs text-slate-500">Titel, Beschreibung und Preise.</p>
         </div>
         <div>
           <label className="label">Titel der Veranstaltung *</label>
@@ -74,123 +73,63 @@ export function EventForm({ event, trainings, action, allowAddAnother, allowInli
             name="title"
             required
             defaultValue={event?.title ?? ""}
-            placeholder="z. B. Crashkurs Maerz 2026"
+            placeholder="z. B. Basisschulung + Technologieschulung Geoponton, Maerz 2026"
             className="input"
           />
         </div>
         <div>
-          <label className="label">Kurzbeschreibung</label>
+          <label className="label">Beschreibung</label>
           <textarea
             name="description"
-            rows={2}
-            defaultValue={event?.description ?? ""}
+            rows={3}
+            defaultValue={event?.description ?? training?.description ?? ""}
             placeholder="Inhalt, Zielgruppe, Besonderheiten ..."
             className="input"
           />
         </div>
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="font-semibold text-slate-800">3. Schulung &amp; Preise</h2>
-          <p className="text-xs text-slate-500">
-            Bestimmt die Preise pro Buchungsoption. Du kannst eine bestehende Schulung
-            verwenden oder direkt eine neue anlegen.
-          </p>
-        </div>
-
-        {allowInlineTraining ? (
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <label className="flex-1">
-                <input
-                  type="radio"
-                  name="trainingMode"
-                  value="existing"
-                  defaultChecked={trainings.length > 0}
-                  className="peer sr-only training-mode"
-                />
-                <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
-                  Bestehende Schulung verwenden
-                </div>
-              </label>
-              <label className="flex-1">
-                <input
-                  type="radio"
-                  name="trainingMode"
-                  value="new"
-                  defaultChecked={trainings.length === 0}
-                  className="peer sr-only training-mode"
-                />
-                <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
-                  Neue Schulung anlegen
-                </div>
-              </label>
-            </div>
-
-            <div className="training-existing">
-              <label className="label">Schulung waehlen</label>
-              <select name="trainingId" defaultValue={event?.trainingId ?? ""} className="input">
-                <option value="" disabled>Bitte waehlen</option>
-                {trainings.map((t) => (
-                  <option key={t.id} value={t.id}>{t.title}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="training-new space-y-4 rounded-lg border border-dashed border-slate-300 p-4">
-              <div>
-                <label className="label">Schulungstitel</label>
-                <input
-                  name="newTrainingTitle"
-                  placeholder="z. B. Grundkurs Buchhaltung"
-                  className="input"
-                />
-              </div>
-              <div>
-                <label className="label">Schulungsbeschreibung</label>
-                <textarea
-                  name="newTrainingDescription"
-                  rows={2}
-                  placeholder="Was umfasst die Schulung?"
-                  className="input"
-                />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="label">Preis Tag 1 (EUR)</label>
-                  <input name="newTrainingPriceDay1" type="number" step="0.01" min="0" defaultValue="0" className="input" />
-                </div>
-                <div>
-                  <label className="label">Preis Tag 2 (EUR)</label>
-                  <input name="newTrainingPriceDay2" type="number" step="0.01" min="0" defaultValue="0" className="input" />
-                </div>
-                <div>
-                  <label className="label">Preis beide Tage (EUR)</label>
-                  <input name="newTrainingPriceBoth" type="number" step="0.01" min="0" defaultValue="0" className="input" />
-                </div>
-              </div>
-              <p className="text-xs text-slate-500">
-                Preise koennen spaeter unter &quot;Schulungen&quot; angepasst werden. Bei Webinaren reicht meist nur ein Preis.
-              </p>
-            </div>
-          </div>
-        ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="label">Schulung *</label>
-            <select name="trainingId" required defaultValue={event?.trainingId ?? ""} className="input">
-              <option value="" disabled>Bitte waehlen</option>
-              {trainings.map((t) => (
-                <option key={t.id} value={t.id}>{t.title}</option>
-              ))}
-            </select>
+            <label className="label">Preis Tag 1 (EUR)</label>
+            <input
+              name="priceDay1"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={eurInputValue(training?.priceDay1) || "0"}
+              className="input"
+            />
           </div>
-        )}
+          <div className="only-presence">
+            <label className="label">Preis Tag 2 (EUR)</label>
+            <input
+              name="priceDay2"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={eurInputValue(training?.priceDay2) || "0"}
+              className="input"
+            />
+          </div>
+          <div className="only-presence">
+            <label className="label">Preis beide Tage (EUR)</label>
+            <input
+              name="priceBoth"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={eurInputValue(training?.priceBoth) || "0"}
+              className="input"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">
+          Bei Webinaren reicht der Preis Tag 1 als Gesamtpreis.
+        </p>
       </section>
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">4. Termin</h2>
+          <h2 className="font-semibold text-slate-800">3. Termin</h2>
           <p className="text-xs text-slate-500">Datum und Uhrzeit der Durchfuehrung.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -218,7 +157,7 @@ export function EventForm({ event, trainings, action, allowAddAnother, allowInli
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">5. Ort &amp; Zugang</h2>
+          <h2 className="font-semibold text-slate-800">4. Ort &amp; Zugang</h2>
         </div>
         <div className="only-presence">
           <label className="label">Veranstaltungsort</label>
@@ -238,15 +177,12 @@ export function EventForm({ event, trainings, action, allowAddAnother, allowInli
             placeholder="https://..."
             className="input"
           />
-          <p className="text-xs text-slate-500 mt-1">
-            Wird Teilnehmern in Bestaetigungen genutzt.
-          </p>
         </div>
       </section>
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">6. Kapazitaet &amp; Notizen</h2>
+          <h2 className="font-semibold text-slate-800">5. Kapazitaet &amp; Notizen</h2>
         </div>
         <div>
           <label className="label">Max. Teilnehmerzahl</label>
@@ -282,5 +218,3 @@ export function EventForm({ event, trainings, action, allowAddAnother, allowInli
     </form>
   );
 }
-
-export { eurInputValue };

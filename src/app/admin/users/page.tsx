@@ -66,6 +66,9 @@ export default async function UsersPage({
                     )}
                   </td>
                   <td className="text-right space-x-1">
+                    <a href={`/admin/users/${u.id}/access`} className="btn-secondary text-xs">
+                      Zugriffe
+                    </a>
                     <form method="post" action={`/api/admin/users/${u.id}/toggle`} className="inline">
                       <button className="btn-secondary text-xs">{u.active ? "Deaktivieren" : "Aktivieren"}</button>
                     </form>

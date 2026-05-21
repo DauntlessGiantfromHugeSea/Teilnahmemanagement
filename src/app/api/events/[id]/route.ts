@@ -25,6 +25,13 @@ function intOrNull(v: FormDataEntryValue | null) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function priceCents(v: FormDataEntryValue | null): number {
+  const s = String(v ?? "").trim().replace(",", ".");
+  if (!s) return 0;
+  const n = parseFloat(s);
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : 0;
+}
+
 function formatOrDefault(v: FormDataEntryValue | null): EventFormat {
   return String(v) === "WEBINAR" ? "WEBINAR" : "PRESENCE";
 }
@@ -35,15 +42,31 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
   const format = formatOrDefault(f.get("format"));
+  const title = String(f.get("title") ?? "").trim();
+  const description = strOrNull(f.get("description"));
   const notesPlain = String(f.get("notes") ?? "").trim();
+
+  const existing = await prisma.event.findUnique({ where: { id: params.id } });
+  if (!existing) return new NextResponse("Not found", { status: 404 });
+
+  // Training mit den uebergebenen Preisen aktualisieren (gleiches trainingId behalten)
+  await prisma.training.update({
+    where: { id: existing.trainingId },
+    data: {
+      title,
+      description,
+      priceDay1: priceCents(f.get("priceDay1")),
+      priceDay2: format === "WEBINAR" ? 0 : priceCents(f.get("priceDay2")),
+      priceBoth: format === "WEBINAR" ? 0 : priceCents(f.get("priceBoth")),
+    },
+  });
 
   await prisma.event.update({
     where: { id: params.id },
     data: {
-      title: String(f.get("title") ?? "").trim(),
-      trainingId: String(f.get("trainingId") ?? ""),
+      title,
       format,
-      description: strOrNull(f.get("description")),
+      description,
       day1Date: dateOrNull(f.get("day1Date")),
       day2Date: format === "WEBINAR" ? null : dateOrNull(f.get("day2Date")),
       startTime: strOrNull(f.get("startTime")),
