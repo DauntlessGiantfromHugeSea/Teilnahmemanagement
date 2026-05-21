@@ -3,7 +3,6 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/db";
 import { Shell } from "@/components/Shell";
 import { listAccessibleEventIds } from "@/lib/rbac";
-import { basePriceCents, finalPriceCents, formatEUR } from "@/lib/pricing";
 import Link from "next/link";
 
 export default async function Dashboard() {
@@ -29,16 +28,6 @@ export default async function Dashboard() {
     }),
   ]);
 
-  // Umsatz-Schaetzung (gesamt, alle zugaenglichen Events)
-  const parts = await prisma.participant.findMany({
-    where: { event: whereEvent, status: { not: "CANCELLED" } },
-    include: { event: { include: { training: true } } },
-  });
-  const total = parts.reduce((sum, p) => {
-    const base = basePriceCents(p.event.training, p.dayOption);
-    return sum + finalPriceCents(base, p.discountBps);
-  }, 0);
-
   return (
     <Shell session={s} active="dashboard">
       <div className="flex items-center justify-between mb-6">
@@ -46,11 +35,10 @@ export default async function Dashboard() {
         <div className="text-sm text-slate-500">{new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <KpiCard label="Veranstaltungen" value={eventCount} />
         <KpiCard label="Teilnehmer" value={participantCount} />
         <KpiCard label="Offene Rechnungen" value={openInvoices} tone="warn" />
-        <KpiCard label="Umsatz (geplant)" value={formatEUR(total)} />
       </div>
 
       <section className="card p-6">

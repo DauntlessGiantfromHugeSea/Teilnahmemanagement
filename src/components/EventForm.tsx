@@ -4,6 +4,7 @@ interface Props {
   event?: Event;
   trainings: Training[];
   action: string;
+  allowAddAnother?: boolean;
 }
 
 function dateInputValue(d?: Date | null) {
@@ -12,7 +13,7 @@ function dateInputValue(d?: Date | null) {
   return x.toISOString().slice(0, 10);
 }
 
-export function EventForm({ event, trainings, action }: Props) {
+export function EventForm({ event, trainings, action, allowAddAnother }: Props) {
   return (
     <form method="post" action={action} className="space-y-4">
       <div>
@@ -42,7 +43,14 @@ export function EventForm({ event, trainings, action }: Props) {
         <label className="label">Ort</label>
         <input name="location" defaultValue={event?.location ?? ""} className="input" />
       </div>
-      <button className="btn-primary">Speichern</button>
+      <div className="flex flex-wrap gap-2 pt-2">
+        <button name="next" value="detail" className="btn-primary">Speichern</button>
+        {allowAddAnother && (
+          <button name="next" value="another" className="btn-secondary">
+            Speichern &amp; weitere anlegen
+          </button>
+        )}
+      </div>
     </form>
   );
 }

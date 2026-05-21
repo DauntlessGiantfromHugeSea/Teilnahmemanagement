@@ -21,7 +21,7 @@ html, body {
   @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition;
 }
 .btn-primary {
-  @apply btn bg-brand-800 text-white hover:bg-brand-700 disabled:opacity-50;
+  @apply btn bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50;
 }
 .btn-secondary {
   @apply btn bg-white border border-slate-300 text-slate-700 hover:bg-slate-50;

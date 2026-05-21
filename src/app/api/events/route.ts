@@ -28,5 +28,7 @@ export async function POST(req: Request) {
     },
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "Event", entityId: ev.id });
-  return new NextResponse(null, { status: 303, headers: { Location: `/events/${ev.id}` } });
+  const next = String(f.get("next") ?? "detail");
+  const location = next === "another" ? `/events/new?ok=1` : `/events/${ev.id}`;
+  return new NextResponse(null, { status: 303, headers: { Location: location } });
 }

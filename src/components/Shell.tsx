@@ -47,7 +47,7 @@ export function Shell({ session, active, children }: Props) {
                 className={
                   "px-3 py-1.5 rounded-md text-sm font-medium transition " +
                   (active === n.id
-                    ? "text-brand-800 bg-brand-50"
+                    ? "text-brand-700 bg-brand-50"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100")
                 }
               >
@@ -58,7 +58,7 @@ export function Shell({ session, active, children }: Props) {
           <details className="relative shrink-0">
             <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-slate-100 pl-2 pr-1 py-1">
               <span className="hidden sm:block text-sm text-slate-700">{session.name}</span>
-              <span className="h-8 w-8 rounded-full bg-brand-100 text-brand-800 text-xs font-semibold flex items-center justify-center">
+              <span className="h-8 w-8 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold flex items-center justify-center">
                 {initials}
               </span>
             </summary>
