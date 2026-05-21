@@ -206,7 +206,7 @@ export async function GET(
   const pdf = await done;
 
   const filename = `Anwesenheit_${slug(ev.title)}${day ? `_Tag${day}` : ""}.pdf`;
-  return new NextResponse(pdf, {
+  return new NextResponse(new Uint8Array(pdf), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",

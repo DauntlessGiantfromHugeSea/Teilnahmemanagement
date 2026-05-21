@@ -13,11 +13,11 @@ const nextConfig = {
   // Stage kopiert pdfkit + transitive Deps explizit mit hinein.
   experimental: {
     serverComponentsExternalPackages: ["pdfkit", "fontkit"],
-  },
-  outputFileTracingIncludes: {
-    "/api/events/*/attendance/pdf/route": [
-      "./node_modules/pdfkit/js/data/**",
-    ],
+    outputFileTracingIncludes: {
+      "/api/events/*/attendance/pdf/route": [
+        "./node_modules/pdfkit/js/data/**",
+      ],
+    },
   },
 };
 export default nextConfig;
