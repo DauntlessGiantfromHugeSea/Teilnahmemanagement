@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-// AES-256-GCM Feldverschluesselung.
+// AES-256-GCM Feldverschlüsselung.
 // Format: base64( version(1) || iv(12) || tag(16) || ciphertext )
 const VERSION = 0x01;
 
@@ -8,7 +8,7 @@ function getKey(): Buffer {
   const hex = process.env.FIELD_ENCRYPTION_KEY;
   if (!hex || hex.length !== 64) {
     throw new Error(
-      "FIELD_ENCRYPTION_KEY fehlt oder hat falsche Laenge (64 hex chars / 32 bytes)."
+      "FIELD_ENCRYPTION_KEY fehlt oder hat falsche Länge (64 hex chars / 32 bytes)."
     );
   }
   return Buffer.from(hex, "hex");
@@ -29,7 +29,7 @@ export function decryptField(payload: string | null | undefined): string | null 
   const buf = Buffer.from(payload, "base64");
   if (buf.length < 1 + 12 + 16 + 1) return null;
   const version = buf[0];
-  if (version !== VERSION) throw new Error("Unbekannte Verschluesselungs-Version");
+  if (version !== VERSION) throw new Error("Unbekannte Verschlüsselungs-Version");
   const iv = buf.subarray(1, 13);
   const tag = buf.subarray(13, 29);
   const enc = buf.subarray(29);
@@ -47,7 +47,7 @@ export function safeDecrypt(payload: string | null | undefined): string | null {
   }
 }
 
-// Blind index fuer E-Mail-Lookup. HMAC-SHA-256 mit dem gleichen Key,
+// Blind index für E-Mail-Lookup. HMAC-SHA-256 mit dem gleichen Key,
 // damit identische Inputs deterministisch denselben Hash liefern.
 export function blindIndex(value: string): string {
   const normalized = value.trim().toLowerCase();

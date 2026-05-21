@@ -46,17 +46,17 @@ export default async function SetupPage({
           <img src={qrDataUrl} alt="QR" className="rounded border border-slate-200" />
         </div>
         <div className="text-center mb-6">
-          <div className="text-xs text-slate-500">Manueller Schluessel</div>
+          <div className="text-xs text-slate-500">Manueller Schlüssel</div>
           <code className="text-sm font-mono select-all break-all">{plainSecret}</code>
         </div>
         {searchParams.error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-            Code ungueltig. Bitte erneut versuchen.
+            Code ungültig. Bitte erneut versuchen.
           </div>
         )}
         <form method="post" action="/api/account/2fa/enable" className="space-y-4">
           <div>
-            <label className="label">Code zur Bestaetigung</label>
+            <label className="label">Code zur Bestätigung</label>
             <input
               name="code"
               required

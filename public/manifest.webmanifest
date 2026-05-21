@@ -6,33 +6,21 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f6f8fb",
+  "background_color": "#f4f7fa",
   "theme_color": "#007e80",
   "lang": "de",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
+      "src": "/favicon.png",
+      "sizes": "any",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-maskable.png",
-      "sizes": "512x512",
+      "src": "/favicon.png",
+      "sizes": "any",
       "type": "image/png",
       "purpose": "maskable"
-    },
-    {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
     }
   ]
 }

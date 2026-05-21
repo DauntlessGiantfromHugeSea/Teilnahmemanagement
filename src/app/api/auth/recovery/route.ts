@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   }
   codes.splice(idx, 1);
 
-  // 2FA wird zurueckgesetzt, User muss neu einrichten
+  // 2FA wird zurückgesetzt, User muss neu einrichten
   await prisma.user.update({
     where: { id: user.id },
     data: {

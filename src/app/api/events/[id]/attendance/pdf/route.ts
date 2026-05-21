@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canViewEvent } from "@/lib/rbac";
@@ -40,6 +42,25 @@ const ROW_HEIGHT = 44;
 const PAGE_W = 842; // A4 landscape pt
 const PAGE_H = 595;
 const CONTENT_W = COLS.reduce((s, c) => s + c.width, 0); // 770
+
+// Firmenlogo aus public/logo.png laden und im Memory cachen.
+// Falls die Datei fehlt, wird der Header schlicht ohne Logo gerendert.
+let LOGO_CACHE: Buffer | null = null;
+let LOGO_LOADED = false;
+async function getLogo(): Promise<Buffer | null> {
+  if (LOGO_LOADED) return LOGO_CACHE;
+  LOGO_LOADED = true;
+  for (const candidate of ["logo.png", "logo.jpg", "logo.jpeg"]) {
+    try {
+      const path = join(process.cwd(), "public", candidate);
+      LOGO_CACHE = await readFile(path);
+      return LOGO_CACHE;
+    } catch {
+      // weiter zum nächsten Kandidaten
+    }
+  }
+  return null;
+}
 
 export async function GET(
   req: Request,
@@ -105,6 +126,17 @@ export async function GET(
   const startX = MARGIN;
   let y = MARGIN;
 
+  // Firmenlogo oben rechts (best effort, überspringt bei Fehler)
+  const logo = await getLogo();
+  if (logo) {
+    try {
+      const logoH = 48;
+      doc.image(logo, PAGE_W - MARGIN - 140, MARGIN, { height: logoH, fit: [140, logoH] });
+    } catch {
+      // Logo konnte nicht eingebettet werden, weitermachen ohne
+    }
+  }
+
   // Header
   doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8);
   doc.text(
@@ -169,14 +201,14 @@ export async function GET(
       y += 22;
     }
     const p = filtered[i];
-    drawRow(doc, startX, y, i + 1, p, day === null);
+    drawRow(doc, startX, y, i + 1, p, day === null, ev.day1Date, ev.day2Date);
     y += ROW_HEIGHT;
   }
 
   // Footer mit Unterschriftslinien (immer auf der letzten Seite)
   const footerY = PAGE_H - MARGIN - 40;
   if (y > footerY - 10) {
-    // Wenn Tabelle zu nah am Rand: neue Seite fuer Footer
+    // Wenn Tabelle zu nah am Rand: neue Seite für Footer
     doc.addPage();
   }
   const sigY = PAGE_H - MARGIN - 30;
@@ -206,7 +238,7 @@ export async function GET(
   const pdf = await done;
 
   const filename = `Anwesenheit_${slug(ev.title)}${day ? `_Tag${day}` : ""}.pdf`;
-  return new NextResponse(pdf, {
+  return new NextResponse(new Uint8Array(pdf), {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
@@ -243,7 +275,9 @@ function drawRow(
   y: number,
   num: number,
   p: any | undefined,
-  showDayBadge: boolean
+  showDayBadge: boolean,
+  day1?: Date | null,
+  day2?: Date | null
 ) {
   // Vertikale Trenner + unterer Rahmen
   doc.strokeColor(rgb(BORDER)).lineWidth(0.4);
@@ -276,12 +310,21 @@ function drawRow(
     { width: COLS[1].width - 12, ellipsis: true }
   );
   if (showDayBadge) {
-    doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8).text(
-      dayLabel(p.dayOption),
-      cx + 6,
-      y + 24,
-      { width: COLS[1].width - 12 }
-    );
+    const fmt = (d?: Date | null) => d ? d.toLocaleDateString("de-DE") : "";
+    const dateLine =
+      p.dayOption === "DAY_1"
+        ? fmt(day1)
+        : p.dayOption === "DAY_2"
+        ? fmt(day2)
+        : [fmt(day1), fmt(day2)].filter(Boolean).join(", ");
+    if (dateLine) {
+      doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8).text(
+        dateLine,
+        cx + 6,
+        y + 24,
+        { width: COLS[1].width - 12 }
+      );
+    }
   }
   cx += COLS[1].width;
 

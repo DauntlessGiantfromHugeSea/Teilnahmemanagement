@@ -32,7 +32,7 @@ export async function POST(
     return new NextResponse("Forbidden (Ziel-Event)", { status: 403 });
   }
 
-  // dayOption ggf. anpassen: wenn Ziel keinen Tag 2 hat, DAY_2/BOTH auf DAY_1 zurueckfallen
+  // dayOption ggf. anpassen: wenn Ziel keinen Tag 2 hat, DAY_2/BOTH auf DAY_1 zurückfallen
   const targetHasTwoDays = !!target.day2Date;
   let nextDayOption = p.dayOption;
   if (!targetHasTwoDays && (p.dayOption === "DAY_2" || p.dayOption === "BOTH")) {

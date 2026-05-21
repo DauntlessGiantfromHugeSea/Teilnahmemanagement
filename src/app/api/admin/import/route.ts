@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     },
   });
 
-  // Ergebnis als base64url-Query an die Seite haengen, damit die UI es darstellt
+  // Ergebnis als base64url-Query an die Seite hängen, damit die UI es darstellt
   const json = JSON.stringify(result);
   const enc = Buffer.from(json, "utf8").toString("base64url");
   return new NextResponse(null, {

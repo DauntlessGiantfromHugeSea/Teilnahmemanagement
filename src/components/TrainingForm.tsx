@@ -28,7 +28,7 @@ export function TrainingForm({ training, action }: { training?: Training; action
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="active" defaultChecked={training?.active ?? true} />
-        Aktiv (fuer neue Veranstaltungen waehlbar)
+        Aktiv (für neue Veranstaltungen wählbar)
       </label>
       <button className="btn-primary">Speichern</button>
     </form>

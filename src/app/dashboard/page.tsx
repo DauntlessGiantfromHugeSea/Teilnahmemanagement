@@ -59,7 +59,7 @@ export default async function Dashboard() {
       <div className="grid lg:grid-cols-2 gap-6">
         <section className="card overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
-            <h2 className="font-semibold">Naechste Veranstaltungen</h2>
+            <h2 className="font-semibold">Nächste Veranstaltungen</h2>
             <Link href="/events" className="text-sm text-brand-700 hover:underline">Alle anzeigen</Link>
           </div>
           {upcoming.length === 0 ? (

@@ -31,7 +31,7 @@ export default async function ParticipantDetail({
   const base = basePriceCents(p.event.training, p.dayOption);
   const final = finalPriceCents(base, p.discountBps);
 
-  // Andere Veranstaltungen fuer Umbuchung (nur die, auf die der User schreiben darf)
+  // Andere Veranstaltungen für Umbuchung (nur die, auf die der User schreiben darf)
   const otherEvents = canWrite
     ? await prisma.event.findMany({
         where: { id: { not: p.eventId } },
@@ -106,7 +106,7 @@ export default async function ParticipantDetail({
             {canWrite && (
               <form method="post" action={`/api/participants/${p.id}/comments`} className="mb-4 space-y-2">
                 <textarea name="body" required placeholder="Neuer Kommentar..." className="input" rows={3} />
-                <button className="btn-primary text-sm">Kommentar hinzufuegen</button>
+                <button className="btn-primary text-sm">Kommentar hinzufügen</button>
               </form>
             )}
             {p.comments.length === 0 ? (
@@ -139,7 +139,7 @@ export default async function ParticipantDetail({
                 <div>
                   <label className="label">Ziel-Veranstaltung</label>
                   <select name="targetEventId" required className="input">
-                    <option value="" disabled>Bitte waehlen</option>
+                    <option value="" disabled>Bitte wählen</option>
                     {otherEvents.map((e) => (
                       <option key={e.id} value={e.id}>
                         {e.title}
@@ -187,7 +187,7 @@ export default async function ParticipantDetail({
           <section className="card p-6">
             <h2 className="font-semibold mb-4">Verlauf</h2>
             {p.history.length === 0 ? (
-              <p className="text-sm text-slate-500">Keine Eintraege.</p>
+              <p className="text-sm text-slate-500">Keine Einträge.</p>
             ) : (
               <ol className="space-y-2 text-xs">
                 {p.history.map((h) => (

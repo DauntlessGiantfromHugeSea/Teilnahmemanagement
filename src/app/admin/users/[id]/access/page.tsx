@@ -60,7 +60,7 @@ export default async function UserAccessPage({
         <div className="card p-6 mb-6 border-l-4 border-brand-500">
           <p className="text-sm text-slate-700">
             <strong>{user.role === Role.ADMIN ? "Admins" : "Buchhaltung"}</strong> sehen
-            automatisch alle Veranstaltungen. Eine einzelne Zuweisung ist hier nicht noetig.
+            automatisch alle Veranstaltungen. Eine einzelne Zuweisung ist hier nicht nötig.
           </p>
         </div>
       ) : (
@@ -83,7 +83,7 @@ export default async function UserAccessPage({
           </details>
           <div className="flex gap-2">
             <button className="btn-primary">Speichern</button>
-            <a href="/admin/users" className="btn-secondary">Zurueck</a>
+            <a href="/admin/users" className="btn-secondary">Zurück</a>
           </div>
         </form>
       )}

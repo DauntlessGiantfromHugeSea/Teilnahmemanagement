@@ -23,7 +23,7 @@ export default async function AuditPage() {
               <th>Zeitpunkt</th>
               <th>Akteur</th>
               <th>Aktion</th>
-              <th>Entitaet</th>
+              <th>Entität</th>
               <th>ID</th>
             </tr>
           </thead>

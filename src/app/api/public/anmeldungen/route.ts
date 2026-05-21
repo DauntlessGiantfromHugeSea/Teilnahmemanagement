@@ -71,7 +71,7 @@ async function readBody(req: Request): Promise<Record<string, unknown>> {
 }
 
 async function getSystemActorId(): Promise<string> {
-  // Verwende den aeltesten Admin-Account als actor fuer Audit
+  // Verwende den aeltesten Admin-Account als actor für Audit
   const admin = await prisma.user.findFirst({
     where: { role: "ADMIN" },
     orderBy: { createdAt: "asc" },
@@ -81,7 +81,7 @@ async function getSystemActorId(): Promise<string> {
 
 export async function POST(req: Request) {
   if (!authorized(req)) {
-    return jsonError(401, "API key fehlt oder ungueltig");
+    return jsonError(401, "API key fehlt oder ungültig");
   }
   let body: Record<string, unknown>;
   try {

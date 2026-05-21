@@ -50,15 +50,14 @@ export default async function AccountingPage({
         </div>
       </div>
 
-      <form method="get" className="card p-3 mb-6 flex flex-wrap items-center gap-3">
-        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+      <form method="get" className="card p-3 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
+        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide shrink-0">
           Filter
         </label>
         <select
           name="eventId"
           defaultValue={eventId ?? "ALL"}
-          className="input flex-1 min-w-[240px]"
-          onChange={undefined}
+          className="input flex-1 min-w-0"
         >
           <option value="ALL">Alle Veranstaltungen ({events.length})</option>
           {events.map((e) => (
@@ -68,12 +67,14 @@ export default async function AccountingPage({
             </option>
           ))}
         </select>
-        <button className="btn-primary text-sm">anzeigen</button>
-        {eventId && (
-          <a href="/accounting" className="text-xs text-slate-500 hover:underline">
-            Filter zuruecksetzen
-          </a>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          <button className="btn-primary text-sm">anzeigen</button>
+          {eventId && (
+            <a href="/accounting" className="text-xs text-slate-500 hover:underline">
+              Filter zurücksetzen
+            </a>
+          )}
+        </div>
       </form>
 
       <div className="card overflow-hidden">
@@ -199,7 +200,7 @@ export default async function AccountingPage({
                         >
                           <input type="hidden" name="invoiceStatus" value="OPEN" />
                           <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
-                            rueckgaengig
+                            rückgängig
                           </button>
                         </form>
                       </div>
@@ -220,7 +221,7 @@ export default async function AccountingPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center text-slate-500 py-8">
-                  Keine Eintraege.
+                  Keine Einträge.
                 </td>
               </tr>
             )}

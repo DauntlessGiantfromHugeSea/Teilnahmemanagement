@@ -18,7 +18,7 @@ export default async function RecoveryPage({
         </div>
         {searchParams.error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-            Code ungueltig.
+            Code ungültig.
           </div>
         )}
         <form method="post" action="/api/auth/recovery" className="space-y-4">
@@ -35,7 +35,7 @@ export default async function RecoveryPage({
           <button className="btn-primary w-full">Anmelden</button>
         </form>
         <p className="mt-6 text-xs text-slate-400 text-center">
-          Jeder Code ist einmalig gueltig. Du wirst danach gebeten, 2FA neu einzurichten.
+          Jeder Code ist einmalig gültig. Du wirst danach gebeten, 2FA neu einzurichten.
         </p>
       </div>
     </div>

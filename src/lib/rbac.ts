@@ -35,7 +35,7 @@ export async function canWriteEvent(s: SessionPayload, eventId: string): Promise
     const g = await prisma.eventAccess.findUnique({
       where: { eventId_userId: { eventId, userId: s.uid } },
     });
-    return !!g?.canWrite || true; // Editors duerfen grundsaetzlich schreiben
+    return !!g?.canWrite || true; // Editors dürfen grundsätzlich schreiben
   }
   return false;
 }

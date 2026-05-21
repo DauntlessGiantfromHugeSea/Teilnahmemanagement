@@ -10,7 +10,7 @@ import { DayOption, ParticipantStatus } from "@prisma/client";
 
 const STATUS_LABELS: Record<ParticipantStatus, string> = {
   REGISTERED: "Angemeldet",
-  CONFIRMED: "Bestaetigt",
+  CONFIRMED: "Bestätigt",
   CANCELLED: "Storniert",
   ATTENDED: "Teilgenommen",
   NO_SHOW: "Nicht erschienen",
@@ -27,16 +27,22 @@ export default async function EventDetail({ params }: { params: { id: string } }
 
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
-    include: { training: true, participants: { orderBy: { createdAt: "desc" } } },
+    include: { training: true, participants: true },
   });
   if (!ev) notFound();
 
   const canWrite = await canWriteEvent(s, ev.id);
-  const participants = ev.participants.map(decryptParticipant);
+  const participants = ev.participants
+    .map(decryptParticipant)
+    .sort((a, b) => {
+      const ln = (a.lastName ?? "").localeCompare(b.lastName ?? "", "de");
+      if (ln !== 0) return ln;
+      return (a.firstName ?? "").localeCompare(b.firstName ?? "", "de");
+    });
 
   return (
     <Shell session={s} active="events">
-      <div className="flex items-start justify-between mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6 gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
             <span className={"badge " + (ev.format === "WEBINAR" ? "bg-indigo-100 text-indigo-800" : "bg-brand-100 text-brand-700")}>
@@ -71,7 +77,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
             <p className="text-sm text-slate-600 mt-2 max-w-2xl">{ev.description}</p>
           )}
         </div>
-        <div className="flex gap-2 flex-wrap justify-end items-center">
+        <div className="flex gap-2 flex-wrap lg:justify-end items-center">
           <a
             href={`/api/events/${ev.id}/attendance/pdf`}
             download
@@ -85,7 +91,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
                 href={`/api/events/${ev.id}/attendance/pdf?day=1`}
                 download
                 className="btn-secondary text-xs"
-                title="Nur Teilnehmer fuer Tag 1"
+                title="Nur Teilnehmer für Tag 1"
               >
                 Tag 1
               </a>
@@ -93,7 +99,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
                 href={`/api/events/${ev.id}/attendance/pdf?day=2`}
                 download
                 className="btn-secondary text-xs"
-                title="Nur Teilnehmer fuer Tag 2"
+                title="Nur Teilnehmer für Tag 2"
               >
                 Tag 2
               </a>
@@ -110,6 +116,33 @@ export default async function EventDetail({ params }: { params: { id: string } }
           )}
         </div>
       </div>
+
+      {canWrite && (
+        <section className="card p-4 mb-6 bg-brand-50/40 border-brand-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-brand-700">
+                Öffentlicher Anmeldelink
+              </div>
+              <code className="block mt-1 text-xs text-slate-700 break-all font-mono">
+                {`/anmeldung/${ev.id}`}
+              </code>
+              <p className="text-xs text-slate-500 mt-1">
+                Vollständige URL: <code className="font-mono">https://teilnahme.fb-akademie.de/anmeldung/{ev.id}</code>
+                {" "}- per iframe in WordPress einbettbar.
+              </p>
+            </div>
+            <a
+              href={`/anmeldung/${ev.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary text-xs"
+            >
+              Anmeldeseite ansehen
+            </a>
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 text-sm">
         <div className="card p-4">
