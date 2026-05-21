@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { basePriceCents, formatEUR } from "@/lib/pricing";
 import { DayOption } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 interface Props {
   params: { id: string };
   searchParams: { error?: string; day?: string };
