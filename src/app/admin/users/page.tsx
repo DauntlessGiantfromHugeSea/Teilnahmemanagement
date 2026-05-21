@@ -54,8 +54,10 @@ export default async function UsersPage({
                   <td>
                     {u.totpEnabled ? (
                       <span className="badge bg-green-100 text-green-800">aktiv</span>
+                    ) : u.totpRequired ? (
+                      <span className="badge bg-amber-100 text-amber-800">Pflicht, nicht eingerichtet</span>
                     ) : (
-                      <span className="badge bg-amber-100 text-amber-800">inaktiv</span>
+                      <span className="badge bg-slate-100 text-slate-600">deaktiviert</span>
                     )}
                   </td>
                   <td>
@@ -72,9 +74,20 @@ export default async function UsersPage({
                     <form method="post" action={`/api/admin/users/${u.id}/toggle`} className="inline">
                       <button className="btn-secondary text-xs">{u.active ? "Deaktivieren" : "Aktivieren"}</button>
                     </form>
-                    <form method="post" action={`/api/admin/users/${u.id}/reset2fa`} className="inline">
+                    <form method="post" action={`/api/admin/users/${u.id}/reset2fa`} className="inline" title="Setzt 2FA zurück, Nutzer muss neu einrichten">
                       <button className="btn-secondary text-xs">2FA zurücksetzen</button>
                     </form>
+                    {u.totpRequired ? (
+                      <form method="post" action={`/api/admin/users/${u.id}/disable2fa`} className="inline" title="2FA komplett deaktivieren - Nutzer kann ohne 2FA einloggen">
+                        <input type="hidden" name="mode" value="disable" />
+                        <button className="btn-secondary text-xs">2FA deaktivieren</button>
+                      </form>
+                    ) : (
+                      <form method="post" action={`/api/admin/users/${u.id}/disable2fa`} className="inline" title="2FA-Pflicht wieder aktivieren - Nutzer muss beim nächsten Login einrichten">
+                        <input type="hidden" name="mode" value="require-on" />
+                        <button className="btn-secondary text-xs">2FA wieder Pflicht</button>
+                      </form>
+                    )}
                   </td>
                 </tr>
               ))}

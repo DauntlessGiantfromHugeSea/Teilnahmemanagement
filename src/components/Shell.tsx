@@ -84,6 +84,9 @@ export function Shell({ session, active, children }: Props) {
                 <Link href="/account" className="block px-3 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
                   Mein Konto
                 </Link>
+                <Link href="/hilfe" className="block px-3 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+                  Hilfe &amp; Anleitung
+                </Link>
                 {isAdmin && (
                   <>
                     <div className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wider font-semibold text-slate-400">
@@ -137,6 +140,20 @@ export function Shell({ session, active, children }: Props) {
           </nav>
           <div className="flex-1 md:hidden" />
 
+          {/* Hilfe-Icon */}
+          <Link
+            href="/hilfe"
+            aria-label="Hilfe & Anleitung"
+            title="Hilfe & Anleitung"
+            className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.5V14" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="17" r="0.6" fill="currentColor" stroke="none" />
+            </svg>
+          </Link>
+
           {/* User-Avatar / Dropdown (Desktop) */}
           <details className="relative shrink-0 hidden md:block">
             <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-brand-50 pl-2 pr-1 py-1">
@@ -152,6 +169,9 @@ export function Shell({ session, active, children }: Props) {
               </div>
               <Link href="/account" className="block px-3 py-2 text-sm hover:bg-slate-50">
                 Mein Konto
+              </Link>
+              <Link href="/hilfe" className="block px-3 py-2 text-sm hover:bg-slate-50">
+                Hilfe &amp; Anleitung
               </Link>
               {isAdmin && (
                 <>

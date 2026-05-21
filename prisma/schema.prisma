@@ -56,6 +56,7 @@ model User {
   // 2FA
   totpSecret    String?   // verschluesselt
   totpEnabled   Boolean   @default(false)
+  totpRequired  Boolean   @default(true)  // false = Login auch ohne 2FA erlaubt
   recoveryCodes String?   // verschluesselt, JSON-Array
   // Meta
   active        Boolean   @default(true)

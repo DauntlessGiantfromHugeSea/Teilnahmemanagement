@@ -119,27 +119,40 @@ export default async function EventDetail({ params }: { params: { id: string } }
 
       {canWrite && (
         <section className="card p-4 mb-6 bg-brand-50/40 border-brand-200">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold uppercase tracking-wide text-brand-700">
                 Öffentlicher Anmeldelink
               </div>
-              <code className="block mt-1 text-xs text-slate-700 break-all font-mono">
-                {`/anmeldung/${ev.id}`}
-              </code>
-              <p className="text-xs text-slate-500 mt-1">
-                Vollständige URL: <code className="font-mono">https://teilnahme.fb-akademie.de/anmeldung/{ev.id}</code>
-                {" "}- per iframe in WordPress einbettbar.
-              </p>
+              <div className="mt-2 grid gap-2 text-xs">
+                <div>
+                  <div className="text-slate-500 mb-0.5">Direktlink (zum Teilen, in Mails / Newsletter):</div>
+                  <code className="block bg-white border border-slate-200 rounded px-2 py-1.5 break-all font-mono text-slate-800">
+                    https://teilnahme.fb-akademie.de/anmeldung/{ev.id}
+                  </code>
+                </div>
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-brand-700 hover:underline select-none">
+                    iframe-Code für WordPress anzeigen
+                  </summary>
+                  <code className="mt-2 block bg-white border border-slate-200 rounded px-2 py-1.5 break-all font-mono text-slate-700 whitespace-pre-wrap">
+{`<iframe src="https://teilnahme.fb-akademie.de/anmeldung/${ev.id}"
+  width="100%" height="1000" frameborder="0"
+  style="border:0;background:transparent;" loading="lazy"></iframe>`}
+                  </code>
+                </details>
+              </div>
             </div>
-            <a
-              href={`/anmeldung/${ev.id}`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-secondary text-xs"
-            >
-              Anmeldeseite ansehen
-            </a>
+            <div className="flex flex-col gap-2 shrink-0">
+              <a
+                href={`/anmeldung/${ev.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-primary text-xs"
+              >
+                Anmeldeseite öffnen
+              </a>
+            </div>
           </div>
         </section>
       )}
