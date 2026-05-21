@@ -66,7 +66,5 @@ export async function POST(req: Request, { params }: { params: { pid: string } }
     diff,
     encryptDiff: true,
   });
-
-  const base = new URL(req.url).origin;
-  return NextResponse.redirect(`${base}/events/${existing.eventId}/participants/${existing.id}`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/events/${existing.eventId}/participants/${existing.id}` } });
 }

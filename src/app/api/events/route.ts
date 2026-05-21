@@ -12,7 +12,6 @@ function dateOrNull(v: FormDataEntryValue | null) {
 }
 
 export async function POST(req: Request) {
-  const base = new URL(req.url).origin;
   const s = await getSession();
   if (!s || !canWriteGlobal(s)) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
@@ -29,5 +28,5 @@ export async function POST(req: Request) {
     },
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "Event", entityId: ev.id });
-  return NextResponse.redirect(`${base}/events/${ev.id}`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/events/${ev.id}` } });
 }

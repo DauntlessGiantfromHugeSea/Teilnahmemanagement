@@ -13,7 +13,6 @@ function pctToBps(v: FormDataEntryValue | null): number {
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const base = new URL(req.url).origin;
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
   if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
@@ -60,5 +59,5 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     entityId: p.id,
     participantId: p.id,
   });
-  return NextResponse.redirect(`${base}/events/${params.id}/participants/${p.id}`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/events/${params.id}/participants/${p.id}` } });
 }

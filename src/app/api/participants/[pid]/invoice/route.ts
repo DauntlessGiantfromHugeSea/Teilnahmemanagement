@@ -34,8 +34,6 @@ export async function POST(req: Request, { params }: { params: { pid: string } }
     participantId: p.id,
     diff: { from: p.invoiceStatus, to: status, invoiceNumber },
   });
-
-  const base = new URL(req.url).origin;
-  const back = req.headers.get("referer") ?? `${base}/events/${p.eventId}/participants/${p.id}`;
-  return NextResponse.redirect(back, { status: 303 });
+  const back = req.headers.get("referer") ?? `/events/${p.eventId}/participants/${p.id}`;
+  return new NextResponse(null, { status: 303, headers: { Location: back } });
 }

@@ -12,7 +12,6 @@ function dateOrNull(v: FormDataEntryValue | null) {
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const base = new URL(req.url).origin;
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
   if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
@@ -28,5 +27,5 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     },
   });
   await audit({ actorId: s.uid, action: "UPDATE", entityType: "Event", entityId: params.id });
-  return NextResponse.redirect(`${base}/events/${params.id}`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/events/${params.id}` } });
 }

@@ -5,7 +5,6 @@ import { isAdmin } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
-  const base = new URL(req.url).origin;
   const s = await getSession();
   if (!s || !isAdmin(s)) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
@@ -18,5 +17,5 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     update: { canWrite },
   });
   await audit({ actorId: s.uid, action: "GRANT", entityType: "EventAccess", entityId: params.id, diff: { userId, canWrite } });
-  return NextResponse.redirect(`${base}/events/${params.id}/access`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/events/${params.id}/access` } });
 }
