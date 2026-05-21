@@ -7,8 +7,13 @@ const nextConfig = {
       { protocol: "https", hostname: "fb-akademie.de" },
     ],
   },
-  // pdfkit laedt seine AFM-Fonts dynamisch zur Laufzeit -
-  // diese Dateien muessen ins standalone Output mit hinein.
+  // pdfkit laedt seine AFM-Fonts ueber __dirname zur Laufzeit. Damit das
+  // funktioniert, darf webpack pdfkit nicht buendeln, sondern muss es per
+  // require() aus node_modules zur Laufzeit laden. Der Dockerfile-Runner-
+  // Stage kopiert pdfkit + transitive Deps explizit mit hinein.
+  experimental: {
+    serverComponentsExternalPackages: ["pdfkit", "fontkit"],
+  },
   outputFileTracingIncludes: {
     "/api/events/*/attendance/pdf/route": [
       "./node_modules/pdfkit/js/data/**",
