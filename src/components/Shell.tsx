@@ -19,6 +19,7 @@ const PRIMARY = [
 const ADMIN = [
   { id: "users", href: "/admin/users", label: "Benutzer" },
   { id: "audit", href: "/admin/audit", label: "Verlauf" },
+  { id: "import", href: "/admin/import", label: "Import (CSV)" },
 ];
 
 export function Shell({ session, active, children }: Props) {

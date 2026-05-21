@@ -86,6 +86,7 @@ model Training {
 
 model Event {
   id          String      @id @default(cuid())
+  externalId  String?     @unique // z.B. "#260603" aus Anmeldeformular - fuer CSV-Import-Dedup
   trainingId  String
   training    Training    @relation(fields: [trainingId], references: [id])
   title       String      // z. B. "Crashkurs Maerz 2026"
@@ -149,6 +150,14 @@ model Participant {
   // Rabatt in Prozent (0-100), zwei Nachkommastellen via *100
   discountBps  Int       @default(0) // basis points: 1000 = 10.00%
   status       ParticipantStatus @default(REGISTERED)
+
+  // Rechnungsanschrift (verschluesselt) - kann von der Teilnehmer-Anschrift abweichen
+  billingCompany String?
+  billingName    String?
+  billingStreet  String?
+  billingZipCity String?
+  billingEmail   String?
+  costCenter     String?
 
   // Buchhaltung
   invoiceStatus InvoiceStatus @default(OPEN)
