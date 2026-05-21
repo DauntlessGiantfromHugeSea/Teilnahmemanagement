@@ -44,6 +44,7 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
 
 # Prisma-Schema + komplette Prisma-Pakete (CLI braucht @prisma/engines, @prisma/debug, etc.)
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma

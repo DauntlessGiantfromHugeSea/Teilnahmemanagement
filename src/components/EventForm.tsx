@@ -23,7 +23,12 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
   const isTwoDay = !!event?.day2Date;
 
   return (
-    <form method="post" action={action} className="event-form space-y-8">
+    <form
+      method="post"
+      action={action}
+      encType="multipart/form-data"
+      className="event-form space-y-8"
+    >
       <section className="space-y-3">
         <div>
           <h2 className="font-semibold text-slate-800">1. Format</h2>
@@ -227,29 +232,46 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
           />
         </div>
         <div>
-          <label className="label">Hero-Bild URL</label>
+          <label className="label">Hero-Bild</label>
+          {event?.heroImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.heroImageUrl}
+              alt=""
+              className="mb-2 h-32 w-full object-cover rounded-lg border border-slate-200"
+            />
+          )}
           <input
-            name="heroImageUrl"
-            type="url"
-            defaultValue={event?.heroImageUrl ?? ""}
-            placeholder="https://fb-akademie.de/wp-content/uploads/..."
+            type="file"
+            name="heroImageFile"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
             className="input"
           />
+          <input type="hidden" name="heroImageUrl" defaultValue={event?.heroImageUrl ?? ""} />
           <p className="text-xs text-slate-500 mt-1">
-            Großes Bild oben auf der Anmeldeseite. Querformat empfohlen, z. B. 1600×600.
+            JPEG, PNG, WEBP, GIF oder SVG. Max. 8 MB. Querformat empfohlen (1600×600).
+            {event?.heroImageUrl && " Eine neue Datei ersetzt das aktuelle Bild."}
           </p>
         </div>
         <div>
-          <label className="label">Eigenes Logo URL (optional)</label>
+          <label className="label">Eigenes Logo (optional)</label>
+          {event?.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.logoUrl}
+              alt=""
+              className="mb-2 h-12 w-auto rounded border border-slate-200 bg-white p-1"
+            />
+          )}
           <input
-            name="logoUrl"
-            type="url"
-            defaultValue={event?.logoUrl ?? ""}
-            placeholder="https://..."
+            type="file"
+            name="logoFile"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
             className="input"
           />
+          <input type="hidden" name="logoUrl" defaultValue={event?.logoUrl ?? ""} />
           <p className="text-xs text-slate-500 mt-1">
-            Leer lassen für das Standard-Logo der FB-Akademie.
+            Leer lassen für das Standard-Logo. PNG/SVG mit transparentem Hintergrund empfohlen.
           </p>
         </div>
         <div>

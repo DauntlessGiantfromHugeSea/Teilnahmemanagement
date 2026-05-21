@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { canWriteEvent } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
+import { saveUpload } from "@/lib/uploads";
 import { EventFormat } from "@prisma/client";
 
 function dateOrNull(v: FormDataEntryValue | null) {
@@ -34,6 +35,19 @@ function priceCents(v: FormDataEntryValue | null): number {
 
 function formatOrDefault(v: FormDataEntryValue | null): EventFormat {
   return String(v) === "WEBINAR" ? "WEBINAR" : "PRESENCE";
+}
+
+async function resolveUpload(
+  f: FormData,
+  fileField: string,
+  existingUrl: string | null
+): Promise<string | null> {
+  const file = f.get(fileField);
+  if (file instanceof File && file.size > 0) {
+    const saved = await saveUpload(file);
+    if (saved) return saved.url;
+  }
+  return existingUrl;
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -78,8 +92,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       subtitle: strOrNull(f.get("subtitle")),
       longDescription: strOrNull(f.get("longDescription")),
       agenda: strOrNull(f.get("agenda")),
-      heroImageUrl: strOrNull(f.get("heroImageUrl")),
-      logoUrl: strOrNull(f.get("logoUrl")),
+      heroImageUrl: await resolveUpload(f, "heroImageFile", strOrNull(f.get("heroImageUrl"))),
+      logoUrl: await resolveUpload(f, "logoFile", strOrNull(f.get("logoUrl"))),
       notes: notesPlain ? encryptField(notesPlain) : null,
     },
   });
