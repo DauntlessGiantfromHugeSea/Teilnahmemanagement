@@ -50,10 +50,30 @@ export default async function Dashboard() {
         <div className="text-sm text-slate-500">{new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <KpiCard label="Veranstaltungen" value={eventCount} />
         <KpiCard label="Teilnehmer" value={participantCount} />
         <KpiCard label="Offene Rechnungen" value={openInvoices} tone="warn" />
+      </div>
+
+      <div className="card p-4 mb-8 flex flex-wrap items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 mr-2">
+          Schnellzugriff
+        </span>
+        <a
+          href="/anmeldung"
+          target="_blank"
+          rel="noreferrer"
+          className="btn-secondary text-xs"
+        >
+          Öffentliche Anmelde-Übersicht ↗
+        </a>
+        <Link href="/events" className="btn-secondary text-xs">
+          Veranstaltungen
+        </Link>
+        <Link href="/hilfe" className="btn-secondary text-xs">
+          Hilfe &amp; Anleitung
+        </Link>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

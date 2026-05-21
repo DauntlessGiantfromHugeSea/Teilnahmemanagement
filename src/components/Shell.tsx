@@ -84,6 +84,9 @@ export function Shell({ session, active, children }: Props) {
                 <Link href="/account" className="block px-3 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
                   Mein Konto
                 </Link>
+                <Link href="/hilfe" className="block px-3 py-2.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100">
+                  Hilfe &amp; Anleitung
+                </Link>
                 {isAdmin && (
                   <>
                     <div className="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wider font-semibold text-slate-400">
@@ -152,6 +155,9 @@ export function Shell({ session, active, children }: Props) {
               </div>
               <Link href="/account" className="block px-3 py-2 text-sm hover:bg-slate-50">
                 Mein Konto
+              </Link>
+              <Link href="/hilfe" className="block px-3 py-2 text-sm hover:bg-slate-50">
+                Hilfe &amp; Anleitung
               </Link>
               {isAdmin && (
                 <>

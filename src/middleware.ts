@@ -5,7 +5,7 @@ const PUBLIC = [
   /^\/login(\/.*)?$/,
   /^\/api\/auth\/.*/,
   /^\/api\/public\/.*/,
-  /^\/anmeldung\/.*/,
+  /^\/anmeldung(\/.*)?$/,
   /^\/_next\/.*/,
   /^\/favicon\.ico$/,
   /^\/manifest\.webmanifest$/,
