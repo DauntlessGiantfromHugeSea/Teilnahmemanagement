@@ -7,13 +7,25 @@ import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { basePriceCents, finalPriceCents, formatEUR } from "@/lib/pricing";
 
-export default async function AccountingPage() {
+export default async function AccountingPage({
+  searchParams,
+}: {
+  searchParams: { eventId?: string };
+}) {
   const s = await getSession();
   if (!s) redirect("/login");
   if (!isAccounting(s)) redirect("/dashboard");
 
+  const eventId = searchParams.eventId && searchParams.eventId !== "ALL" ? searchParams.eventId : null;
+  const events = await prisma.event.findMany({
+    orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
+    include: { training: true },
+  });
   const parts = await prisma.participant.findMany({
-    where: { status: { not: "CANCELLED" } },
+    where: {
+      status: { not: "CANCELLED" },
+      ...(eventId ? { eventId } : {}),
+    },
     include: { event: { include: { training: true } } },
     orderBy: [{ event: { day1Date: "desc" } }, { createdAt: "desc" }],
   });
@@ -30,13 +42,39 @@ export default async function AccountingPage() {
 
   return (
     <Shell session={s} active="accounting">
-      <div className="flex items-baseline justify-between mb-6">
+      <div className="flex items-baseline justify-between mb-4 flex-wrap gap-3">
         <h1 className="text-2xl font-semibold">Buchhaltung</h1>
         <div className="text-sm text-slate-500">
           <span className="font-semibold text-brand-700">{offen}</span> offen &middot;{" "}
           <span className="font-semibold text-slate-400">{erledigt}</span> erledigt
         </div>
       </div>
+
+      <form method="get" className="card p-3 mb-6 flex flex-wrap items-center gap-3">
+        <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+          Filter
+        </label>
+        <select
+          name="eventId"
+          defaultValue={eventId ?? "ALL"}
+          className="input flex-1 min-w-[240px]"
+          onChange={undefined}
+        >
+          <option value="ALL">Alle Veranstaltungen ({events.length})</option>
+          {events.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.title}
+              {e.day1Date ? ` - ${e.day1Date.toLocaleDateString("de-DE")}` : ""}
+            </option>
+          ))}
+        </select>
+        <button className="btn-primary text-sm">anzeigen</button>
+        {eventId && (
+          <a href="/accounting" className="text-xs text-slate-500 hover:underline">
+            Filter zuruecksetzen
+          </a>
+        )}
+      </form>
 
       <div className="card overflow-hidden">
         <table className="table">

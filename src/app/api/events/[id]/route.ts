@@ -45,6 +45,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const title = String(f.get("title") ?? "").trim();
   const description = strOrNull(f.get("description"));
   const notesPlain = String(f.get("notes") ?? "").trim();
+  const twoDay = format === "PRESENCE" && String(f.get("duration") ?? "") === "TWO";
 
   const existing = await prisma.event.findUnique({ where: { id: params.id } });
   if (!existing) return new NextResponse("Not found", { status: 404 });
@@ -56,8 +57,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       title,
       description,
       priceDay1: priceCents(f.get("priceDay1")),
-      priceDay2: format === "WEBINAR" ? 0 : priceCents(f.get("priceDay2")),
-      priceBoth: format === "WEBINAR" ? 0 : priceCents(f.get("priceBoth")),
+      priceDay2: twoDay ? priceCents(f.get("priceDay2")) : 0,
+      priceBoth: twoDay ? priceCents(f.get("priceBoth")) : 0,
     },
   });
 
@@ -68,7 +69,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       format,
       description,
       day1Date: dateOrNull(f.get("day1Date")),
-      day2Date: format === "WEBINAR" ? null : dateOrNull(f.get("day2Date")),
+      day2Date: twoDay ? dateOrNull(f.get("day2Date")) : null,
       startTime: strOrNull(f.get("startTime")),
       endTime: strOrNull(f.get("endTime")),
       location: format === "WEBINAR" ? null : strOrNull(f.get("location")),

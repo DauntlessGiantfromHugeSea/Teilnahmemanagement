@@ -47,6 +47,7 @@ export async function POST(req: Request) {
   const format = formatOrDefault(f.get("format"));
   const description = strOrNull(f.get("description"));
   const notesPlain = String(f.get("notes") ?? "").trim();
+  const twoDay = format === "PRESENCE" && String(f.get("duration") ?? "") === "TWO";
 
   // Training inline mit den uebergebenen Preisen anlegen
   const training = await prisma.training.create({
@@ -54,8 +55,8 @@ export async function POST(req: Request) {
       title,
       description,
       priceDay1: priceCents(f.get("priceDay1")),
-      priceDay2: format === "WEBINAR" ? 0 : priceCents(f.get("priceDay2")),
-      priceBoth: format === "WEBINAR" ? 0 : priceCents(f.get("priceBoth")),
+      priceDay2: twoDay ? priceCents(f.get("priceDay2")) : 0,
+      priceBoth: twoDay ? priceCents(f.get("priceBoth")) : 0,
     },
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "Training", entityId: training.id });
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
       format,
       description,
       day1Date: dateOrNull(f.get("day1Date")),
-      day2Date: format === "WEBINAR" ? null : dateOrNull(f.get("day2Date")),
+      day2Date: twoDay ? dateOrNull(f.get("day2Date")) : null,
       startTime: strOrNull(f.get("startTime")),
       endTime: strOrNull(f.get("endTime")),
       location: format === "WEBINAR" ? null : strOrNull(f.get("location")),

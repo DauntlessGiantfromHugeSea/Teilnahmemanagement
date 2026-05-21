@@ -6,7 +6,9 @@ summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
 
 .event-form:has(input[name="format"][value="WEBINAR"]:checked) .only-presence { display: none; }
+.event-form:has(input[name="format"][value="WEBINAR"]:checked) .only-twoday { display: none; }
 .event-form:has(input[name="format"][value="PRESENCE"]:checked) .only-webinar { display: none; }
+.event-form:has(input[name="duration"][value="ONE"]:checked) .only-twoday { display: none; }
 .event-form:has(input[name="trainingMode"][value="existing"]:checked) .training-new { display: none; }
 .event-form:has(input[name="trainingMode"][value="new"]:checked) .training-existing { display: none; }
 
@@ -36,6 +38,12 @@ summary { list-style: none; }
 .attendance-table .th-sig { width: 20%; }
 .attendance-table tbody tr { height: 46px; }
 .attendance-table tbody tr.blank td { height: 46px; }
+
+/* Mobile: Tabellen-Karten duerfen horizontal scrollen statt clippen */
+@media (max-width: 768px) {
+  .card.overflow-hidden { overflow-x: auto; }
+  .table { min-width: 640px; }
+}
 
 @page {
   size: A4 landscape;

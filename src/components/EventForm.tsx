@@ -20,6 +20,7 @@ function eurInputValue(cents?: number | null) {
 
 export function EventForm({ event, training, action, allowAddAnother }: Props) {
   const format: EventFormat = event?.format ?? "PRESENCE";
+  const isTwoDay = !!event?.day2Date;
 
   return (
     <form method="post" action={action} className="event-form space-y-8">
@@ -60,6 +61,37 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             </div>
           </label>
         </div>
+        <div className="only-presence pt-2">
+          <div className="text-xs text-slate-500 mb-2">Dauer</div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="block">
+              <input
+                type="radio"
+                name="duration"
+                value="ONE"
+                defaultChecked={!isTwoDay}
+                className="peer sr-only"
+              />
+              <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
+                <div className="font-semibold">1 Tag</div>
+                <div className="text-xs text-slate-500 mt-0.5">Eintaegige Schulung</div>
+              </div>
+            </label>
+            <label className="block">
+              <input
+                type="radio"
+                name="duration"
+                value="TWO"
+                defaultChecked={isTwoDay}
+                className="peer sr-only"
+              />
+              <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
+                <div className="font-semibold">2 Tage</div>
+                <div className="text-xs text-slate-500 mt-0.5">Termine an zwei Tagen</div>
+              </div>
+            </label>
+          </div>
+        </div>
       </section>
 
       <section className="space-y-4">
@@ -99,7 +131,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
               className="input"
             />
           </div>
-          <div className="only-presence">
+          <div className="only-twoday">
             <label className="label">Preis Tag 2 (EUR)</label>
             <input
               name="priceDay2"
@@ -110,7 +142,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
               className="input"
             />
           </div>
-          <div className="only-presence">
+          <div className="only-twoday">
             <label className="label">Preis beide Tage (EUR)</label>
             <input
               name="priceBoth"
@@ -123,7 +155,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
           </div>
         </div>
         <p className="text-xs text-slate-500">
-          Bei Webinaren reicht der Preis Tag 1 als Gesamtpreis.
+          Bei Webinaren / 1-Tag-Schulungen reicht der Preis Tag 1 als Gesamtpreis.
         </p>
       </section>
 
@@ -146,12 +178,9 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             <input name="endTime" type="time" defaultValue={event?.endTime ?? ""} className="input" />
           </div>
         </div>
-        <div className="only-presence">
-          <label className="label">Tag 2 (optional)</label>
+        <div className="only-twoday">
+          <label className="label">Tag 2</label>
           <input name="day2Date" type="date" defaultValue={dateInputValue(event?.day2Date)} className="input max-w-xs" />
-          <p className="text-xs text-slate-500 mt-1">
-            Nur ausfuellen wenn die Schulung ueber zwei Tage geht.
-          </p>
         </div>
       </section>
 
