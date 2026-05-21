@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canViewEvent } from "@/lib/rbac";
@@ -43,24 +41,6 @@ const PAGE_W = 842; // A4 landscape pt
 const PAGE_H = 595;
 const CONTENT_W = COLS.reduce((s, c) => s + c.width, 0); // 770
 
-// Firmenlogo aus public/logo.png laden und im Memory cachen.
-// Falls die Datei fehlt, wird der Header schlicht ohne Logo gerendert.
-let LOGO_CACHE: Buffer | null = null;
-let LOGO_LOADED = false;
-async function getLogo(): Promise<Buffer | null> {
-  if (LOGO_LOADED) return LOGO_CACHE;
-  LOGO_LOADED = true;
-  for (const candidate of ["logo.png", "logo.jpg", "logo.jpeg"]) {
-    try {
-      const path = join(process.cwd(), "public", candidate);
-      LOGO_CACHE = await readFile(path);
-      return LOGO_CACHE;
-    } catch {
-      // weiter zum nächsten Kandidaten
-    }
-  }
-  return null;
-}
 
 export async function GET(
   req: Request,
@@ -113,9 +93,10 @@ export async function GET(
     size: "A4",
     layout: "landscape",
     margin: MARGIN,
+    bufferPages: true, // erlaubt switchToPage() fuer den Footer mit Seitenzahlen
     info: {
       Title: `Anwesenheitsliste - ${ev.title}`,
-      Author: "FB-Akademie",
+      Author: "Flüssigboden Akademie",
     },
   });
   doc.on("data", (c: Buffer) => chunks.push(c));
@@ -125,17 +106,6 @@ export async function GET(
 
   const startX = MARGIN;
   let y = MARGIN;
-
-  // Firmenlogo oben rechts (best effort, überspringt bei Fehler)
-  const logo = await getLogo();
-  if (logo) {
-    try {
-      const logoH = 48;
-      doc.image(logo, PAGE_W - MARGIN - 140, MARGIN, { height: logoH, fit: [140, logoH] });
-    } catch {
-      // Logo konnte nicht eingebettet werden, weitermachen ohne
-    }
-  }
 
   // Header
   doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8);
@@ -233,6 +203,26 @@ export async function GET(
     startX + halfW + 40,
     sigY + 4
   );
+
+  // Footer auf allen Seiten: "FLÜSSIGBODEN AKADEMIE" links, Seitenzahl rechts
+  const range = doc.bufferedPageRange();
+  const totalPages = range.count;
+  for (let i = 0; i < totalPages; i++) {
+    doc.switchToPage(range.start + i);
+    const footY = PAGE_H - MARGIN + 6;
+    doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica-Bold").fontSize(8).text(
+      "FLÜSSIGBODEN AKADEMIE",
+      MARGIN,
+      footY,
+      { characterSpacing: 1.2 }
+    );
+    doc.fillColor(rgb(TEXT_MUTED)).font("Helvetica").fontSize(8).text(
+      `${i + 1} / ${totalPages}`,
+      PAGE_W - MARGIN - 60,
+      footY,
+      { width: 60, align: "right" }
+    );
+  }
 
   doc.end();
   const pdf = await done;
