@@ -31,6 +31,16 @@ export default async function ParticipantDetail({
   const base = basePriceCents(p.event.training, p.dayOption);
   const final = finalPriceCents(base, p.discountBps);
 
+  // Andere Veranstaltungen fuer Umbuchung (nur die, auf die der User schreiben darf)
+  const otherEvents = canWrite
+    ? await prisma.event.findMany({
+        where: { id: { not: p.eventId } },
+        orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
+        include: { training: true },
+        take: 200,
+      })
+    : [];
+
   return (
     <Shell session={s} active="events">
       <div className="flex items-start justify-between mb-6">
@@ -117,6 +127,32 @@ export default async function ParticipantDetail({
         </div>
 
         <div className="space-y-6">
+          {canWrite && otherEvents.length > 0 && (
+            <section className="card p-6">
+              <h2 className="font-semibold mb-1">Umbuchen</h2>
+              <p className="text-xs text-slate-500 mb-3">
+                Teilnehmer auf eine andere Veranstaltung verschieben. Falls die Ziel-
+                Veranstaltung keine zwei Tage hat, wird die Buchung automatisch auf
+                Tag&nbsp;1 gesetzt.
+              </p>
+              <form method="post" action={`/api/participants/${p.id}/move`} className="space-y-3">
+                <div>
+                  <label className="label">Ziel-Veranstaltung</label>
+                  <select name="targetEventId" required className="input">
+                    <option value="" disabled>Bitte waehlen</option>
+                    {otherEvents.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.title}
+                        {e.day1Date ? ` - ${e.day1Date.toLocaleDateString("de-DE")}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button className="btn-primary text-sm w-full">Umbuchen</button>
+              </form>
+            </section>
+          )}
+
           {(isAccounting(s) || canWrite) && (
             <section className="card p-6">
               <h2 className="font-semibold mb-4">Buchhaltung</h2>

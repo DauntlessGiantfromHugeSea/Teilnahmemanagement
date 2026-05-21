@@ -71,13 +71,34 @@ export default async function EventDetail({ params }: { params: { id: string } }
             <p className="text-sm text-slate-600 mt-2 max-w-2xl">{ev.description}</p>
           )}
         </div>
-        <div className="flex gap-2 flex-wrap justify-end">
-          <Link href={`/events/${ev.id}/attendance`} className="btn-secondary">
-            Anwesenheitsliste
-          </Link>
-          <a href={`/api/events/${ev.id}/attendance/pdf`} className="btn-secondary">
-            PDF
+        <div className="flex gap-2 flex-wrap justify-end items-center">
+          <a
+            href={`/api/events/${ev.id}/attendance/pdf`}
+            download
+            className="btn-primary"
+          >
+            Anwesenheitsliste (PDF)
           </a>
+          {ev.day2Date && (
+            <>
+              <a
+                href={`/api/events/${ev.id}/attendance/pdf?day=1`}
+                download
+                className="btn-secondary text-xs"
+                title="Nur Teilnehmer fuer Tag 1"
+              >
+                Tag 1
+              </a>
+              <a
+                href={`/api/events/${ev.id}/attendance/pdf?day=2`}
+                download
+                className="btn-secondary text-xs"
+                title="Nur Teilnehmer fuer Tag 2"
+              >
+                Tag 2
+              </a>
+            </>
+          )}
           {canWrite && (
             <Link href={`/events/${ev.id}/edit`} className="btn-secondary">Bearbeiten</Link>
           )}
