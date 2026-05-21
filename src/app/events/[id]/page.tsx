@@ -75,6 +75,9 @@ export default async function EventDetail({ params }: { params: { id: string } }
           <Link href={`/events/${ev.id}/attendance`} className="btn-secondary">
             Anwesenheitsliste
           </Link>
+          <a href={`/api/events/${ev.id}/attendance/pdf`} className="btn-secondary">
+            PDF
+          </a>
           {canWrite && (
             <Link href={`/events/${ev.id}/edit`} className="btn-secondary">Bearbeiten</Link>
           )}

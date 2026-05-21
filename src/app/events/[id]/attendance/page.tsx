@@ -57,11 +57,9 @@ export default async function AttendancePage({
 
   return (
     <div className="attendance min-h-screen bg-white">
-      <div className="no-print bg-slate-100 border-b border-slate-200 px-6 py-3 flex items-center justify-between">
-        <div className="text-sm text-slate-700">
-          Anwesenheitsliste &mdash; Druck als PDF: <kbd>Cmd</kbd>/<kbd>Strg</kbd>+<kbd>P</kbd>
-        </div>
-        <div className="flex gap-2">
+      <div className="no-print bg-slate-100 border-b border-slate-200 px-6 py-3 flex items-center justify-between flex-wrap gap-3">
+        <div className="text-sm text-slate-700">Anwesenheitsliste</div>
+        <div className="flex gap-2 flex-wrap">
           <a
             href={`/events/${ev.id}/attendance`}
             className={"btn-secondary text-xs " + (day === null ? "ring-2 ring-brand-500" : "")}
@@ -84,6 +82,12 @@ export default async function AttendancePage({
               Nur Tag 2
             </a>
           )}
+          <a
+            href={`/api/events/${ev.id}/attendance/pdf${day ? `?day=${day}` : ""}`}
+            className="btn-primary text-xs"
+          >
+            PDF herunterladen
+          </a>
           <a href={`/events/${ev.id}`} className="btn-secondary text-xs">
             Zurueck
           </a>
