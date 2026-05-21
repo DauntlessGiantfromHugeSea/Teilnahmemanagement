@@ -6,8 +6,14 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
-# package.json hat einen "postinstall": "prisma generate", daher braucht es das schema
-RUN npm ci --no-audit --no-fund
+# package.json hat einen "postinstall": "prisma generate", daher braucht es das schema.
+# Falls eine package-lock.json existiert, wird "npm ci" benutzt (reproduzierbar),
+# sonst faellt es auf "npm install" zurueck.
+RUN if [ -f package-lock.json ]; then \
+      npm ci --no-audit --no-fund; \
+    else \
+      npm install --no-audit --no-fund; \
+    fi
 
 # ---------- Stage 2: build ----------
 FROM node:20-alpine AS builder
