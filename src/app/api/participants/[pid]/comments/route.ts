@@ -26,6 +26,5 @@ export async function POST(req: Request, { params }: { params: { pid: string } }
     entityId: c.id,
     participantId: p.id,
   });
-  const base = new URL(req.url).origin;
-  return NextResponse.redirect(`${base}/events/${p.eventId}/participants/${p.id}`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/events/${p.eventId}/participants/${p.id}` } });
 }

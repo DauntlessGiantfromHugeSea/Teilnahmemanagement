@@ -8,7 +8,6 @@ import { Role } from "@prisma/client";
 
 export async function POST(req: Request) {
   const s = await getSession();
-  const base = new URL(req.url).origin;
   if (!s || !isAdmin(s)) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
   const email = String(f.get("email") ?? "").trim().toLowerCase();
@@ -16,15 +15,15 @@ export async function POST(req: Request) {
   const password = String(f.get("password") ?? "");
   const role = String(f.get("role") ?? "VIEWER") as Role;
   if (password.length < 10) {
-    return NextResponse.redirect(`${base}/admin/users?error=${encodeURIComponent("Passwort zu kurz")}`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/admin/users?error=${encodeURIComponent("Passwort zu kurz")}` } });
   }
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return NextResponse.redirect(`${base}/admin/users?error=${encodeURIComponent("E-Mail existiert bereits")}`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/admin/users?error=${encodeURIComponent("E-Mail existiert bereits")}` } });
   }
   const u = await prisma.user.create({
     data: { email, name, role, passwordHash: await hashPassword(password) },
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "User", entityId: u.id });
-  return NextResponse.redirect(`${base}/admin/users?ok=1`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/admin/users?ok=1` } });
 }

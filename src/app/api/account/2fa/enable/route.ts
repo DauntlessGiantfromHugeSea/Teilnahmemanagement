@@ -6,22 +6,21 @@ import { clearPending, createSession, getPending, getSession } from "@/lib/sessi
 import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
-  const base = new URL(req.url).origin;
   const session = await getSession();
   const pending = session ? null : await getPending();
   const uid = session?.uid ?? pending?.uid;
-  if (!uid) return NextResponse.redirect(`${base}/login`, { status: 303 });
+  if (!uid) return new NextResponse(null, { status: 303, headers: { Location: `/login` } });
 
   const form = await req.formData();
   const code = String(form.get("code") ?? "");
 
   const user = await prisma.user.findUnique({ where: { id: uid } });
   if (!user || !user.totpSecret) {
-    return NextResponse.redirect(`${base}/account/2fa/setup?error=1`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/setup?error=1` } });
   }
   const secret = safeDecrypt(user.totpSecret);
   if (!secret || !verifyTotp(secret, code)) {
-    return NextResponse.redirect(`${base}/account/2fa/setup?error=1`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/setup?error=1` } });
   }
 
   const recovery = generateRecoveryCodes(10);
@@ -42,5 +41,5 @@ export async function POST(req: Request) {
 
   // Recovery-Codes via Query an Folgeseite uebergeben (einmalige Anzeige)
   const params = new URLSearchParams({ codes: recovery.join(",") });
-  return NextResponse.redirect(`${base}/account/2fa/recovery?${params}`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/recovery?${params}` } });
 }

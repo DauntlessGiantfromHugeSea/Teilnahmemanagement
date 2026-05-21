@@ -11,7 +11,6 @@ function toCents(v: FormDataEntryValue | null): number {
 
 export async function POST(req: Request) {
   const s = await getSession();
-  const base = new URL(req.url).origin;
   if (!s || !canWriteGlobal(s)) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
   const t = await prisma.training.create({
@@ -25,5 +24,5 @@ export async function POST(req: Request) {
     },
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "Training", entityId: t.id });
-  return NextResponse.redirect(`${base}/trainings`, { status: 303 });
+  return new NextResponse(null, { status: 303, headers: { Location: `/trainings` } });
 }

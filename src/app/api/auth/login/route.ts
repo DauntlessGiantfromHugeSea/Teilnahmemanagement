@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
-import { createPending } from "@/lib/session";
+import { createPending, createSession } from "@/lib/session";
 import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
@@ -9,32 +9,36 @@ export async function POST(req: Request) {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const password = String(form.get("password") ?? "");
 
-  const url = new URL(req.url);
-  const base = `${url.origin}`;
-
   if (!email || !password) {
-    return NextResponse.redirect(`${base}/login?error=invalid`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/login?error=invalid` } });
   }
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    return NextResponse.redirect(`${base}/login?error=invalid`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/login?error=invalid` } });
   }
   if (!user.active) {
-    return NextResponse.redirect(`${base}/login?error=inactive`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/login?error=inactive` } });
   }
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
     await audit({ actorId: user.id, action: "LOGIN_FAILED", entityType: "Auth", entityId: user.id });
-    return NextResponse.redirect(`${base}/login?error=invalid`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/login?error=invalid` } });
   }
 
   if (user.totpEnabled) {
     await createPending(user.id);
-    return NextResponse.redirect(`${base}/login/totp`, { status: 303 });
+    return new NextResponse(null, { status: 303, headers: { Location: `/login/totp` } });
   }
 
-  // 2FA noch nicht eingerichtet -> erzwingen
-  await createPending(user.id);
-  return NextResponse.redirect(`${base}/account/2fa/setup`, { status: 303 });
+  // 2FA optional: direkt einloggen, kann spaeter unter /account/2fa/setup eingerichtet werden
+  await createSession({
+    uid: user.id,
+    role: user.role,
+    name: user.name,
+    email: user.email,
+  });
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await audit({ actorId: user.id, action: "LOGIN", entityType: "Auth", entityId: user.id });
+  return new NextResponse(null, { status: 303, headers: { Location: `/dashboard` } });
 }
