@@ -5,6 +5,7 @@ const PUBLIC = [
   /^\/login(\/.*)?$/,
   /^\/api\/auth\/.*/,
   /^\/api\/public\/.*/,
+  /^\/anmeldung\/.*/,
   /^\/_next\/.*/,
   /^\/favicon\.ico$/,
   /^\/manifest\.webmanifest$/,
@@ -12,6 +13,7 @@ const PUBLIC = [
   /^\/icon[^/]*\.(png|svg)$/,
   /^\/apple-touch-icon\.png$/,
   /^\/favicon-(16|32)\.png$/,
+  /^\/logo\.png$/,
 ];
 
 export async function middleware(req: NextRequest) {

@@ -38,6 +38,10 @@ services:
       # Optional: API-Key fuer den Webhook-Endpoint /api/public/anmeldungen
       # (>= 16 Zeichen, in .env setzen). Leer = Webhook deaktiviert.
       WEBHOOK_API_KEY: ${WEBHOOK_API_KEY:-}
+      # Cloudflare Turnstile fuer das oeffentliche Anmeldeformular.
+      # Beide leer = Spamschutz nur via Honeypot (akzeptabel fuer Testbetrieb).
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
       NODE_ENV: production
       # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
       RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}

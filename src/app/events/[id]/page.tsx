@@ -117,6 +117,33 @@ export default async function EventDetail({ params }: { params: { id: string } }
         </div>
       </div>
 
+      {canWrite && (
+        <section className="card p-4 mb-6 bg-brand-50/40 border-brand-200">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-wide text-brand-700">
+                Oeffentlicher Anmeldelink
+              </div>
+              <code className="block mt-1 text-xs text-slate-700 break-all font-mono">
+                {`/anmeldung/${ev.id}`}
+              </code>
+              <p className="text-xs text-slate-500 mt-1">
+                Vollstaendige URL: <code className="font-mono">https://teilnahme.fb-akademie.de/anmeldung/{ev.id}</code>
+                {" "}- per iframe in WordPress einbettbar.
+              </p>
+            </div>
+            <a
+              href={`/anmeldung/${ev.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary text-xs"
+            >
+              Anmeldeseite ansehen
+            </a>
+          </div>
+        </section>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 text-sm">
         <div className="card p-4">
           <div className="text-xs text-slate-500">Tag 1</div>
