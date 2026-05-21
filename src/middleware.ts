@@ -14,6 +14,7 @@ const PUBLIC = [
   /^\/apple-touch-icon\.png$/,
   /^\/favicon-(16|32)\.png$/,
   /^\/logo\.png$/,
+  /^\/favicon\.png$/,
 ];
 
 export async function middleware(req: NextRequest) {
