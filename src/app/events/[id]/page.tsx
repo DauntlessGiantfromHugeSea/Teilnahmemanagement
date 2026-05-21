@@ -197,14 +197,20 @@ export default async function EventDetail({ params }: { params: { id: string } }
               const base = basePriceCents(ev.training, p.dayOption);
               const final = finalPriceCents(base, p.discountBps);
               const initials = `${p.firstName?.[0] ?? ""}${p.lastName?.[0] ?? ""}`.toUpperCase() || "??";
+              const isCancelled = p.status === "CANCELLED";
               return (
-                <tr key={p.id} className="align-top">
+                <tr key={p.id} className={"align-top " + (isCancelled ? "text-slate-400" : "")}>
                   <td className="py-3">
                     <div className="flex items-start gap-3">
-                      <span className="h-9 w-9 shrink-0 rounded-full bg-brand-100 text-brand-700 text-xs font-semibold flex items-center justify-center mt-0.5">
+                      <span
+                        className={
+                          "h-9 w-9 shrink-0 rounded-full text-xs font-semibold flex items-center justify-center mt-0.5 " +
+                          (isCancelled ? "bg-slate-200 text-slate-400" : "bg-brand-100 text-brand-700")
+                        }
+                      >
                         {initials}
                       </span>
-                      <div className="min-w-0">
+                      <div className={"min-w-0 " + (isCancelled ? "line-through" : "")}>
                         <div className="font-medium">
                           {p.lastName}, {p.firstName}
                         </div>

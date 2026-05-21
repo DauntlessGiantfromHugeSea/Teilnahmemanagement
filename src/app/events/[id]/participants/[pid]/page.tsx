@@ -45,8 +45,15 @@ export default async function ParticipantDetail({
     <Shell session={s} active="events">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <div className="text-xs text-slate-500 uppercase">Teilnehmer</div>
-          <h1 className="text-2xl font-semibold">{dec.firstName} {dec.lastName}</h1>
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+            <span className="text-slate-500">Teilnehmer</span>
+            {p.status === "CANCELLED" && (
+              <span className="badge bg-red-100 text-red-700">storniert</span>
+            )}
+          </div>
+          <h1 className={"text-2xl font-semibold " + (p.status === "CANCELLED" ? "line-through text-slate-400" : "")}>
+            {dec.firstName} {dec.lastName}
+          </h1>
           <div className="text-sm text-slate-500">
             <a href={`/events/${p.eventId}`} className="hover:underline">{p.event.title}</a>
           </div>
@@ -127,7 +134,38 @@ export default async function ParticipantDetail({
         </div>
 
         <div className="space-y-6">
-          {canWrite && otherEvents.length > 0 && (
+          {canWrite && (
+            <section className="card p-6">
+              <h2 className="font-semibold mb-1">Status</h2>
+              {p.status === "CANCELLED" ? (
+                <>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Diese Anmeldung ist storniert und wird in Anwesenheitslisten und
+                    Buchhaltung nicht beruecksichtigt.
+                  </p>
+                  <form method="post" action={`/api/participants/${p.id}/cancel`}>
+                    <input type="hidden" name="mode" value="reactivate" />
+                    <button className="btn-secondary text-sm w-full">
+                      Stornierung rueckgaengig
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-slate-500 mb-3">
+                    Storniert den Teilnehmer. Der Eintrag bleibt zur Nachvollziehbarkeit
+                    sichtbar (durchgestrichen) - taucht aber nicht mehr in
+                    Anwesenheitslisten oder der Buchhaltung auf.
+                  </p>
+                  <form method="post" action={`/api/participants/${p.id}/cancel`}>
+                    <button className="btn-danger text-sm w-full">Stornieren</button>
+                  </form>
+                </>
+              )}
+            </section>
+          )}
+
+          {canWrite && otherEvents.length > 0 && p.status !== "CANCELLED" && (
             <section className="card p-6">
               <h2 className="font-semibold mb-1">Umbuchen</h2>
               <p className="text-xs text-slate-500 mb-3">
