@@ -1,0 +1,179 @@
+// Teilnahmemanagement - Datenmodell
+// Sensible Felder (Name, E-Mail, Adresse, Telefon, Notizen) werden vor dem
+// Schreiben in die DB AES-256-GCM verschluesselt (siehe src/lib/crypto.ts).
+// Daher sind alle solchen Felder als String/Text deklariert und enthalten
+// Base64-codierte Ciphertexte. Suche/Filter laeuft ueber zusaetzliche
+// Blind-Index-Hashes (z. B. emailHash).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  EDITOR
+  ACCOUNTING
+  VIEWER
+}
+
+enum DayOption {
+  DAY_1
+  DAY_2
+  BOTH
+}
+
+enum ParticipantStatus {
+  REGISTERED
+  CONFIRMED
+  CANCELLED
+  ATTENDED
+  NO_SHOW
+}
+
+enum InvoiceStatus {
+  OPEN
+  ISSUED
+  PAID
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  passwordHash  String
+  role          Role      @default(VIEWER)
+  // 2FA
+  totpSecret    String?   // verschluesselt
+  totpEnabled   Boolean   @default(false)
+  recoveryCodes String?   // verschluesselt, JSON-Array
+  // Meta
+  active        Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  eventGrants   EventAccess[]
+  comments      Comment[]
+  auditEntries  AuditLog[]
+  createdEvents Event[]   @relation("EventCreatedBy")
+}
+
+model Training {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  // Preise in Cent, je Buchungsoption
+  priceDay1   Int      @default(0)
+  priceDay2   Int      @default(0)
+  priceBoth   Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events      Event[]
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  trainingId  String
+  training    Training @relation(fields: [trainingId], references: [id])
+  title       String   // z. B. "Crashkurs Maerz 2026"
+  location    String?
+  day1Date    DateTime?
+  day2Date    DateTime?
+  notes       String?  // verschluesselt
+  createdById String
+  createdBy   User     @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participants Participant[]
+  grants       EventAccess[]
+}
+
+// Pro-Event-Zugriff fuer User (zusaetzlich zur Rolle)
+model EventAccess {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  canWrite  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model Participant {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  // PII - alle Base64-Ciphertexte
+  firstName    String
+  lastName     String
+  email        String
+  emailHash    String   // SHA-256 fuer Suche/Dedupe
+  phone        String?
+  company      String?
+  street       String?
+  zip          String?
+  city         String?
+  country      String?
+  notes        String?
+
+  dayOption    DayOption @default(BOTH)
+  // Rabatt in Prozent (0-100), zwei Nachkommastellen via *100
+  discountBps  Int       @default(0) // basis points: 1000 = 10.00%
+  status       ParticipantStatus @default(REGISTERED)
+
+  // Buchhaltung
+  invoiceStatus InvoiceStatus @default(OPEN)
+  invoiceNumber String?
+  invoiceIssuedAt DateTime?
+  invoicePaidAt   DateTime?
+  invoiceNotes    String? // verschluesselt
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  comments     Comment[]
+  history      AuditLog[]
+
+  @@index([emailHash])
+  @@index([eventId])
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id])
+  body          String   // verschluesselt
+  createdAt     DateTime @default(now())
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  participantId String?
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  actorId       String?
+  actor         User?    @relation(fields: [actorId], references: [id])
+  action        String   // CREATE | UPDATE | DELETE | LOGIN | GRANT | INVOICE_STATUS | ...
+  entityType    String   // Participant | Event | User | EventAccess | Auth
+  entityId      String?
+  diff          String?  // JSON, ggf. verschluesselt bei PII
+  createdAt     DateTime @default(now())
+
+  @@index([participantId])
+  @@index([actorId])
+  @@index([createdAt])
+}
