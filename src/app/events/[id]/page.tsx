@@ -27,12 +27,18 @@ export default async function EventDetail({ params }: { params: { id: string } }
 
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
-    include: { training: true, participants: { orderBy: { createdAt: "desc" } } },
+    include: { training: true, participants: true },
   });
   if (!ev) notFound();
 
   const canWrite = await canWriteEvent(s, ev.id);
-  const participants = ev.participants.map(decryptParticipant);
+  const participants = ev.participants
+    .map(decryptParticipant)
+    .sort((a, b) => {
+      const ln = (a.lastName ?? "").localeCompare(b.lastName ?? "", "de");
+      if (ln !== 0) return ln;
+      return (a.firstName ?? "").localeCompare(b.firstName ?? "", "de");
+    });
 
   return (
     <Shell session={s} active="events">
