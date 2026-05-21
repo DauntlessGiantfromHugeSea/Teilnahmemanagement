@@ -24,6 +24,8 @@ COPY . .
 # Prisma-Client neu generieren (sicher) und Next.js standalone build
 RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
+# Sicherstellen, dass public/ existiert (auch wenn leer)
+RUN mkdir -p public
 RUN npm run build
 
 # ---------- Stage 3: runner ----------
