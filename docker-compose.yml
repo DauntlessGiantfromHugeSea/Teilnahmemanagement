@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?bitte in .env setzen}
+      POSTGRES_DB: ${POSTGRES_DB:-teilnahmemanagement}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    # Port nur intern - nicht nach aussen exponieren.
+    # Zum Debuggen: "ports: [ '127.0.0.1:5432:5432' ]"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tm} -d ${POSTGRES_DB:-teilnahmemanagement}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: teilnahmemanagement:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-tm}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-teilnahmemanagement}?schema=public"
+      FIELD_ENCRYPTION_KEY: ${FIELD_ENCRYPTION_KEY:?bitte in .env setzen (64 hex chars)}
+      SESSION_SECRET: ${SESSION_SECRET:?bitte in .env setzen (>= 48 chars)}
+      APP_NAME: ${APP_NAME:-FB-Akademie Teilnahmemanagement}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      NODE_ENV: production
+      # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
+      RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@fb-akademie.de}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe!2026}
+    ports:
+      # Nur auf localhost binden; davor gehoert ein Reverse-Proxy mit HTTPS (Caddy/Traefik/nginx).
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  db_data:
