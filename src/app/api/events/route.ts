@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const notesPlain = String(f.get("notes") ?? "").trim();
   const twoDay = format === "PRESENCE" && String(f.get("duration") ?? "") === "TWO";
 
-  // Training inline mit den uebergebenen Preisen anlegen
+  // Training inline mit den übergebenen Preisen anlegen
   const training = await prisma.training.create({
     data: {
       title,

@@ -10,7 +10,7 @@ import { DayOption, ParticipantStatus } from "@prisma/client";
 
 const STATUS_LABELS: Record<ParticipantStatus, string> = {
   REGISTERED: "Angemeldet",
-  CONFIRMED: "Bestaetigt",
+  CONFIRMED: "Bestätigt",
   CANCELLED: "Storniert",
   ATTENDED: "Teilgenommen",
   NO_SHOW: "Nicht erschienen",
@@ -91,7 +91,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
                 href={`/api/events/${ev.id}/attendance/pdf?day=1`}
                 download
                 className="btn-secondary text-xs"
-                title="Nur Teilnehmer fuer Tag 1"
+                title="Nur Teilnehmer für Tag 1"
               >
                 Tag 1
               </a>
@@ -99,7 +99,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
                 href={`/api/events/${ev.id}/attendance/pdf?day=2`}
                 download
                 className="btn-secondary text-xs"
-                title="Nur Teilnehmer fuer Tag 2"
+                title="Nur Teilnehmer für Tag 2"
               >
                 Tag 2
               </a>
@@ -122,13 +122,13 @@ export default async function EventDetail({ params }: { params: { id: string } }
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-wide text-brand-700">
-                Oeffentlicher Anmeldelink
+                Öffentlicher Anmeldelink
               </div>
               <code className="block mt-1 text-xs text-slate-700 break-all font-mono">
                 {`/anmeldung/${ev.id}`}
               </code>
               <p className="text-xs text-slate-500 mt-1">
-                Vollstaendige URL: <code className="font-mono">https://teilnahme.fb-akademie.de/anmeldung/{ev.id}</code>
+                Vollständige URL: <code className="font-mono">https://teilnahme.fb-akademie.de/anmeldung/{ev.id}</code>
                 {" "}- per iframe in WordPress einbettbar.
               </p>
             </div>

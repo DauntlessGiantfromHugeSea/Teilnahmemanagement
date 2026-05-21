@@ -41,7 +41,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             <div className="card p-4 cursor-pointer peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
               <div className="text-sm font-semibold">Schulung vor Ort</div>
               <div className="text-xs text-slate-500 mt-1">
-                Praesenztermin mit Adresse, optional ueber zwei Tage.
+                Präsenztermin mit Adresse, optional über zwei Tage.
               </div>
             </div>
           </label>
@@ -56,7 +56,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             <div className="card p-4 cursor-pointer peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
               <div className="text-sm font-semibold">Webinar (online)</div>
               <div className="text-xs text-slate-500 mt-1">
-                Online-Veranstaltung mit Meeting-Link, meist eintaegig.
+                Online-Veranstaltung mit Meeting-Link, meist eintägig.
               </div>
             </div>
           </label>
@@ -74,7 +74,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
               />
               <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
                 <div className="font-semibold">1 Tag</div>
-                <div className="text-xs text-slate-500 mt-0.5">Eintaegige Schulung</div>
+                <div className="text-xs text-slate-500 mt-0.5">Eintägige Schulung</div>
               </div>
             </label>
             <label className="block">
@@ -105,7 +105,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             name="title"
             required
             defaultValue={event?.title ?? ""}
-            placeholder="z. B. Basisschulung + Technologieschulung Geoponton, Maerz 2026"
+            placeholder="z. B. Basisschulung + Technologieschulung Geoponton, März 2026"
             className="input"
           />
         </div>
@@ -162,7 +162,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
       <section className="space-y-4">
         <div>
           <h2 className="font-semibold text-slate-800">3. Termin</h2>
-          <p className="text-xs text-slate-500">Datum und Uhrzeit der Durchfuehrung.</p>
+          <p className="text-xs text-slate-500">Datum und Uhrzeit der Durchführung.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -211,7 +211,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">5. Kapazitaet &amp; Notizen</h2>
+          <h2 className="font-semibold text-slate-800">5. Kapazität &amp; Notizen</h2>
         </div>
         <div>
           <label className="label">Max. Teilnehmerzahl</label>
@@ -223,14 +223,14 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             placeholder="z. B. 20"
             className="input max-w-xs"
           />
-          <p className="text-xs text-slate-500 mt-1">Leer lassen fuer unbegrenzt.</p>
+          <p className="text-xs text-slate-500 mt-1">Leer lassen für unbegrenzt.</p>
         </div>
         <div>
           <label className="label">Interne Notizen</label>
           <textarea
             name="notes"
             rows={3}
-            placeholder="Nur intern sichtbar, verschluesselt gespeichert."
+            placeholder="Nur intern sichtbar, verschlüsselt gespeichert."
             className="input"
           />
         </div>

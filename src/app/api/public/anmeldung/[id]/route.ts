@@ -45,7 +45,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const f = await req.formData();
 
-  // 1) Honeypot: echte Nutzer fuellen das versteckte Feld nicht aus
+  // 1) Honeypot: echte Nutzer füllen das versteckte Feld nicht aus
   const honey = String(f.get("website") ?? "").trim();
   if (honey !== "") {
     // Lautlos als Erfolg behandeln, damit Bots keinen Hinweis bekommen
@@ -76,7 +76,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const dp = String(f.get("dataProtection") ?? "");
   if (!name || !email || !company || dp !== "on") return back(ev.id, "missing");
 
-  // 5) Kapazitaet
+  // 5) Kapazität
   if (ev.capacity != null && ev._count.participants >= ev.capacity) {
     return back(ev.id, "full");
   }
@@ -122,7 +122,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const p = await prisma.participant.create({ data });
 
-  // Audit-Eintrag ueber den aeltesten Admin als Actor
+  // Audit-Eintrag über den aeltesten Admin als Actor
   const admin = await prisma.user.findFirst({
     where: { role: "ADMIN" },
     orderBy: { createdAt: "asc" },

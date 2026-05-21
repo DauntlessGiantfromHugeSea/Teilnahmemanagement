@@ -17,7 +17,7 @@ export default async function ShowRecovery({
           <Logo className="h-12 w-auto mb-3" />
           <h1 className="text-xl font-semibold">Deine Recovery-Codes</h1>
           <p className="text-sm text-slate-500 text-center mt-1">
-            Speichere diese Codes an einem sicheren Ort. Jeder Code ist genau einmal gueltig
+            Speichere diese Codes an einem sicheren Ort. Jeder Code ist genau einmal gültig
             und ersetzt deinen 2FA-Code, falls du keinen Zugriff auf deine App hast.
           </p>
         </div>

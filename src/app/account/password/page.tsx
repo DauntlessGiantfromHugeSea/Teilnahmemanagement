@@ -15,7 +15,7 @@ export default async function ChangePassword({
       <div className="card p-6 max-w-md">
         {searchParams.error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-            {searchParams.error === "current" ? "Aktuelles Passwort falsch." : "Eingabe ungueltig."}
+            {searchParams.error === "current" ? "Aktuelles Passwort falsch." : "Eingabe ungültig."}
           </div>
         )}
         {searchParams.ok && (

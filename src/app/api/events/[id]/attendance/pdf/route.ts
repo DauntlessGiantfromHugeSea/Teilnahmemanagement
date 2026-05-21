@@ -56,7 +56,7 @@ async function getLogo(): Promise<Buffer | null> {
       LOGO_CACHE = await readFile(path);
       return LOGO_CACHE;
     } catch {
-      // weiter zum naechsten Kandidaten
+      // weiter zum nächsten Kandidaten
     }
   }
   return null;
@@ -126,7 +126,7 @@ export async function GET(
   const startX = MARGIN;
   let y = MARGIN;
 
-  // Firmenlogo oben rechts (best effort, ueberspringt bei Fehler)
+  // Firmenlogo oben rechts (best effort, überspringt bei Fehler)
   const logo = await getLogo();
   if (logo) {
     try {
@@ -208,7 +208,7 @@ export async function GET(
   // Footer mit Unterschriftslinien (immer auf der letzten Seite)
   const footerY = PAGE_H - MARGIN - 40;
   if (y > footerY - 10) {
-    // Wenn Tabelle zu nah am Rand: neue Seite fuer Footer
+    // Wenn Tabelle zu nah am Rand: neue Seite für Footer
     doc.addPage();
   }
   const sigY = PAGE_H - MARGIN - 30;

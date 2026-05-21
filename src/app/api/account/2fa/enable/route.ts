@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     await clearPending();
   }
 
-  // Recovery-Codes via Query an Folgeseite uebergeben (einmalige Anzeige)
+  // Recovery-Codes via Query an Folgeseite übergeben (einmalige Anzeige)
   const params = new URLSearchParams({ codes: recovery.join(",") });
   return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/recovery?${params}` } });
 }

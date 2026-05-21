@@ -68,7 +68,7 @@ export default async function ImportPage({
                               : "bg-red-100 text-red-800")
                           }
                         >
-                          {r.ok ? (r.message.includes("Bereits") ? "uebersprungen" : "ok") : "fehler"}
+                          {r.ok ? (r.message.includes("Bereits") ? "übersprungen" : "ok") : "fehler"}
                         </span>
                       </td>
                       <td className="text-sm">{r.message}</td>
@@ -95,7 +95,7 @@ export default async function ImportPage({
             <br />
             <br />
             Events werden automatisch nach der ID aus <code>training-date</code> (z.B. <code>#260603</code>)
-            angelegt oder erkannt. Doppelte Anmeldungen (gleiche E-Mail im selben Event) werden uebersprungen.
+            angelegt oder erkannt. Doppelte Anmeldungen (gleiche E-Mail im selben Event) werden übersprungen.
           </p>
           <form method="post" action="/api/admin/import" encType="multipart/form-data" className="space-y-3">
             <input type="hidden" name="mode" value="anmeldungen" />
@@ -108,10 +108,10 @@ export default async function ImportPage({
           <h2 className="font-semibold mb-2">Kontakte (Format ohne Schulungsangabe)</h2>
           <p className="text-xs text-slate-500 mb-4">
             Einfaches Format mit Stammdaten. Da keine Schulungsangabe enthalten ist, musst du das
-            Ziel-Event hier auswaehlen. Erwartete Spalten:
+            Ziel-Event hier auswählen. Erwartete Spalten:
             <br />
             <code className="text-[11px]">
-              nachname-vorname, firma, strasse, plz, ort, telefon, email, email-rechnung,
+              nachname-vorname, firma, straße, plz, ort, telefon, email, email-rechnung,
               kostenstelle, …
             </code>
           </p>
@@ -120,7 +120,7 @@ export default async function ImportPage({
             <div>
               <label className="label">Ziel-Event</label>
               <select name="eventId" required className="input">
-                <option value="" disabled>Bitte waehlen</option>
+                <option value="" disabled>Bitte wählen</option>
                 {events.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.title} ({e.training.title}

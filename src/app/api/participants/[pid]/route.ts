@@ -47,7 +47,7 @@ export async function POST(req: Request, { params }: { params: { pid: string } }
     } as any,
   });
 
-  // Diff (auf Klartext-Basis fuer Lesbarkeit) - verschluesselt persistieren
+  // Diff (auf Klartext-Basis für Lesbarkeit) - verschlüsselt persistieren
   const diff: Record<string, { from: any; to: any }> = {};
   const after = decryptParticipant(fNew);
   for (const k of ["firstName", "lastName", "email", "phone", "company", "street", "zip", "city", "country", "notes"] as const) {

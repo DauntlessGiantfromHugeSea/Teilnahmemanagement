@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const existing = await prisma.event.findUnique({ where: { id: params.id } });
   if (!existing) return new NextResponse("Not found", { status: 404 });
 
-  // Training mit den uebergebenen Preisen aktualisieren (gleiches trainingId behalten)
+  // Training mit den übergebenen Preisen aktualisieren (gleiches trainingId behalten)
   await prisma.training.update({
     where: { id: existing.trainingId },
     data: {

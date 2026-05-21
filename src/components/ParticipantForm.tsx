@@ -50,7 +50,7 @@ export function ParticipantForm({ action, training, initial }: Props) {
             <input name="company" defaultValue={initial?.company ?? ""} className="input" />
           </div>
           <div className="md:col-span-2">
-            <label className="label">Strasse + Nr.</label>
+            <label className="label">Straße + Nr.</label>
             <input name="street" defaultValue={initial?.street ?? ""} className="input" />
           </div>
           <div>
@@ -110,7 +110,7 @@ export function ParticipantForm({ action, training, initial }: Props) {
             <label className="label">Status</label>
             <select name="status" defaultValue={initial?.status ?? "REGISTERED"} className="input">
               <option value="REGISTERED">Angemeldet</option>
-              <option value="CONFIRMED">Bestaetigt</option>
+              <option value="CONFIRMED">Bestätigt</option>
               <option value="CANCELLED">Storniert</option>
               <option value="ATTENDED">Teilgenommen</option>
               <option value="NO_SHOW">Nicht erschienen</option>

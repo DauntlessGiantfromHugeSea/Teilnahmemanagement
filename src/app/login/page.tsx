@@ -41,7 +41,7 @@ export default async function LoginPage({
           Bei Problemen wende dich an deinen Administrator.
         </p>
         <p className="mt-2 text-xs text-slate-300 text-center">
-          <Link href="/login">zurueck</Link>
+          <Link href="/login">zurück</Link>
         </p>
       </div>
     </div>
@@ -55,7 +55,7 @@ function errorText(code?: string) {
     case "inactive":
       return "Konto deaktiviert.";
     case "totp":
-      return "2FA-Code ungueltig.";
+      return "2FA-Code ungültig.";
     default:
       return null;
   }

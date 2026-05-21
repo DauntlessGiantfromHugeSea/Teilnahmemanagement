@@ -73,7 +73,7 @@ export default async function UsersPage({
                       <button className="btn-secondary text-xs">{u.active ? "Deaktivieren" : "Aktivieren"}</button>
                     </form>
                     <form method="post" action={`/api/admin/users/${u.id}/reset2fa`} className="inline">
-                      <button className="btn-secondary text-xs">2FA zuruecksetzen</button>
+                      <button className="btn-secondary text-xs">2FA zurücksetzen</button>
                     </form>
                   </td>
                 </tr>

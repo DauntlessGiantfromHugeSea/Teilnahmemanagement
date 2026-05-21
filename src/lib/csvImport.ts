@@ -2,9 +2,9 @@ import { prisma } from "./db";
 import { encryptField, blindIndex } from "./crypto";
 import { DayOption, EventFormat, Prisma } from "@prisma/client";
 
-// Minimaler RFC-4180-Parser. Unterstuetzt:
-// - Felder in Anfuehrungszeichen mit eingebetteten Zeilenumbruechen
-// - Doppelte Anfuehrungszeichen als Escape ("")
+// Minimaler RFC-4180-Parser. Unterstützt:
+// - Felder in Anführungszeichen mit eingebetteten Zeilenumbrüchen
+// - Doppelte Anführungszeichen als Escape ("")
 // - Komma als Trennzeichen
 export function parseCsv(input: string): string[][] {
   // BOM entfernen
@@ -52,7 +52,7 @@ export function parseCsv(input: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
 
-// Parser fuer das training-date Feld, z.B.:
+// Parser für das training-date Feld, z.B.:
 // "16.06.2026 - 17.06.2026 Basisschulung + Technologieschulung 'Geoponton und Fernwärme' (ID: #260603)"
 // "18.03.2026 Basisschulung (ID: #260301)"
 // "17.06.2026 Technologieschulung 'Geoponton und Fernwärme' (ID: #260602)"
@@ -61,7 +61,7 @@ export interface ParsedTrainingDate {
   day1Date: Date | null;
   day2Date: Date | null;
   trainingTitle: string; // z.B. "Geoponton und Fernwärme" oder "Basisschulung"
-  eventTitle: string; // beschreibender Titel fuer das Event
+  eventTitle: string; // beschreibender Titel für das Event
   hasBasis: boolean;
   hasTechno: boolean;
 }
@@ -120,9 +120,9 @@ export function deriveDayOption(d: ParsedTrainingDate): DayOption {
   return "DAY_1";
 }
 
-// "Mueller, Max" -> { firstName: "Max", lastName: "Mueller" }
-// "Max Mueller"  -> { firstName: "Max", lastName: "Mueller" }
-// "Dipl.-Ing. Max Mueller" -> { firstName: "Max", lastName: "Mueller" } (best effort)
+// "Müller, Max" -> { firstName: "Max", lastName: "Müller" }
+// "Max Müller"  -> { firstName: "Max", lastName: "Müller" }
+// "Dipl.-Ing. Max Müller" -> { firstName: "Max", lastName: "Müller" } (best effort)
 export function splitName(raw: string): { firstName: string; lastName: string } {
   const s = raw.trim();
   if (!s) return { firstName: "", lastName: "" };
@@ -145,7 +145,7 @@ export function cleanPhone(raw: string): string {
   return cleaned;
 }
 
-// Gemeinsame Eingabestruktur fuer CSV-Zeilen und Webhook-Payloads
+// Gemeinsame Eingabestruktur für CSV-Zeilen und Webhook-Payloads
 export interface AnmeldungInput {
   participantName: string;
   companyName?: string;
@@ -334,7 +334,7 @@ export async function importAnmeldungenCsv(
 interface RowSimpleKontakt {
   name: string;
   firma: string;
-  strasse: string;
+  straße: string;
   plz: string;
   ort: string;
   telefon: string;
@@ -352,7 +352,7 @@ function toRowSimple(headers: string[], row: string[]): RowSimpleKontakt {
   return {
     name: get("nachname-vorname"),
     firma: get("firma"),
-    strasse: get("strasse"),
+    straße: get("straße"),
     plz: get("plz"),
     ort: get("ort"),
     telefon: get("telefon"),
@@ -415,7 +415,7 @@ export async function importKontakteCsv(
         emailHash,
         phone: encryptField(phone || null),
         company: encryptField(r.firma || null),
-        street: encryptField(r.strasse || null),
+        street: encryptField(r.straße || null),
         zip: encryptField(r.plz || null),
         city: encryptField(r.ort || null),
         billingEmail: encryptField(r.emailRechnung || null),
@@ -442,5 +442,5 @@ export function detectFormat(csv: string): "anmeldungen" | "kontakte" | "unknown
   return "unknown";
 }
 
-// Wird vom Type-Checker fuer Unused-Vermeidung benoetigt
+// Wird vom Type-Checker für Unused-Vermeidung benötigt
 export type _Unused = EventFormat;

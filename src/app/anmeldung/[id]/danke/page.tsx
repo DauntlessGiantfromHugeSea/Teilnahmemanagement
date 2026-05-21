@@ -14,10 +14,10 @@ export default async function DankeSeite({ params }: { params: { id: string } })
               <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </div>
-          <h1 className="text-xl font-semibold">Vielen Dank fuer Ihre Anmeldung</h1>
+          <h1 className="text-xl font-semibold">Vielen Dank für Ihre Anmeldung</h1>
           <p className="text-sm text-slate-600 mt-3">
-            Ihre verbindliche Anmeldung fuer <strong>{ev.title}</strong> ist bei uns
-            eingegangen. Wir melden uns in Kuerze mit den Detailinformationen und der
+            Ihre verbindliche Anmeldung für <strong>{ev.title}</strong> ist bei uns
+            eingegangen. Wir melden uns in Kürze mit den Detailinformationen und der
             Rechnung.
           </p>
         </div>

@@ -58,13 +58,13 @@ export default async function AccessPage({ params }: { params: { id: string } })
         <section className="card p-6">
           <h2 className="font-semibold mb-3">Zugriff erteilen</h2>
           {candidates.length === 0 ? (
-            <p className="text-sm text-slate-500">Keine weiteren User verfuegbar.</p>
+            <p className="text-sm text-slate-500">Keine weiteren User verfügbar.</p>
           ) : (
             <form method="post" action={`/api/events/${ev.id}/access`} className="space-y-3">
               <div>
                 <label className="label">User</label>
                 <select name="userId" className="input" required>
-                  <option value="" disabled>Bitte waehlen</option>
+                  <option value="" disabled>Bitte wählen</option>
                   {candidates.map((u) => (
                     <option key={u.id} value={u.id}>
                       {u.name} ({u.email}) - {u.role}

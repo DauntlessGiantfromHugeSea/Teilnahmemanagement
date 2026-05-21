@@ -16,12 +16,12 @@ export default async function TotpPage({
       <div className="card w-full max-w-md p-8">
         <div className="flex flex-col items-center mb-6">
           <Logo className="h-14 w-auto mb-3" />
-          <h1 className="text-xl font-semibold text-slate-800">2-Faktor-Bestaetigung</h1>
+          <h1 className="text-xl font-semibold text-slate-800">2-Faktor-Bestätigung</h1>
           <p className="text-sm text-slate-500">Code aus deiner Authenticator-App</p>
         </div>
         {searchParams.error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-            Code ungueltig oder abgelaufen.
+            Code ungültig oder abgelaufen.
           </div>
         )}
         <form method="post" action="/api/auth/totp" className="space-y-4">

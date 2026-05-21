@@ -31,7 +31,7 @@ export default async function EventsPage() {
   };
   const upcoming = events.filter((e) => !isPast(e));
   const past = events.filter(isPast);
-  // Aktuelle aufsteigend (naechste zuerst), Archiv absteigend (juengste zuerst)
+  // Aktuelle aufsteigend (nächste zuerst), Archiv absteigend (jüngste zuerst)
   upcoming.sort((a, b) => {
     const ax = a.day1Date?.getTime() ?? Infinity;
     const bx = b.day1Date?.getTime() ?? Infinity;

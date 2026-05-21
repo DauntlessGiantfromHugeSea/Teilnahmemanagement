@@ -71,7 +71,7 @@ export default async function AccountingPage({
           <button className="btn-primary text-sm">anzeigen</button>
           {eventId && (
             <a href="/accounting" className="text-xs text-slate-500 hover:underline">
-              Filter zuruecksetzen
+              Filter zurücksetzen
             </a>
           )}
         </div>
@@ -200,7 +200,7 @@ export default async function AccountingPage({
                         >
                           <input type="hidden" name="invoiceStatus" value="OPEN" />
                           <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
-                            rueckgaengig
+                            rückgängig
                           </button>
                         </form>
                       </div>
@@ -221,7 +221,7 @@ export default async function AccountingPage({
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="text-center text-slate-500 py-8">
-                  Keine Eintraege.
+                  Keine Einträge.
                 </td>
               </tr>
             )}

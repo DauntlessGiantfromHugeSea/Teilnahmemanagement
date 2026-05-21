@@ -20,7 +20,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
   });
   if (!ev) notFound();
 
-  // Optional: Veranstaltung in Vergangenheit oder Kapazitaet voll
+  // Optional: Veranstaltung in Vergangenheit oder Kapazität voll
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const lastDate = ev.day2Date ?? ev.day1Date;
@@ -67,7 +67,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                     <rect x="3" y="11" width="18" height="11" rx="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  SSL-verschluesselt
+                  SSL-verschlüsselt
                 </span>
               </div>
 
@@ -105,7 +105,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
 
                 <Field name="name" label="Nachname, Vorname" required />
                 <Field name="company" label="Firma / Arbeitgeber" required />
-                <Field name="street" label="Strasse, Hausnummer" />
+                <Field name="street" label="Straße, Hausnummer" />
                 <div className="grid grid-cols-2 gap-3">
                   <Field name="zip" label="PLZ" />
                   <Field name="city" label="Ort" />
@@ -145,7 +145,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                       rel="noreferrer"
                       className="text-brand-700 underline"
                     >
-                      Datenschutzerklaerung
+                      Datenschutzerklärung
                     </a>{" "}
                     gelesen und bin damit einverstanden, dass meine Daten zur Bearbeitung
                     meiner Anmeldung verwendet werden.
@@ -157,7 +157,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
 
               {basePrice > 0 && (
                 <div className="mt-6 border-l-4 border-brand-500 bg-brand-50/40 px-4 py-3 text-sm text-slate-700">
-                  Die Teilnahmegebuehr betraegt{" "}
+                  Die Teilnahmegebühr beträgt{" "}
                   <strong>{formatEUR(basePrice)} zzgl. 19 % MwSt.</strong>
                   {ev.day2Date && ` (${dayLabel(defaultDay)})`} Die Rechnung wird Ihnen
                   nach der Anmeldung zugesandt.
@@ -199,11 +199,11 @@ function Field({
 function errorLabel(code: string): string {
   switch (code) {
     case "captcha":
-      return "Bitte bestaetige, dass du kein Bot bist.";
+      return "Bitte bestätige, dass du kein Bot bist.";
     case "missing":
-      return "Bitte alle Pflichtfelder ausfuellen.";
+      return "Bitte alle Pflichtfelder ausfüllen.";
     case "duplicate":
-      return "Es liegt bereits eine Anmeldung mit dieser E-Mail-Adresse fuer diese Veranstaltung vor.";
+      return "Es liegt bereits eine Anmeldung mit dieser E-Mail-Adresse für diese Veranstaltung vor.";
     case "full":
       return "Diese Veranstaltung ist leider ausgebucht.";
     default:
