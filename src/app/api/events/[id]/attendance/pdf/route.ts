@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canViewEvent } from "@/lib/rbac";
@@ -41,25 +43,23 @@ const PAGE_W = 842; // A4 landscape pt
 const PAGE_H = 595;
 const CONTENT_W = COLS.reduce((s, c) => s + c.width, 0); // 770
 
-// Firmenlogo zur Wiederverwendung im Memory cachen.
-const LOGO_URL = "https://fb-akademie.de/wp-content/uploads/2025/01/LogoFBAblue.png";
+// Firmenlogo aus public/logo.png laden und im Memory cachen.
+// Falls die Datei fehlt, wird der Header schlicht ohne Logo gerendert.
 let LOGO_CACHE: Buffer | null = null;
-let LOGO_FETCHED = false;
+let LOGO_LOADED = false;
 async function getLogo(): Promise<Buffer | null> {
-  if (LOGO_FETCHED) return LOGO_CACHE;
-  LOGO_FETCHED = true;
-  try {
-    const r = await fetch(LOGO_URL, {
-      headers: { "User-Agent": "Mozilla/5.0 (FB-Akademie Teilnahmemanagement)" },
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!r.ok) return null;
-    const ab = await r.arrayBuffer();
-    LOGO_CACHE = Buffer.from(ab);
-    return LOGO_CACHE;
-  } catch {
-    return null;
+  if (LOGO_LOADED) return LOGO_CACHE;
+  LOGO_LOADED = true;
+  for (const candidate of ["logo.png", "logo.jpg", "logo.jpeg"]) {
+    try {
+      const path = join(process.cwd(), "public", candidate);
+      LOGO_CACHE = await readFile(path);
+      return LOGO_CACHE;
+    } catch {
+      // weiter zum naechsten Kandidaten
+    }
   }
+  return null;
 }
 
 export async function GET(
