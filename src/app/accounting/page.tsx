@@ -43,59 +43,145 @@ export default async function AccountingPage() {
           <thead>
             <tr>
               <th>Teilnehmer</th>
-              <th>Firma</th>
+              <th>Firma &amp; Anschrift</th>
+              <th>Rechnungsanschrift</th>
               <th>Veranstaltung</th>
-              <th>Buchung</th>
-              <th className="text-right">Betrag</th>
+              <th className="text-right">RE-Betrag</th>
               <th className="text-right">Aktion</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ p, dec, cents, done }) => (
-              <tr key={p.id} className={done ? "bg-brand-50/60 text-slate-400" : ""}>
-                <td className="font-medium">
-                  <div className={done ? "line-through" : ""}>
-                    {dec.lastName}, {dec.firstName}
-                  </div>
-                  <div className="text-xs text-slate-500">{dec.email}</div>
-                </td>
-                <td className="text-sm">{dec.company ?? "-"}</td>
-                <td className="text-sm">
-                  <Link
-                    href={`/events/${p.event.id}`}
-                    className={done ? "hover:underline" : "text-brand-700 hover:underline"}
-                  >
-                    {p.event.title}
-                  </Link>
-                  <div className="text-xs text-slate-500">
-                    {p.event.day1Date ? p.event.day1Date.toLocaleDateString("de-DE") : "-"}
-                    {p.event.day2Date ? ` - ${p.event.day2Date.toLocaleDateString("de-DE")}` : ""}
-                  </div>
-                </td>
-                <td className="text-sm">
-                  {p.dayOption === "DAY_1" ? "Tag 1" : p.dayOption === "DAY_2" ? "Tag 2" : "Beide Tage"}
-                </td>
-                <td className="text-right font-semibold">{formatEUR(cents)}</td>
-                <td className="text-right">
-                  {done ? (
-                    <form method="post" action={`/api/participants/${p.id}/invoice`} className="inline">
-                      <input type="hidden" name="invoiceStatus" value="OPEN" />
-                      <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
-                        rueckgaengig
-                      </button>
-                    </form>
-                  ) : (
-                    <form method="post" action={`/api/participants/${p.id}/invoice`} className="inline">
-                      <input type="hidden" name="invoiceStatus" value="ISSUED" />
-                      <button className="btn-primary text-xs px-3 py-1">RE gestellt</button>
-                    </form>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {rows.map(({ p, dec, cents, done }) => {
+              const initials =
+                `${dec.firstName?.[0] ?? ""}${dec.lastName?.[0] ?? ""}`.toUpperCase() || "??";
+              const tnAddr = [
+                dec.street,
+                [dec.zip, dec.city].filter(Boolean).join(" "),
+                dec.country,
+              ]
+                .filter(Boolean)
+                .join(", ");
+              return (
+                <tr
+                  key={p.id}
+                  className={"align-top " + (done ? "bg-brand-50/60 text-slate-400" : "")}
+                >
+                  <td className="py-4">
+                    <div className="flex items-start gap-3">
+                      <span
+                        className={
+                          "h-10 w-10 shrink-0 rounded-full text-xs font-semibold flex items-center justify-center mt-0.5 " +
+                          (done ? "bg-slate-200 text-slate-400" : "bg-brand-100 text-brand-700")
+                        }
+                      >
+                        {initials}
+                      </span>
+                      <div className="min-w-0 text-sm">
+                        <div className={"font-medium " + (done ? "line-through" : "")}>
+                          {dec.lastName}, {dec.firstName}
+                        </div>
+                        <div className="text-xs font-mono break-all">{dec.email}</div>
+                        {dec.phone && (
+                          <div className="text-xs text-slate-500 mt-0.5">{dec.phone}</div>
+                        )}
+                        {dec.costCenter && (
+                          <div className="text-xs text-slate-500 mt-0.5">
+                            KSt: {dec.costCenter}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-4 text-sm">
+                    {dec.company ? (
+                      <div className="font-medium">{dec.company}</div>
+                    ) : (
+                      <div className="text-slate-400">-</div>
+                    )}
+                    {tnAddr && <div className="text-xs text-slate-500 mt-1">{tnAddr}</div>}
+                  </td>
+                  <td className="py-4 text-sm">
+                    {dec.billingCompany && <div className="font-medium">{dec.billingCompany}</div>}
+                    {dec.billingName && (
+                      <div className="text-xs text-slate-600">{dec.billingName}</div>
+                    )}
+                    {dec.billingStreet && (
+                      <div className="text-xs text-slate-500">{dec.billingStreet}</div>
+                    )}
+                    {dec.billingZipCity && (
+                      <div className="text-xs text-slate-500">{dec.billingZipCity}</div>
+                    )}
+                    {dec.billingEmail && (
+                      <div className="text-xs font-mono text-slate-500 mt-1 break-all">
+                        {dec.billingEmail}
+                      </div>
+                    )}
+                    {!dec.billingCompany &&
+                      !dec.billingName &&
+                      !dec.billingStreet &&
+                      !dec.billingZipCity &&
+                      !dec.billingEmail && (
+                        <span className="text-xs text-slate-400 italic">
+                          wie Teilnehmer-Anschrift
+                        </span>
+                      )}
+                  </td>
+                  <td className="py-4 text-sm">
+                    <Link
+                      href={`/events/${p.event.id}`}
+                      className={done ? "hover:underline" : "text-brand-700 hover:underline font-medium"}
+                    >
+                      {p.event.title}
+                    </Link>
+                    <div className="text-xs text-slate-500 mt-1">
+                      {p.event.day1Date ? p.event.day1Date.toLocaleDateString("de-DE") : "-"}
+                      {p.event.day2Date
+                        ? ` - ${p.event.day2Date.toLocaleDateString("de-DE")}`
+                        : ""}
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      {p.dayOption === "DAY_1"
+                        ? "Tag 1"
+                        : p.dayOption === "DAY_2"
+                        ? "Tag 2"
+                        : "Beide Tage"}
+                    </div>
+                  </td>
+                  <td className="py-4 text-right text-lg font-semibold whitespace-nowrap">
+                    {formatEUR(cents)}
+                  </td>
+                  <td className="py-4 text-right">
+                    {done ? (
+                      <div className="space-y-1">
+                        <div className="text-xs text-brand-700 font-semibold">erledigt</div>
+                        <form
+                          method="post"
+                          action={`/api/participants/${p.id}/invoice`}
+                          className="inline"
+                        >
+                          <input type="hidden" name="invoiceStatus" value="OPEN" />
+                          <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
+                            rueckgaengig
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <form
+                        method="post"
+                        action={`/api/participants/${p.id}/invoice`}
+                        className="inline"
+                      >
+                        <input type="hidden" name="invoiceStatus" value="ISSUED" />
+                        <button className="btn-primary text-xs px-3 py-1.5">RE gestellt</button>
+                      </form>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center text-slate-500 py-6">
+                <td colSpan={6} className="text-center text-slate-500 py-8">
                   Keine Eintraege.
                 </td>
               </tr>
