@@ -3,6 +3,7 @@ import Script from "next/script";
 /* eslint-disable @next/next/no-img-element */
 import { prisma } from "@/lib/db";
 import { basePriceCents, formatEUR } from "@/lib/pricing";
+import { parseBlocks, type Block } from "@/lib/pageBlocks";
 import { DayOption } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
     .split(/\r?\n/)
     .map((s) => s.trim())
     .filter(Boolean);
+  const blocks = parseBlocks(ev.pageBlocks);
 
   return (
     <div className="min-h-screen bg-transparent">
@@ -129,6 +131,13 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
           </div>
         ) : (
           <>
+            {/* Custom Page-Blocks (Baukasten) */}
+            {blocks.length > 0 && (
+              <div className="card mt-6 p-6 sm:p-8 space-y-5">
+                {blocks.map((b) => <BlockRender key={b.id} block={b} />)}
+              </div>
+            )}
+
             {/* Inhalt: Beschreibung + Agenda */}
             {(ev.longDescription || agendaItems.length > 0) && (
               <div className="card mt-6 p-6 sm:p-8 space-y-5">
@@ -301,6 +310,55 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
       </div>
     </div>
   );
+}
+
+function BlockRender({ block: b }: { block: Block }) {
+  if (b.type === "hero") {
+    return (
+      <div>
+        {b.title && <h2 className="text-xl font-semibold text-slate-800">{b.title}</h2>}
+        {b.text && <p className="text-sm text-slate-500 mt-1">{b.text}</p>}
+      </div>
+    );
+  }
+  if (b.type === "text") {
+    return <p className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{b.text}</p>;
+  }
+  if (b.type === "image" && b.url) {
+    return (
+      <figure>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={b.url} alt={b.text ?? ""} className="w-full rounded-lg border border-slate-200" />
+        {b.text && <figcaption className="text-xs text-slate-500 mt-1 text-center">{b.text}</figcaption>}
+      </figure>
+    );
+  }
+  if (b.type === "button") {
+    const cls = b.variant === "secondary" ? "btn-secondary" : "btn-primary";
+    return (
+      <div>
+        <a href={b.href ?? "#"} className={cls + " inline-flex"}>{b.title ?? "Klick"}</a>
+      </div>
+    );
+  }
+  if (b.type === "list" && b.items && b.items.length > 0) {
+    return (
+      <ul className="space-y-2">
+        {b.items.map((it, i) => (
+          <li key={i} className="flex items-start gap-2 text-sm">
+            <svg className="h-5 w-5 text-brand-500 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="text-slate-700">{it}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  if (b.type === "divider") {
+    return <hr className="border-slate-200" />;
+  }
+  return null;
 }
 
 function Meta({ icon, label }: { icon: "cal" | "clock" | "place" | "online" | "shield"; label: string }) {

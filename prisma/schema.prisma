@@ -110,6 +110,7 @@ model Event {
   agenda          String?   // Programmpunkte / Bullets, je Zeile ein Punkt
   heroImageUrl    String?   // Bild oben auf der Anmeldeseite (https-URL)
   logoUrl         String?   // optional ein eigenes Logo pro Event
+  pageBlocks      String?   // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
   // Interne Notizen (verschluesselt)
   notes       String?
   createdById String
