@@ -50,59 +50,66 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-transparent">
-      <div className="w-full max-w-3xl mx-auto px-4 py-6 sm:py-10">
-        {/* Hero */}
-        <div className="card overflow-hidden">
-          {ev.heroImageUrl ? (
-            <div className="relative aspect-[16/7] bg-brand-900">
-              <img
-                src={ev.heroImageUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              {ev.logoUrl && (
-                <img
-                  src={ev.logoUrl}
-                  alt="Logo"
-                  className="absolute top-4 right-4 h-10 sm:h-12 w-auto bg-white/95 rounded p-1.5 shadow"
-                />
-              )}
-              <div className="absolute left-4 sm:left-6 right-4 sm:right-6 bottom-4 sm:bottom-6 text-white">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3">
-                  {dateBadge}
-                </div>
-                {ev.subtitle && (
-                  <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-1">
-                    {ev.subtitle}
-                  </div>
-                )}
-                <h1 className="text-xl sm:text-3xl font-semibold leading-tight">{ev.title}</h1>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-brand-500 to-brand-700 text-white p-6 sm:p-10">
-              {ev.logoUrl && (
-                <img
-                  src={ev.logoUrl}
-                  alt="Logo"
-                  className="float-right h-10 sm:h-12 w-auto bg-white/95 rounded p-1.5 mb-3"
-                />
-              )}
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3">
+      {/* Hero in voller Breite */}
+      {ev.heroImageUrl ? (
+        <div className="relative w-full bg-brand-900 aspect-[21/9] sm:aspect-[21/8] max-h-[60vh] overflow-hidden">
+          <img
+            src={ev.heroImageUrl}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+          {ev.logoUrl && (
+            <img
+              src={ev.logoUrl}
+              alt="Logo"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 h-10 sm:h-14 w-auto bg-white/95 rounded-lg p-2 shadow-lg"
+            />
+          )}
+          <div className="absolute left-0 right-0 bottom-0">
+            <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-8 sm:pb-12 text-white">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3 sm:mb-4">
                 {dateBadge}
               </div>
               {ev.subtitle && (
-                <div className="text-xs sm:text-sm uppercase tracking-wider opacity-90 mb-1">
+                <div className="text-xs sm:text-sm uppercase tracking-[0.2em] opacity-90 mb-2">
                   {ev.subtitle}
                 </div>
               )}
-              <h1 className="text-xl sm:text-3xl font-semibold leading-tight">{ev.title}</h1>
+              <h1 className="text-2xl sm:text-5xl font-semibold leading-tight max-w-3xl drop-shadow">
+                {ev.title}
+              </h1>
             </div>
-          )}
+          </div>
+        </div>
+      ) : (
+        <div className="relative w-full bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 text-white overflow-hidden">
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
+          <div className="relative max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-20">
+            {ev.logoUrl && (
+              <img
+                src={ev.logoUrl}
+                alt="Logo"
+                className="absolute top-6 right-6 h-12 w-auto bg-white/95 rounded-lg p-2"
+              />
+            )}
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3 sm:mb-4">
+              {dateBadge}
+            </div>
+            {ev.subtitle && (
+              <div className="text-xs sm:text-sm uppercase tracking-[0.2em] opacity-90 mb-2">
+                {ev.subtitle}
+              </div>
+            )}
+            <h1 className="text-2xl sm:text-5xl font-semibold leading-tight max-w-3xl">{ev.title}</h1>
+          </div>
+        </div>
+      )}
 
-          {/* Meta-Leiste */}
-          <div className="border-t border-slate-100 px-5 sm:px-6 py-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+      <div className="w-full max-w-3xl mx-auto px-4 py-6 sm:py-10">
+        {/* Meta-Leiste als eigene Karte */}
+        <div className="card -mt-12 sm:-mt-16 relative z-10">
+          <div className="px-5 sm:px-6 py-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <Meta icon="cal" label={day2 ? `${day1} – ${day2}` : day1 ?? "Termin folgt"} />
             {(ev.startTime || ev.endTime) && (
               <Meta
