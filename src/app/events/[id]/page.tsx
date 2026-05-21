@@ -36,16 +36,40 @@ export default async function EventDetail({ params }: { params: { id: string } }
 
   return (
     <Shell session={s} active="events">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="text-xs text-slate-500 uppercase tracking-wide">Veranstaltung</div>
-          <h1 className="text-2xl font-semibold">{ev.title}</h1>
-          <div className="text-sm text-slate-500 mt-1">
-            {ev.training.title} &middot;{" "}
-            {ev.day1Date?.toLocaleDateString("de-DE") ?? "Tag 1: -"} /{" "}
-            {ev.day2Date?.toLocaleDateString("de-DE") ?? "Tag 2: -"}
-            {ev.location ? ` · ${ev.location}` : ""}
+      <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
+            <span className={"badge " + (ev.format === "WEBINAR" ? "bg-indigo-100 text-indigo-800" : "bg-brand-100 text-brand-700")}>
+              {ev.format === "WEBINAR" ? "Webinar" : "Schulung"}
+            </span>
+            <span className="text-slate-500">Veranstaltung</span>
           </div>
+          <h1 className="text-2xl font-semibold mt-1">{ev.title}</h1>
+          <div className="text-sm text-slate-500 mt-1 space-x-1">
+            <span>{ev.training.title}</span>
+            <span>&middot;</span>
+            <span>
+              {ev.day1Date?.toLocaleDateString("de-DE") ?? "-"}
+              {ev.day2Date ? ` / ${ev.day2Date.toLocaleDateString("de-DE")}` : ""}
+              {ev.startTime ? `, ${ev.startTime}${ev.endTime ? `-${ev.endTime}` : ""} Uhr` : ""}
+            </span>
+            {ev.format === "WEBINAR" && ev.meetingUrl ? (
+              <>
+                <span>&middot;</span>
+                <a href={ev.meetingUrl} target="_blank" rel="noreferrer" className="text-brand-700 hover:underline break-all">
+                  Meeting-Link
+                </a>
+              </>
+            ) : ev.location ? (
+              <>
+                <span>&middot;</span>
+                <span>{ev.location}</span>
+              </>
+            ) : null}
+          </div>
+          {ev.description && (
+            <p className="text-sm text-slate-600 mt-2 max-w-2xl">{ev.description}</p>
+          )}
         </div>
         <div className="flex gap-2">
           {canWrite && (

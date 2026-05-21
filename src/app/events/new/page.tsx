@@ -23,7 +23,7 @@ export default async function NewEvent({
         </div>
       )}
       <div className="card p-6 max-w-2xl">
-        <EventForm trainings={trainings} action="/api/events" allowAddAnother />
+        <EventForm trainings={trainings} action="/api/events" allowAddAnother allowInlineTraining />
       </div>
     </Shell>
   );

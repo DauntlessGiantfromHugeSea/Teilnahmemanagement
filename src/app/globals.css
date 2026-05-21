@@ -5,6 +5,11 @@
 summary::-webkit-details-marker { display: none; }
 summary { list-style: none; }
 
+.event-form:has(input[name="format"][value="WEBINAR"]:checked) .only-presence { display: none; }
+.event-form:has(input[name="format"][value="PRESENCE"]:checked) .only-webinar { display: none; }
+.event-form:has(input[name="trainingMode"][value="existing"]:checked) .training-new { display: none; }
+.event-form:has(input[name="trainingMode"][value="new"]:checked) .training-existing { display: none; }
+
 :root {
   --background: #f6f8fb;
 }
