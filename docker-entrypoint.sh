@@ -1,14 +1,15 @@
 #!/bin/sh
 set -e
 
-echo "[entrypoint] Warte auf Datenbank ..."
-# Einfacher Retry-Loop fuer Prisma migrate deploy
+PRISMA_BIN="/app/node_modules/prisma/build/index.js"
+
+echo "[entrypoint] Warte auf Datenbank und wende Schema an ..."
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  if npx --no-install prisma migrate deploy; then
-    echo "[entrypoint] Migrationen angewendet."
+  if node "$PRISMA_BIN" db push --skip-generate --accept-data-loss; then
+    echo "[entrypoint] Datenbank-Schema aktuell."
     break
   fi
-  echo "[entrypoint] DB noch nicht bereit, versuche es in 3s erneut ($i/10) ..."
+  echo "[entrypoint] DB noch nicht bereit, neuer Versuch in 3s ($i/10) ..."
   sleep 3
 done
 
