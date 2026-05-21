@@ -4,6 +4,7 @@ import { jwtVerify } from "jose";
 const PUBLIC = [
   /^\/login(\/.*)?$/,
   /^\/api\/auth\/.*/,
+  /^\/api\/public\/.*/,
   /^\/_next\/.*/,
   /^\/favicon\.ico$/,
 ];

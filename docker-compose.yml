@@ -35,6 +35,9 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:?bitte in .env setzen (>= 48 chars)}
       APP_NAME: ${APP_NAME:-FB-Akademie Teilnahmemanagement}
       APP_URL: ${APP_URL:-http://localhost:3000}
+      # Optional: API-Key fuer den Webhook-Endpoint /api/public/anmeldungen
+      # (>= 16 Zeichen, in .env setzen). Leer = Webhook deaktiviert.
+      WEBHOOK_API_KEY: ${WEBHOOK_API_KEY:-}
       NODE_ENV: production
       # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
       RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}

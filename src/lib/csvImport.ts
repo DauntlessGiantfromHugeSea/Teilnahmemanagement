@@ -145,6 +145,97 @@ export function cleanPhone(raw: string): string {
   return cleaned;
 }
 
+// Gemeinsame Eingabestruktur fuer CSV-Zeilen und Webhook-Payloads
+export interface AnmeldungInput {
+  participantName: string;
+  companyName?: string;
+  participantEmail: string;
+  phone?: string;
+  trainingDate: string;
+  billingCompany?: string;
+  billingName?: string;
+  billingStreet?: string;
+  billingZipCity?: string;
+  billingEmail?: string;
+  remarks?: string;
+}
+
+export interface CreatedAnmeldung {
+  status: "created" | "duplicate";
+  participantId: string;
+  eventId: string;
+  message: string;
+}
+
+export async function createAnmeldung(
+  input: AnmeldungInput,
+  ctx: { actorId: string }
+): Promise<CreatedAnmeldung> {
+  if (!input.participantEmail || !input.participantName) {
+    throw new Error("Name oder E-Mail fehlt");
+  }
+  const parsed = parseTrainingDate(input.trainingDate ?? "");
+  if (!parsed.externalId) {
+    throw new Error("Keine Event-ID in training-date erkennbar");
+  }
+
+  let event = await prisma.event.findUnique({ where: { externalId: parsed.externalId } });
+  if (!event) {
+    let training = await prisma.training.findFirst({ where: { title: parsed.trainingTitle } });
+    if (!training) {
+      training = await prisma.training.create({
+        data: { title: parsed.trainingTitle, priceDay1: 0, priceDay2: 0, priceBoth: 0 },
+      });
+    }
+    event = await prisma.event.create({
+      data: {
+        externalId: parsed.externalId,
+        trainingId: training.id,
+        title: parsed.eventTitle,
+        format: "PRESENCE",
+        day1Date: parsed.day1Date,
+        day2Date: parsed.day2Date,
+        createdById: ctx.actorId,
+      },
+    });
+  }
+
+  const { firstName, lastName } = splitName(input.participantName);
+  const phone = cleanPhone(input.phone ?? "");
+  const dayOption = deriveDayOption(parsed);
+  const emailLc = input.participantEmail.trim().toLowerCase();
+  const emailHash = blindIndex(emailLc);
+
+  const dup = await prisma.participant.findFirst({ where: { eventId: event.id, emailHash } });
+  if (dup) {
+    return {
+      status: "duplicate",
+      participantId: dup.id,
+      eventId: event.id,
+      message: "Bereits vorhanden (gleiche E-Mail im Event)",
+    };
+  }
+
+  const data: Prisma.ParticipantUncheckedCreateInput = {
+    eventId: event.id,
+    firstName: encryptField(firstName) ?? "",
+    lastName: encryptField(lastName) ?? "",
+    email: encryptField(emailLc) ?? "",
+    emailHash,
+    phone: encryptField(phone || null),
+    company: encryptField(input.companyName ?? null),
+    notes: encryptField(input.remarks ?? null),
+    billingCompany: encryptField(input.billingCompany ?? null),
+    billingName: encryptField(input.billingName ?? null),
+    billingStreet: encryptField(input.billingStreet ?? null),
+    billingZipCity: encryptField(input.billingZipCity ?? null),
+    billingEmail: encryptField(input.billingEmail ?? null),
+    dayOption,
+  };
+  const p = await prisma.participant.create({ data });
+  return { status: "created", participantId: p.id, eventId: event.id, message: "Angelegt" };
+}
+
 export interface ImportRowResult {
   row: number;
   ok: boolean;
@@ -219,87 +310,18 @@ export async function importAnmeldungenCsv(
     const rowNum = i + 2; // Header = Zeile 1
     try {
       const r = toRowAnmeldung(headers, dataRows[i]);
-      if (!r.participantEmail || !r.participantName) {
-        summary.failed++;
-        summary.results.push({ row: rowNum, ok: false, message: "Name oder E-Mail fehlt" });
-        continue;
-      }
-      const parsed = parseTrainingDate(r.trainingDate);
-      if (!parsed.externalId) {
-        summary.failed++;
-        summary.results.push({ row: rowNum, ok: false, message: "Keine Event-ID in training-date erkennbar" });
-        continue;
-      }
-
-      // Event finden oder anlegen
-      let event = await prisma.event.findUnique({ where: { externalId: parsed.externalId } });
-      if (!event) {
-        // Training finden oder anlegen (nach Titel)
-        let training = await prisma.training.findFirst({ where: { title: parsed.trainingTitle } });
-        if (!training) {
-          training = await prisma.training.create({
-            data: { title: parsed.trainingTitle, priceDay1: 0, priceDay2: 0, priceBoth: 0 },
-          });
-        }
-        event = await prisma.event.create({
-          data: {
-            externalId: parsed.externalId,
-            trainingId: training.id,
-            title: parsed.eventTitle,
-            format: "PRESENCE",
-            day1Date: parsed.day1Date,
-            day2Date: parsed.day2Date,
-            createdById: ctx.actorId,
-          },
-        });
-      }
-
-      const { firstName, lastName } = splitName(r.participantName);
-      const phone = cleanPhone(r.phone);
-      const dayOption = deriveDayOption(parsed);
-      const emailLc = r.participantEmail.trim().toLowerCase();
-
-      // Dedupe: gleicher Event + gleicher emailHash -> ueberspringen
-      const emailHash = blindIndex(emailLc);
-      const dup = await prisma.participant.findFirst({
-        where: { eventId: event.id, emailHash },
-      });
-      if (dup) {
+      const res = await createAnmeldung(r, ctx);
+      if (res.status === "duplicate") {
         summary.skipped++;
-        summary.results.push({
-          row: rowNum,
-          ok: true,
-          message: "Bereits vorhanden (gleiche E-Mail im Event)",
-          participantId: dup.id,
-          eventId: event.id,
-        });
-        continue;
+      } else {
+        summary.created++;
       }
-
-      const data: Prisma.ParticipantUncheckedCreateInput = {
-        eventId: event.id,
-        firstName: encryptField(firstName) ?? "",
-        lastName: encryptField(lastName) ?? "",
-        email: encryptField(emailLc) ?? "",
-        emailHash,
-        phone: encryptField(phone || null),
-        company: encryptField(r.companyName || null),
-        notes: encryptField(r.remarks || null),
-        billingCompany: encryptField(r.billingCompany || null),
-        billingName: encryptField(r.billingName || null),
-        billingStreet: encryptField(r.billingStreet || null),
-        billingZipCity: encryptField(r.billingZipCity || null),
-        billingEmail: encryptField(r.billingEmail || null),
-        dayOption,
-      };
-      const p = await prisma.participant.create({ data });
-      summary.created++;
       summary.results.push({
         row: rowNum,
         ok: true,
-        message: "Angelegt",
-        participantId: p.id,
-        eventId: event.id,
+        message: res.message,
+        participantId: res.participantId,
+        eventId: res.eventId,
       });
     } catch (e: any) {
       summary.failed++;
