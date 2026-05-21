@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
 import { isAccounting } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
+import { decryptParticipant } from "@/lib/participants";
 import { basePriceCents, finalPriceCents, formatEUR } from "@/lib/pricing";
 
 export default async function AccountingPage() {
@@ -11,214 +12,97 @@ export default async function AccountingPage() {
   if (!s) redirect("/login");
   if (!isAccounting(s)) redirect("/dashboard");
 
-  const events = await prisma.event.findMany({
-    orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
-    include: {
-      training: true,
-      participants: { where: { status: { not: "CANCELLED" } } },
-    },
+  const parts = await prisma.participant.findMany({
+    where: { status: { not: "CANCELLED" } },
+    include: { event: { include: { training: true } } },
+    orderBy: [{ event: { day1Date: "desc" } }, { createdAt: "desc" }],
   });
 
-  const rows = events.map((e) => {
-    const totals = { open: 0, issued: 0, paid: 0, cancelled: 0 };
-    const counts = { open: 0, issued: 0, paid: 0, cancelled: 0 };
-    for (const p of e.participants) {
-      const cents = finalPriceCents(basePriceCents(e.training, p.dayOption), p.discountBps);
-      const k = p.invoiceStatus.toLowerCase() as keyof typeof totals;
-      totals[k] += cents;
-      counts[k] += 1;
-    }
-    const total = totals.open + totals.issued + totals.paid;
-    return {
-      id: e.id,
-      title: e.title,
-      day1Date: e.day1Date,
-      day2Date: e.day2Date,
-      format: e.format,
-      participantCount: e.participants.length,
-      totals,
-      counts,
-      total,
-    };
+  const rows = parts.map((p) => {
+    const dec = decryptParticipant(p);
+    const cents = finalPriceCents(basePriceCents(p.event.training, p.dayOption), p.discountBps);
+    return { p, dec, cents, done: p.invoiceStatus !== "OPEN" };
   });
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const upcoming = rows.filter((r) => {
-    const last = r.day2Date ?? r.day1Date;
-    return !last || last >= todayStart;
-  });
-  const past = rows.filter((r) => {
-    const last = r.day2Date ?? r.day1Date;
-    return last && last < todayStart;
-  });
-
-  const grand = rows.reduce(
-    (acc, r) => {
-      acc.open += r.totals.open;
-      acc.issued += r.totals.issued;
-      acc.paid += r.totals.paid;
-      return acc;
-    },
-    { open: 0, issued: 0, paid: 0 }
-  );
+  const total = rows.length;
+  const offen = rows.filter((r) => !r.done).length;
+  const erledigt = total - offen;
 
   return (
     <Shell session={s} active="accounting">
-      <h1 className="text-2xl font-semibold mb-6">Buchhaltung</h1>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <Kpi label="Offen" value={formatEUR(grand.open)} tone="warn" />
-        <Kpi label="Gestellt" value={formatEUR(grand.issued)} tone="info" />
-        <Kpi label="Bezahlt" value={formatEUR(grand.paid)} tone="good" />
+      <div className="flex items-baseline justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Buchhaltung</h1>
+        <div className="text-sm text-slate-500">
+          <span className="font-semibold text-brand-700">{offen}</span> offen &middot;{" "}
+          <span className="font-semibold text-slate-400">{erledigt}</span> erledigt
+        </div>
       </div>
 
-      <section className="mb-6">
-        <div className="flex items-baseline justify-between mb-2">
-          <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-            Aktuell &amp; kommend
-          </h2>
-          <span className="text-xs text-slate-500">{upcoming.length}</span>
-        </div>
-        <EventTable rows={upcoming} emptyText="Keine aktuellen Veranstaltungen." />
-      </section>
-
-      <section>
-        <details className="card overflow-hidden">
-          <summary className="cursor-pointer px-4 py-3 flex items-center justify-between hover:bg-slate-50">
-            <span className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-700 uppercase tracking-wide">
-                Archiv
-              </span>
-              <span className="text-xs text-slate-500">{past.length} vergangene</span>
-            </span>
-            <span aria-hidden className="text-slate-400 text-sm">&#9662;</span>
-          </summary>
-          <div className="border-t border-slate-200">
-            <EventTable rows={past} emptyText="Keine vergangenen Veranstaltungen." bare />
-          </div>
-        </details>
-      </section>
-
-      <p className="text-xs text-slate-500 mt-6">
-        Rechnungsstatus und -nummern werden je Teilnehmer in der Detailansicht gepflegt.
-        Diese Seite ist nur die Uebersicht.
-      </p>
+      <div className="card overflow-hidden">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Teilnehmer</th>
+              <th>Firma</th>
+              <th>Veranstaltung</th>
+              <th>Buchung</th>
+              <th className="text-right">Betrag</th>
+              <th className="text-right">Aktion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ p, dec, cents, done }) => (
+              <tr key={p.id} className={done ? "bg-brand-50/60 text-slate-400" : ""}>
+                <td className="font-medium">
+                  <div className={done ? "line-through" : ""}>
+                    {dec.lastName}, {dec.firstName}
+                  </div>
+                  <div className="text-xs text-slate-500">{dec.email}</div>
+                </td>
+                <td className="text-sm">{dec.company ?? "-"}</td>
+                <td className="text-sm">
+                  <Link
+                    href={`/events/${p.event.id}`}
+                    className={done ? "hover:underline" : "text-brand-700 hover:underline"}
+                  >
+                    {p.event.title}
+                  </Link>
+                  <div className="text-xs text-slate-500">
+                    {p.event.day1Date ? p.event.day1Date.toLocaleDateString("de-DE") : "-"}
+                    {p.event.day2Date ? ` - ${p.event.day2Date.toLocaleDateString("de-DE")}` : ""}
+                  </div>
+                </td>
+                <td className="text-sm">
+                  {p.dayOption === "DAY_1" ? "Tag 1" : p.dayOption === "DAY_2" ? "Tag 2" : "Beide Tage"}
+                </td>
+                <td className="text-right font-semibold">{formatEUR(cents)}</td>
+                <td className="text-right">
+                  {done ? (
+                    <form method="post" action={`/api/participants/${p.id}/invoice`} className="inline">
+                      <input type="hidden" name="invoiceStatus" value="OPEN" />
+                      <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
+                        rueckgaengig
+                      </button>
+                    </form>
+                  ) : (
+                    <form method="post" action={`/api/participants/${p.id}/invoice`} className="inline">
+                      <input type="hidden" name="invoiceStatus" value="ISSUED" />
+                      <button className="btn-primary text-xs px-3 py-1">RE gestellt</button>
+                    </form>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-center text-slate-500 py-6">
+                  Keine Eintraege.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </Shell>
-  );
-}
-
-interface Row {
-  id: string;
-  title: string;
-  day1Date: Date | null;
-  day2Date: Date | null;
-  format: string;
-  participantCount: number;
-  totals: { open: number; issued: number; paid: number; cancelled: number };
-  counts: { open: number; issued: number; paid: number; cancelled: number };
-  total: number;
-}
-
-function EventTable({
-  rows,
-  emptyText,
-  bare,
-}: {
-  rows: Row[];
-  emptyText: string;
-  bare?: boolean;
-}) {
-  const table = (
-    <table className="table">
-      <thead>
-        <tr>
-          <th>Veranstaltung</th>
-          <th>Termin</th>
-          <th className="text-right">Teilnehmer</th>
-          <th className="text-right">Offen</th>
-          <th className="text-right">Gestellt</th>
-          <th className="text-right">Bezahlt</th>
-          <th className="text-right">Gesamt</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id}>
-            <td>
-              <div className="font-medium">{r.title}</div>
-              <div className="text-xs text-slate-500">
-                {r.format === "WEBINAR" ? "Webinar" : "Schulung"}
-              </div>
-            </td>
-            <td className="text-sm">
-              {r.day1Date ? r.day1Date.toLocaleDateString("de-DE") : "-"}
-              {r.day2Date ? ` - ${r.day2Date.toLocaleDateString("de-DE")}` : ""}
-            </td>
-            <td className="text-right">{r.participantCount}</td>
-            <td className="text-right">
-              {r.totals.open > 0 ? (
-                <span className="text-amber-700">{formatEUR(r.totals.open)}</span>
-              ) : (
-                <span className="text-slate-300">-</span>
-              )}
-              {r.counts.open > 0 && (
-                <div className="text-xs text-slate-400">{r.counts.open} TN</div>
-              )}
-            </td>
-            <td className="text-right">
-              {r.totals.issued > 0 ? (
-                <span className="text-blue-700">{formatEUR(r.totals.issued)}</span>
-              ) : (
-                <span className="text-slate-300">-</span>
-              )}
-              {r.counts.issued > 0 && (
-                <div className="text-xs text-slate-400">{r.counts.issued} TN</div>
-              )}
-            </td>
-            <td className="text-right">
-              {r.totals.paid > 0 ? (
-                <span className="text-green-700">{formatEUR(r.totals.paid)}</span>
-              ) : (
-                <span className="text-slate-300">-</span>
-              )}
-              {r.counts.paid > 0 && (
-                <div className="text-xs text-slate-400">{r.counts.paid} TN</div>
-              )}
-            </td>
-            <td className="text-right font-semibold">{formatEUR(r.total)}</td>
-            <td className="text-right">
-              <Link
-                href={`/events/${r.id}`}
-                className="text-brand-700 hover:underline text-sm"
-              >
-                oeffnen
-              </Link>
-            </td>
-          </tr>
-        ))}
-        {rows.length === 0 && (
-          <tr>
-            <td colSpan={8} className="text-center text-slate-500 py-6">
-              {emptyText}
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  );
-  if (bare) return table;
-  return <div className="card overflow-hidden">{table}</div>;
-}
-
-function Kpi({ label, value, tone }: { label: string; value: string; tone: "warn" | "info" | "good" }) {
-  const cls =
-    tone === "warn" ? "text-amber-600" : tone === "info" ? "text-blue-700" : "text-green-700";
-  return (
-    <div className="card p-5">
-      <div className="text-xs text-slate-500 uppercase">{label}</div>
-      <div className={"mt-2 text-2xl font-semibold " + cls}>{value}</div>
-    </div>
   );
 }
