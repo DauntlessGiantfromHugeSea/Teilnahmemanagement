@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { basePriceCents, formatEUR } from "@/lib/pricing";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Anmeldung - FB-Akademie",
 };

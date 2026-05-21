@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export default async function DankeSeite({ params }: { params: { id: string } }) {
   const ev = await prisma.event.findUnique({ where: { id: params.id } });
   if (!ev) notFound();
