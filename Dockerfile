@@ -51,6 +51,28 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modul
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/bcryptjs ./node_modules/bcryptjs
+# pdfkit (PDF-Erzeugung fuer Anwesenheitslisten) laedt seine AFM-Fonts
+# ueber __dirname zur Laufzeit. Standalone-Tracing erfasst die Binaer-
+# Daten nicht zuverlaessig - daher das gesamte Paket samt transitiven
+# Laufzeit-Abhaengigkeiten kopieren. Pakete mit '@' in zwei COPYs.
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@noble ./node_modules/@noble
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pdfkit ./node_modules/pdfkit
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/fontkit ./node_modules/fontkit
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/png-js ./node_modules/png-js
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/linebreak ./node_modules/linebreak
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/unicode-properties ./node_modules/unicode-properties
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/unicode-trie ./node_modules/unicode-trie
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/clone ./node_modules/clone
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/dfa ./node_modules/dfa
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/restructure ./node_modules/restructure
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/tiny-inflate ./node_modules/tiny-inflate
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/brotli ./node_modules/brotli
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/base64-js ./node_modules/base64-js
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/pako ./node_modules/pako
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/browserify-zlib ./node_modules/browserify-zlib
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/fast-deep-equal ./node_modules/fast-deep-equal
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/js-md5 ./node_modules/js-md5
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/tslib ./node_modules/tslib
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
 # Entrypoint: erst migrate deploy, dann Server starten

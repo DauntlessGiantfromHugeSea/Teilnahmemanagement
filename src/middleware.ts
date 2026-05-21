@@ -4,8 +4,14 @@ import { jwtVerify } from "jose";
 const PUBLIC = [
   /^\/login(\/.*)?$/,
   /^\/api\/auth\/.*/,
+  /^\/api\/public\/.*/,
   /^\/_next\/.*/,
   /^\/favicon\.ico$/,
+  /^\/manifest\.webmanifest$/,
+  /^\/sw\.js$/,
+  /^\/icon[^/]*\.(png|svg)$/,
+  /^\/apple-touch-icon\.png$/,
+  /^\/favicon-(16|32)\.png$/,
 ];
 
 export async function middleware(req: NextRequest) {

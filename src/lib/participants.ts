@@ -14,6 +14,12 @@ const ENC_FIELDS = [
   "country",
   "notes",
   "invoiceNotes",
+  "billingCompany",
+  "billingName",
+  "billingStreet",
+  "billingZipCity",
+  "billingEmail",
+  "costCenter",
 ] as const;
 
 type EncField = (typeof ENC_FIELDS)[number];

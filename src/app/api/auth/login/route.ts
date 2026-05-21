@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
-import { createPending, createSession } from "@/lib/session";
+import { createPending } from "@/lib/session";
 import { audit } from "@/lib/audit";
 
 export async function POST(req: Request) {
@@ -31,14 +31,7 @@ export async function POST(req: Request) {
     return new NextResponse(null, { status: 303, headers: { Location: `/login/totp` } });
   }
 
-  // 2FA optional: direkt einloggen, kann spaeter unter /account/2fa/setup eingerichtet werden
-  await createSession({
-    uid: user.id,
-    role: user.role,
-    name: user.name,
-    email: user.email,
-  });
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  await audit({ actorId: user.id, action: "LOGIN", entityType: "Auth", entityId: user.id });
-  return new NextResponse(null, { status: 303, headers: { Location: `/dashboard` } });
+  // 2FA noch nicht eingerichtet -> Pflicht-Einrichtung erzwingen
+  await createPending(user.id);
+  return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/setup` } });
 }

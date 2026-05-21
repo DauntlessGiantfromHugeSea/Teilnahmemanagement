@@ -42,6 +42,11 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum EventFormat {
+  PRESENCE  // Praesenz-Schulung vor Ort
+  WEBINAR   // Online-Webinar
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -80,18 +85,30 @@ model Training {
 }
 
 model Event {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
+  externalId  String?     @unique // z.B. "#260603" aus Anmeldeformular - fuer CSV-Import-Dedup
   trainingId  String
-  training    Training @relation(fields: [trainingId], references: [id])
-  title       String   // z. B. "Crashkurs Maerz 2026"
+  training    Training    @relation(fields: [trainingId], references: [id])
+  title       String      // z. B. "Crashkurs Maerz 2026"
+  format      EventFormat @default(PRESENCE)
+  description String?     // optionale Kurzbeschreibung (unverschluesselt, intern)
+  // Praesenz
   location    String?
+  // Webinar
+  meetingUrl  String?
+  // Termin
   day1Date    DateTime?
   day2Date    DateTime?
-  notes       String?  // verschluesselt
+  startTime   String?     // HH:MM
+  endTime     String?     // HH:MM
+  // Kapazitaet
+  capacity    Int?
+  // Interne Notizen (verschluesselt)
+  notes       String?
   createdById String
-  createdBy   User     @relation("EventCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy   User        @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   participants Participant[]
   grants       EventAccess[]
@@ -133,6 +150,14 @@ model Participant {
   // Rabatt in Prozent (0-100), zwei Nachkommastellen via *100
   discountBps  Int       @default(0) // basis points: 1000 = 10.00%
   status       ParticipantStatus @default(REGISTERED)
+
+  // Rechnungsanschrift (verschluesselt) - kann von der Teilnehmer-Anschrift abweichen
+  billingCompany String?
+  billingName    String?
+  billingStreet  String?
+  billingZipCity String?
+  billingEmail   String?
+  costCenter     String?
 
   // Buchhaltung
   invoiceStatus InvoiceStatus @default(OPEN)
