@@ -35,18 +35,18 @@ export function Shell({ session, active, children }: Props) {
   return (
     <div className="min-h-screen flex flex-col">
       <div className="h-1 bg-brand-500" />
-      <header className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center gap-8">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3 sm:gap-6">
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <Logo className="h-7 w-auto" />
           </Link>
-          <nav className="flex items-center gap-1 flex-1">
+          <nav className="nav-scroll flex items-center gap-1 flex-1 overflow-x-auto -mx-1 px-1">
             {nav.map((n) => (
               <Link
                 key={n.id}
                 href={n.href}
                 className={
-                  "relative px-3 py-1.5 rounded-md text-sm font-medium transition " +
+                  "relative px-3 py-1.5 rounded-md text-sm font-medium transition whitespace-nowrap " +
                   (active === n.id
                     ? "text-brand-700 bg-brand-50"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100")
@@ -61,8 +61,8 @@ export function Shell({ session, active, children }: Props) {
           </nav>
           <details className="relative shrink-0">
             <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-brand-50 pl-2 pr-1 py-1">
-              <span className="hidden sm:block text-sm text-slate-700">{session.name}</span>
-              <span className="h-8 w-8 rounded-full bg-brand-500 text-white text-xs font-semibold flex items-center justify-center">
+              <span className="hidden md:block text-sm text-slate-700 max-w-[140px] truncate">{session.name}</span>
+              <span className="h-9 w-9 rounded-full bg-brand-500 text-white text-xs font-semibold flex items-center justify-center">
                 {initials}
               </span>
             </summary>
@@ -99,9 +99,9 @@ export function Shell({ session, active, children }: Props) {
         </div>
       </header>
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-6 py-8">{children}</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">{children}</div>
       </main>
-      <footer className="text-center text-xs text-slate-400 py-6">
+      <footer className="text-center text-xs text-slate-400 py-6 px-4">
         FB-Akademie Teilnahmemanagement
       </footer>
     </div>

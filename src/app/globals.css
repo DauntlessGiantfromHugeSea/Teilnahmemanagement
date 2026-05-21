@@ -41,8 +41,32 @@ summary { list-style: none; }
 
 /* Mobile: Tabellen-Karten duerfen horizontal scrollen statt clippen */
 @media (max-width: 768px) {
-  .card.overflow-hidden { overflow-x: auto; }
+  .card.overflow-hidden { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .table { min-width: 640px; }
+  /* iOS zoomt automatisch in Inputs mit font-size < 16px - das verhindern */
+  .input { font-size: 16px; }
+  /* Etwas mehr Tap-Flaeche fuer Buttons auf Touch-Geraeten */
+  .btn { @apply py-2.5; }
+  /* Safe-Area-Inset fuer iPhone Notch im Standalone-Modus */
+  body { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* Horizontal scrollbare Nav auf Mobilgeraeten */
+.nav-scroll::-webkit-scrollbar { display: none; }
+.nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+
+/* Touch-Tap-Target: alle Buttons/Links min 40px hoch auf Mobilgeraeten */
+@media (hover: none) and (pointer: coarse) {
+  a.btn-primary, a.btn-secondary, a.btn-danger, button.btn-primary, button.btn-secondary, button.btn-danger {
+    min-height: 40px;
+  }
+}
+
+/* Body-Hintergrund auch im Standalone-PWA-Modus konsistent */
+@supports (padding: env(safe-area-inset-top)) {
+  html, body {
+    padding-top: env(safe-area-inset-top);
+  }
 }
 
 @page {

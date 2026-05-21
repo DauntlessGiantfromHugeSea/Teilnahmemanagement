@@ -42,7 +42,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
 
   return (
     <Shell session={s} active="events">
-      <div className="flex items-start justify-between mb-6 gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6 gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
             <span className={"badge " + (ev.format === "WEBINAR" ? "bg-indigo-100 text-indigo-800" : "bg-brand-100 text-brand-700")}>
@@ -77,7 +77,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
             <p className="text-sm text-slate-600 mt-2 max-w-2xl">{ev.description}</p>
           )}
         </div>
-        <div className="flex gap-2 flex-wrap justify-end items-center">
+        <div className="flex gap-2 flex-wrap lg:justify-end items-center">
           <a
             href={`/api/events/${ev.id}/attendance/pdf`}
             download
