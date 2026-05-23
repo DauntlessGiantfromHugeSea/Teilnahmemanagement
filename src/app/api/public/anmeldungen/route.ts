@@ -42,7 +42,7 @@ function normalize(raw: Record<string, unknown>): AnmeldungInput {
   const dayOption =
     dayRaw === "DAY_1" || dayRaw === "DAY_2" || dayRaw === "BOTH" ? dayRaw : undefined;
   return {
-    participantName: get("participant-name", "participantName", "name"),
+    participantName: get("participant-name", "participantName", "name", "nachname-vorname"),
     companyName: get("company-name", "companyName", "company", "firma"),
     participantEmail: get("participant-email", "participantEmail", "email"),
     phone: get("phone-number", "phoneNumber", "phone", "telefon"),
@@ -51,8 +51,12 @@ function normalize(raw: Record<string, unknown>): AnmeldungInput {
     billingName: get("billing-name", "billingName"),
     billingStreet: get("billing-street", "billingStreet"),
     billingZipCity: get("billing-zipcode-city", "billingZipcodeCity", "billingZipCity"),
-    billingEmail: get("billing-email", "billingEmail"),
+    billingEmail: get("billing-email", "billingEmail", "email-rechnung"),
     remarks: get("remarks", "bemerkungen", "notes"),
+    street: get("street", "strasse", "straße") || undefined,
+    zip: get("zip", "plz") || undefined,
+    city: get("city", "ort") || undefined,
+    costCenter: get("cost-center", "costCenter", "kostenstelle") || undefined,
     eventId: get("event-id", "eventId") || undefined,
     externalId: get("external-id", "externalId") || undefined,
     dayOption: dayOption as AnmeldungInput["dayOption"],

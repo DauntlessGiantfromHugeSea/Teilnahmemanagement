@@ -158,6 +158,11 @@ export interface AnmeldungInput {
   billingZipCity?: string;
   billingEmail?: string;
   remarks?: string;
+  // Adresse des Teilnehmers (optional)
+  street?: string;
+  zip?: string;
+  city?: string;
+  costCenter?: string;
   // Optionale, direkte Event-Zuordnung (Webhook-Komfort fuer einzelne Events).
   // Wenn gesetzt, hat dies Vorrang vor trainingDate.
   eventId?: string;       // interne DB-Id
@@ -248,6 +253,10 @@ export async function createAnmeldung(
     phone: encryptField(phone || null),
     company: encryptField(input.companyName ?? null),
     notes: encryptField(input.remarks ?? null),
+    street: encryptField(input.street ?? null),
+    zip: encryptField(input.zip ?? null),
+    city: encryptField(input.city ?? null),
+    costCenter: encryptField(input.costCenter ?? null),
     billingCompany: encryptField(input.billingCompany ?? null),
     billingName: encryptField(input.billingName ?? null),
     billingStreet: encryptField(input.billingStreet ?? null),
