@@ -158,6 +158,11 @@ export interface AnmeldungInput {
   billingZipCity?: string;
   billingEmail?: string;
   remarks?: string;
+  // Optionale, direkte Event-Zuordnung (Webhook-Komfort fuer einzelne Events).
+  // Wenn gesetzt, hat dies Vorrang vor trainingDate.
+  eventId?: string;       // interne DB-Id
+  externalId?: string;    // "#260603"
+  dayOption?: DayOption;  // erlaubt explizite Tagewahl
 }
 
 export interface CreatedAnmeldung {
@@ -174,35 +179,53 @@ export async function createAnmeldung(
   if (!input.participantEmail || !input.participantName) {
     throw new Error("Name oder E-Mail fehlt");
   }
-  const parsed = parseTrainingDate(input.trainingDate ?? "");
-  if (!parsed.externalId) {
-    throw new Error("Keine Event-ID in training-date erkennbar");
-  }
 
-  let event = await prisma.event.findUnique({ where: { externalId: parsed.externalId } });
-  if (!event) {
-    let training = await prisma.training.findFirst({ where: { title: parsed.trainingTitle } });
-    if (!training) {
-      training = await prisma.training.create({
-        data: { title: parsed.trainingTitle, priceDay1: 0, priceDay2: 0, priceBoth: 0 },
+  // Event-Aufloesung in 3 Schritten: eventId -> externalId -> trainingDate parsen.
+  let event = null as Awaited<ReturnType<typeof prisma.event.findUnique>>;
+  let derivedDayOption: DayOption = "DAY_1";
+
+  if (input.eventId) {
+    event = await prisma.event.findUnique({ where: { id: input.eventId } });
+    if (!event) throw new Error(`Event mit id="${input.eventId}" nicht gefunden`);
+    derivedDayOption = event.day2Date ? "BOTH" : "DAY_1";
+  } else if (input.externalId) {
+    const ext = input.externalId.startsWith("#") ? input.externalId : `#${input.externalId}`;
+    event = await prisma.event.findUnique({ where: { externalId: ext } });
+    if (!event) throw new Error(`Event mit external-id="${ext}" nicht gefunden`);
+    derivedDayOption = event.day2Date ? "BOTH" : "DAY_1";
+  } else {
+    const parsed = parseTrainingDate(input.trainingDate ?? "");
+    if (!parsed.externalId) {
+      throw new Error("Keine Event-ID erkennbar (event-id, external-id oder training-date angeben)");
+    }
+    event = await prisma.event.findUnique({ where: { externalId: parsed.externalId } });
+    if (!event) {
+      let training = await prisma.training.findFirst({ where: { title: parsed.trainingTitle } });
+      if (!training) {
+        training = await prisma.training.create({
+          data: { title: parsed.trainingTitle, priceDay1: 0, priceDay2: 0, priceBoth: 0 },
+        });
+      }
+      event = await prisma.event.create({
+        data: {
+          externalId: parsed.externalId,
+          trainingId: training.id,
+          title: parsed.eventTitle,
+          format: "PRESENCE",
+          day1Date: parsed.day1Date,
+          day2Date: parsed.day2Date,
+          createdById: ctx.actorId,
+        },
       });
     }
-    event = await prisma.event.create({
-      data: {
-        externalId: parsed.externalId,
-        trainingId: training.id,
-        title: parsed.eventTitle,
-        format: "PRESENCE",
-        day1Date: parsed.day1Date,
-        day2Date: parsed.day2Date,
-        createdById: ctx.actorId,
-      },
-    });
+    derivedDayOption = deriveDayOption(parsed);
   }
 
   const { firstName, lastName } = splitName(input.participantName);
   const phone = cleanPhone(input.phone ?? "");
-  const dayOption = deriveDayOption(parsed);
+  let dayOption: DayOption = input.dayOption ?? derivedDayOption;
+  // Wenn das Event nur einen Tag hat, ist BOTH/DAY_2 nicht erlaubt.
+  if (!event.day2Date && dayOption !== "DAY_1") dayOption = "DAY_1";
   const emailLc = input.participantEmail.trim().toLowerCase();
   const emailHash = blindIndex(emailLc);
 

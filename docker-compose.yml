@@ -42,6 +42,15 @@ services:
       # Beide leer = Spamschutz nur via Honeypot (akzeptabel fuer Testbetrieb).
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      # SMTP / Mailing - alle leer = Mailing deaktiviert (App laeuft weiterhin).
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
+      MAIL_ADMIN: ${MAIL_ADMIN:-}
       NODE_ENV: production
       # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
       RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}

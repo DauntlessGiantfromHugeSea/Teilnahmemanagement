@@ -11,3 +11,4 @@ coverage
 .vercel
 .turbo
 prisma/dev.db*
+tsconfig.tsbuildinfo

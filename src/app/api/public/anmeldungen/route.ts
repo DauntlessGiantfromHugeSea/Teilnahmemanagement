@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createAnmeldung, AnmeldungInput } from "@/lib/csvImport";
 import { prisma } from "@/lib/db";
 import { audit } from "@/lib/audit";
+import { sendMail } from "@/lib/mailer";
+import { confirmationMail, adminNotificationMail } from "@/lib/mailTemplates";
 
 function jsonError(status: number, message: string) {
   return NextResponse.json({ ok: false, error: message }, { status });
@@ -36,6 +38,9 @@ function normalize(raw: Record<string, unknown>): AnmeldungInput {
     }
     return "";
   };
+  const dayRaw = get("day-option", "dayOption").toUpperCase();
+  const dayOption =
+    dayRaw === "DAY_1" || dayRaw === "DAY_2" || dayRaw === "BOTH" ? dayRaw : undefined;
   return {
     participantName: get("participant-name", "participantName", "name"),
     companyName: get("company-name", "companyName", "company", "firma"),
@@ -48,6 +53,9 @@ function normalize(raw: Record<string, unknown>): AnmeldungInput {
     billingZipCity: get("billing-zipcode-city", "billingZipcodeCity", "billingZipCity"),
     billingEmail: get("billing-email", "billingEmail"),
     remarks: get("remarks", "bemerkungen", "notes"),
+    eventId: get("event-id", "eventId") || undefined,
+    externalId: get("external-id", "externalId") || undefined,
+    dayOption: dayOption as AnmeldungInput["dayOption"],
   };
 }
 
@@ -90,8 +98,11 @@ export async function POST(req: Request) {
     return jsonError(400, "Body konnte nicht gelesen werden");
   }
   const input = normalize(body);
-  if (!input.participantEmail || !input.participantName || !input.trainingDate) {
-    return jsonError(400, "participant-name, participant-email oder training-date fehlt");
+  if (!input.participantEmail || !input.participantName) {
+    return jsonError(400, "participant-name oder participant-email fehlt");
+  }
+  if (!input.eventId && !input.externalId && !input.trainingDate) {
+    return jsonError(400, "event-id, external-id oder training-date erforderlich");
   }
   const actorId = await getSystemActorId();
   try {
@@ -104,6 +115,55 @@ export async function POST(req: Request) {
       participantId: res.participantId,
       diff: { source: "webhook", status: res.status, eventId: res.eventId },
     });
+
+    // Mailing nur bei NEU angelegtem Teilnehmer, nicht bei Duplikaten.
+    if (res.status === "created") {
+      const [ev, part] = await Promise.all([
+        prisma.event.findUnique({ where: { id: res.eventId } }),
+        prisma.participant.findUnique({ where: { id: res.participantId } }),
+      ]);
+      if (ev && part) {
+        const appName = process.env.APP_NAME ?? "FB-Akademie Teilnahmemanagement";
+        const appUrl = process.env.APP_URL ?? "";
+        const email = input.participantEmail.trim().toLowerCase();
+        const conf = confirmationMail({
+          event: ev,
+          participantName: input.participantName,
+          participantEmail: email,
+          dayOption: part.dayOption,
+          appName,
+          appUrl,
+        });
+        void sendMail({
+          to: email,
+          subject: conf.subject,
+          text: conf.text,
+          html: conf.html,
+        }).catch((e) => console.error("[webhook] Bestätigungsmail fehlgeschlagen:", e));
+
+        const adminTo = process.env.MAIL_ADMIN?.trim();
+        if (adminTo) {
+          const note = adminNotificationMail({
+            event: ev,
+            participantName: input.participantName,
+            participantEmail: email,
+            company: input.companyName ?? "",
+            dayOption: part.dayOption,
+            appUrl,
+            participantId: res.participantId,
+            eventId: res.eventId,
+          });
+          void sendMail({
+            to: adminTo.split(",").map((s) => s.trim()).filter(Boolean),
+            subject: note.subject,
+            text: note.text,
+            html: note.html,
+            replyTo: email,
+          }).catch((e) => console.error("[webhook] Admin-Mail fehlgeschlagen:", e));
+        }
+      }
+    }
+
     return NextResponse.json(
       {
         ok: true,
