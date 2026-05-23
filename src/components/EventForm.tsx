@@ -23,7 +23,12 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
   const isTwoDay = !!event?.day2Date;
 
   return (
-    <form method="post" action={action} className="event-form space-y-8">
+    <form
+      method="post"
+      action={action}
+      encType="multipart/form-data"
+      className="event-form space-y-8"
+    >
       <section className="space-y-3">
         <div>
           <h2 className="font-semibold text-slate-800">1. Format</h2>
@@ -211,7 +216,92 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
 
       <section className="space-y-4">
         <div>
-          <h2 className="font-semibold text-slate-800">5. Kapazität &amp; Notizen</h2>
+          <h2 className="font-semibold text-slate-800">5. Öffentliche Anmeldeseite</h2>
+          <p className="text-xs text-slate-500">
+            Optionale Felder, die das Aussehen der öffentlichen Anmeldeseite
+            (<code className="text-[11px]">/anmeldung/{`<id>`}</code>) anpassen.
+          </p>
+        </div>
+        <div>
+          <label className="label">Untertitel / Kicker</label>
+          <input
+            name="subtitle"
+            defaultValue={event?.subtitle ?? ""}
+            placeholder="z. B. Einführung ins Flüssigbodenverfahren"
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Hero-Bild</label>
+          {event?.heroImageUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.heroImageUrl}
+              alt=""
+              className="mb-2 h-32 w-full object-cover rounded-lg border border-slate-200"
+            />
+          )}
+          <input
+            type="file"
+            name="heroImageFile"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+            className="input"
+          />
+          <input type="hidden" name="heroImageUrl" defaultValue={event?.heroImageUrl ?? ""} />
+          <p className="text-xs text-slate-500 mt-1">
+            JPEG, PNG, WEBP, GIF oder SVG. Max. 8 MB. Querformat empfohlen (1600×600).
+            {event?.heroImageUrl && " Eine neue Datei ersetzt das aktuelle Bild."}
+          </p>
+        </div>
+        <div>
+          <label className="label">Eigenes Logo (optional)</label>
+          {event?.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.logoUrl}
+              alt=""
+              className="mb-2 h-12 w-auto rounded border border-slate-200 bg-white p-1"
+            />
+          )}
+          <input
+            type="file"
+            name="logoFile"
+            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            className="input"
+          />
+          <input type="hidden" name="logoUrl" defaultValue={event?.logoUrl ?? ""} />
+          <p className="text-xs text-slate-500 mt-1">
+            Leer lassen für das Standard-Logo. PNG/SVG mit transparentem Hintergrund empfohlen.
+          </p>
+        </div>
+        <div>
+          <label className="label">Ausführliche Beschreibung</label>
+          <textarea
+            name="longDescription"
+            rows={5}
+            defaultValue={event?.longDescription ?? ""}
+            placeholder="Wer sollte teilnehmen, was wird vermittelt, etc."
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Programm / Bullet-Punkte</label>
+          <textarea
+            name="agenda"
+            rows={5}
+            defaultValue={event?.agenda ?? ""}
+            placeholder="Ein Punkt pro Zeile, z. B.:&#10;Grundlagen Flüssigboden&#10;Praxiseinsatz Geoponton&#10;Q&amp;A mit Referent"
+            className="input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Wird als Liste mit Häkchen-Icons unter dem Hero-Bild dargestellt.
+          </p>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-slate-800">6. Kapazität &amp; Interne Notizen</h2>
         </div>
         <div>
           <label className="label">Max. Teilnehmerzahl</label>

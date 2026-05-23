@@ -51,6 +51,9 @@ services:
       - internal       # Verbindung zur DB
       - proxy          # Wird vom externen fbe-caddy erreicht
     # Kein "ports:" - Zugriff erfolgt nur ueber den Reverse-Proxy im proxy-Netzwerk.
+    volumes:
+      # Persistenter Storage fuer hochgeladene Bilder (ueberlebt Rebuilds)
+      - uploads_data:/app/public/uploads
 
 networks:
   internal:
@@ -62,3 +65,4 @@ networks:
 
 volumes:
   db_data:
+  uploads_data:

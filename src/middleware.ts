@@ -15,6 +15,7 @@ const PUBLIC = [
   /^\/favicon-(16|32)\.png$/,
   /^\/logo\.png$/,
   /^\/favicon\.png$/,
+  /^\/uploads\/.+/,
 ];
 
 export async function middleware(req: NextRequest) {

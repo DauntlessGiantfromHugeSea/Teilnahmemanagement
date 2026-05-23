@@ -56,9 +56,17 @@ export default async function AnmeldungUebersicht() {
                 <Link
                   key={e.id}
                   href={`/anmeldung/${e.id}`}
-                  className="block card p-5 hover:border-brand-300 transition group"
+                  className="block card overflow-hidden hover:border-brand-300 transition group"
                 >
-                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                  {e.heroImageUrl && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={e.heroImageUrl}
+                      alt=""
+                      className="w-full h-32 sm:h-40 object-cover"
+                    />
+                  )}
+                  <div className="p-5 flex items-start justify-between gap-4 flex-wrap">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span

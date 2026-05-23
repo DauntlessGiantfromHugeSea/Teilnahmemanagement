@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { canWriteGlobal } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
+import { saveUpload } from "@/lib/uploads";
 import { EventFormat } from "@prisma/client";
 
 function dateOrNull(v: FormDataEntryValue | null) {
@@ -49,6 +50,20 @@ export async function POST(req: Request) {
   const notesPlain = String(f.get("notes") ?? "").trim();
   const twoDay = format === "PRESENCE" && String(f.get("duration") ?? "") === "TWO";
 
+  // Datei-Uploads (optional): neue Datei -> speichern, URL ueberschreiben.
+  let heroImageUrl = strOrNull(f.get("heroImageUrl"));
+  let logoUrl = strOrNull(f.get("logoUrl"));
+  const heroFile = f.get("heroImageFile");
+  const logoFile = f.get("logoFile");
+  if (heroFile instanceof File && heroFile.size > 0) {
+    const saved = await saveUpload(heroFile);
+    if (saved) heroImageUrl = saved.url;
+  }
+  if (logoFile instanceof File && logoFile.size > 0) {
+    const saved = await saveUpload(logoFile);
+    if (saved) logoUrl = saved.url;
+  }
+
   // Training inline mit den übergebenen Preisen anlegen
   const training = await prisma.training.create({
     data: {
@@ -74,6 +89,11 @@ export async function POST(req: Request) {
       location: format === "WEBINAR" ? null : strOrNull(f.get("location")),
       meetingUrl: format === "PRESENCE" ? null : strOrNull(f.get("meetingUrl")),
       capacity: intOrNull(f.get("capacity")),
+      subtitle: strOrNull(f.get("subtitle")),
+      longDescription: strOrNull(f.get("longDescription")),
+      agenda: strOrNull(f.get("agenda")),
+      heroImageUrl,
+      logoUrl,
       notes: notesPlain ? encryptField(notesPlain) : null,
       createdById: s.uid,
     },
