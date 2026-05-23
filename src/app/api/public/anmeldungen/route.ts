@@ -12,9 +12,12 @@ function jsonError(status: number, message: string) {
 function authorized(req: Request): boolean {
   const expected = process.env.WEBHOOK_API_KEY;
   if (!expected || expected.length < 16) return false;
+  const url = new URL(req.url);
   const provided =
     req.headers.get("x-api-key") ??
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
+    url.searchParams.get("api-key") ??
+    url.searchParams.get("api_key") ??
     "";
   if (!provided) return false;
   // Constant-time-ish compare
