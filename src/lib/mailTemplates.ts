@@ -131,8 +131,8 @@ export function confirmationMail(input: ConfirmationInput): {
     "Sie erhalten rechtzeitig vor der Veranstaltung weitere organisatorische Informationen.",
     "Bei Rückfragen oder einer notwendigen Stornierung antworten Sie bitte direkt auf diese E-Mail.",
     "",
-    "Mit freundlichen Grüßen",
-    appName,
+    "Beste Grüße aus Leipzig",
+    "das Team der Flüssigboden Akademie",
   ]
     .filter((l) => l !== "")
     .join("\n");
@@ -152,7 +152,7 @@ export function confirmationMail(input: ConfirmationInput): {
 </table>
 <p style="margin:0 0 12px 0;">Sie erhalten rechtzeitig vor der Veranstaltung weitere organisatorische Informationen.</p>
 <p style="margin:0 0 16px 0;color:#374151;">Bei Rückfragen oder einer notwendigen Stornierung antworten Sie bitte direkt auf diese E-Mail.</p>
-<p style="margin:0;">Mit freundlichen Grüßen<br>${escapeHtml(appName)}</p>`;
+<p style="margin:0;">Beste Grüße aus Leipzig<br>das Team der Flüssigboden Akademie</p>`;
 
   return { subject, text, html: htmlShell(appName, inner) };
 }
@@ -197,8 +197,8 @@ export function inviteMail(input: InviteMailInput): {
     `Der Link ist gültig bis ${expires}.`,
     "Falls Sie das nicht angefordert haben, können Sie diese E-Mail ignorieren.",
     "",
-    "Mit freundlichen Grüßen",
-    appName,
+    "Beste Grüße aus Leipzig",
+    "das Team der Flüssigboden Akademie",
   ].join("\n");
 
   const inner = `
@@ -208,7 +208,7 @@ export function inviteMail(input: InviteMailInput): {
 ${btn(isInvite ? "Passwort festlegen" : "Neues Passwort vergeben", link)}
 <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;">Falls der Button nicht funktioniert, kopieren Sie diesen Link in Ihren Browser:<br><span style="word-break:break-all;color:#374151;">${escapeHtml(link)}</span></p>
 <p style="margin:14px 0 0 0;color:#6b7280;font-size:12px;">Der Link ist gültig bis <strong>${escapeHtml(expires)}</strong>.<br>Falls Sie das nicht angefordert haben, können Sie diese E-Mail ignorieren.</p>
-<p style="margin:18px 0 0 0;">Mit freundlichen Grüßen<br>${escapeHtml(appName)}</p>`;
+<p style="margin:18px 0 0 0;">Beste Grüße aus Leipzig<br>das Team der Flüssigboden Akademie</p>`;
 
   return { subject, text, html: htmlShell(appName, inner) };
 }
