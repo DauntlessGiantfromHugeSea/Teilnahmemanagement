@@ -6,6 +6,7 @@ import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
+import { PrivateValue } from "@/components/PrivateValue";
 import { BADGE_TEMPLATES } from "@/lib/badgeTemplates";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
 import { DayOption, ParticipantStatus } from "@prisma/client";
@@ -295,8 +296,14 @@ export default async function EventDetail({ params }: { params: { id: string } }
                     </div>
                   </td>
                   <td className="py-3 text-xs">
-                    <div className="font-mono">{p.email}</div>
-                    {p.phone && <div className="text-slate-500 mt-0.5">{p.phone}</div>}
+                    <div className="font-mono">
+                      <PrivateValue value={p.email} reveal={isAdmin(s)} />
+                    </div>
+                    {p.phone && (
+                      <div className="text-slate-500 mt-0.5">
+                        <PrivateValue value={p.phone} reveal={isAdmin(s)} />
+                      </div>
+                    )}
                   </td>
                   <td className="py-3">
                     <div>{dayLabel(p.dayOption)}</div>

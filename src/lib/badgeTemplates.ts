@@ -32,6 +32,19 @@ export const BADGE_TEMPLATES: BadgeTemplate[] = [
     colGap: 15,
     rowGap: 5,
   },
+  {
+    id: "HERMA9012",
+    name: "HERMA 9012",
+    description: "Namensschilder für Kleidung, perforiert, 90 × 60 mm, 8 pro Bogen (2 × 4)",
+    page: A4,
+    margins: { top: 28.5, right: 15, bottom: 28.5, left: 15 },
+    cols: 2,
+    rows: 4,
+    labelW: 90,
+    labelH: 60,
+    colGap: 0,
+    rowGap: 0,
+  },
 ];
 
 export function getBadgeTemplate(id: string): BadgeTemplate | null {
