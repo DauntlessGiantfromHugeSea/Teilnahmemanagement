@@ -129,7 +129,7 @@ export function confirmationMail(input: ConfirmationInput): {
     `Ort:      ${locLine.replace(/^Veranstaltungsort:\s*/, "")}`,
     "",
     "Sie erhalten rechtzeitig vor der Veranstaltung weitere organisatorische Informationen.",
-    "Bei Rückfragen oder einer notwendigen Stornierung antworten Sie bitte direkt auf diese E-Mail.",
+    "Bei Rückfragen oder einer notwendigen Stornierung wenden Sie sich bitte an unser Team unter info@fb-akademie.de.",
     "",
     "Beste Grüße aus Leipzig",
     "das Team der Flüssigboden Akademie",
@@ -151,7 +151,7 @@ export function confirmationMail(input: ConfirmationInput): {
   <tr><td style="${rowStyle}${labelStyle}">Ort</td><td style="${rowStyle}${valueStyle}">${nl2br(locLine.replace(/^Veranstaltungsort:\s*/, ""))}</td></tr>
 </table>
 <p style="margin:0 0 12px 0;">Sie erhalten rechtzeitig vor der Veranstaltung weitere organisatorische Informationen.</p>
-<p style="margin:0 0 16px 0;color:#374151;">Bei Rückfragen oder einer notwendigen Stornierung antworten Sie bitte direkt auf diese E-Mail.</p>
+<p style="margin:0 0 16px 0;color:#374151;">Bei Rückfragen oder einer notwendigen Stornierung wenden Sie sich bitte an unser Team unter <a href="mailto:info@fb-akademie.de" style="color:#0f766e;text-decoration:none;">info@fb-akademie.de</a>.</p>
 <p style="margin:0;">Beste Grüße aus Leipzig<br>das Team der Flüssigboden Akademie</p>`;
 
   return { subject, text, html: htmlShell(appName, inner) };
