@@ -111,6 +111,16 @@ export async function POST(req: Request) {
     return jsonError(400, "Body konnte nicht gelesen werden");
   }
   console.log("[anmeldungen] Body-Keys:", Object.keys(body).join(", "));
+  // Werte loggen mit Maskierung von Mail/Telefon
+  const mask = (v: unknown) => {
+    if (typeof v !== "string") return v;
+    if (v.includes("@")) return v.replace(/(.{2}).*(@.*)/, "$1***$2");
+    if (v.length > 24) return v.slice(0, 16) + "...";
+    return v;
+  };
+  const dbg: Record<string, unknown> = {};
+  for (const k of Object.keys(body)) dbg[k] = mask(body[k]);
+  console.log("[anmeldungen] Body-Werte:", JSON.stringify(dbg));
   const input = normalize(body);
   if (!input.participantEmail || !input.participantName) {
     console.warn("[anmeldungen] 400 - Pflichtfelder fehlen", {
@@ -194,6 +204,7 @@ export async function POST(req: Request) {
       { status: res.status === "duplicate" ? 200 : 201 }
     );
   } catch (e: any) {
+    console.error("[anmeldungen] 422 - createAnmeldung-Fehler:", e?.message ?? e, e?.stack ?? "");
     return jsonError(422, `Konnte Anmeldung nicht anlegen: ${e?.message ?? e}`);
   }
 }
