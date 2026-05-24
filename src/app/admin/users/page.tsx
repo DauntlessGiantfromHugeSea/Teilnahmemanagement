@@ -51,77 +51,77 @@ export default async function UsersPage({
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Liste */}
         <div className="lg:col-span-2 card overflow-hidden">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Person</th>
-                <th>Rolle</th>
-                <th>2FA</th>
-                <th>Status</th>
-                <th className="text-right">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td>
-                    <div className="font-medium text-slate-900">{u.name}</div>
-                    <div className="text-xs text-slate-500 font-mono">{u.email}</div>
-                  </td>
-                  <td>
-                    <form
-                      method="post"
-                      action={`/api/admin/users/${u.id}/role`}
-                      className="flex gap-1.5 items-center"
-                    >
-                      <select name="role" defaultValue={u.role} className="input py-1.5 text-xs w-auto">
-                        {Object.values(Role).map((r) => (
-                          <option key={r} value={r}>
-                            {r}
-                          </option>
-                        ))}
-                      </select>
-                      <button className="btn-row" title="Rolle speichern">
-                        Setzen
-                      </button>
-                    </form>
-                  </td>
-                  <td>
-                    {u.totpEnabled || u.emailCodeEnabled ? (
-                      <span className="badge bg-emerald-50 text-emerald-700">
-                        {u.totpEnabled ? "TOTP" : "E-Mail"}
-                      </span>
-                    ) : u.totpRequired ? (
-                      <span
-                        className="badge bg-amber-50 text-amber-700"
-                        title="Pflicht, aber noch nicht eingerichtet"
-                      >
-                        Pflicht
-                      </span>
-                    ) : (
-                      <span className="badge bg-slate-100 text-slate-600">aus</span>
-                    )}
-                  </td>
-                  <td>
-                    {u.active ? (
-                      <span className="badge bg-slate-100 text-slate-700">aktiv</span>
-                    ) : (
-                      <span className="badge bg-rose-50 text-rose-700">deaktiviert</span>
-                    )}
-                  </td>
-                  <td className="text-right">
-                    <UserRowActions
-                      userId={u.id}
-                      email={u.email}
-                      active={u.active}
-                      totpRequired={u.totpRequired}
-                      canDelete={u.id !== s.uid}
-                    />
-                  </td>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Person</th>
+                  <th>Rolle</th>
+                  <th>2FA</th>
+                  <th>Status</th>
+                  <th className="text-right">Aktionen</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td>
+                      <div className="font-medium text-slate-900">{u.name}</div>
+                      <div className="text-xs text-slate-500 font-mono">{u.email}</div>
+                    </td>
+                    <td>
+                      <form
+                        method="post"
+                        action={`/api/admin/users/${u.id}/role`}
+                        className="flex gap-1.5 items-center"
+                      >
+                        <select name="role" defaultValue={u.role} className="input py-1.5 text-xs w-auto">
+                          {Object.values(Role).map((r) => (
+                            <option key={r} value={r}>
+                              {r}
+                            </option>
+                          ))}
+                        </select>
+                        <button className="btn-row" title="Rolle speichern">
+                          Setzen
+                        </button>
+                      </form>
+                    </td>
+                    <td>
+                      {u.totpEnabled || u.emailCodeEnabled ? (
+                        <span className="badge bg-emerald-50 text-emerald-700">
+                          {u.totpEnabled ? "TOTP" : "E-Mail"}
+                        </span>
+                      ) : u.totpRequired ? (
+                        <span
+                          className="badge bg-amber-50 text-amber-700"
+                          title="Pflicht, aber noch nicht eingerichtet"
+                        >
+                          Pflicht
+                        </span>
+                      ) : (
+                        <span className="badge bg-slate-100 text-slate-600">aus</span>
+                      )}
+                    </td>
+                    <td>
+                      {u.active ? (
+                        <span className="badge bg-slate-100 text-slate-700">aktiv</span>
+                      ) : (
+                        <span className="badge bg-rose-50 text-rose-700">deaktiviert</span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      <UserRowActions
+                        userId={u.id}
+                        email={u.email}
+                        active={u.active}
+                        totpRequired={u.totpRequired}
+                        canDelete={u.id !== s.uid}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
         </div>
 
         {/* Einladung */}

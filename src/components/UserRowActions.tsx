@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function UserRowActions({
   userId,
@@ -15,24 +15,63 @@ export function UserRowActions({
   totpRequired: boolean;
   canDelete: boolean;
 }) {
-  const ref = useRef<HTMLDetailsElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
-  // Klick ausserhalb schliesst das Menue
+  // Klick ausserhalb schliesst
   useEffect(() => {
+    if (!open) return;
     function onDocClick(e: MouseEvent) {
-      if (!ref.current) return;
-      if (!ref.current.open) return;
-      if (e.target instanceof Node && ref.current.contains(e.target)) return;
-      ref.current.open = false;
+      if (!menuRef.current || !btnRef.current) return;
+      const t = e.target as Node;
+      if (menuRef.current.contains(t) || btnRef.current.contains(t)) return;
+      setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("click", onDocClick);
-    return () => document.removeEventListener("click", onDocClick);
-  }, []);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
-  const post = (action: string, extra: Record<string, string> = {}) =>
-    `/api/admin/users/${userId}/${action}`;
+  // Beim Oeffnen Position anhand des Buttons festlegen.
+  // Menue 220px breit, rechtsbuendig unter den Button.
+  function toggle() {
+    if (open) {
+      setOpen(false);
+      return;
+    }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const width = 240;
+    const left = Math.max(8, Math.min(window.innerWidth - width - 8, r.right - width));
+    const top = r.bottom + 6;
+    setPos({ top, left });
+    setOpen(true);
+  }
 
-  // Wir senden via <form> direkt aus Menue-Items (POST)
+  // Beim Resize/Scroll schliessen, damit Position nicht veraltet
+  useEffect(() => {
+    if (!open) return;
+    function close() {
+      setOpen(false);
+    }
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  const post = (action: string) => `/api/admin/users/${userId}/${action}`;
+
   const Item = ({
     action,
     children,
@@ -65,43 +104,65 @@ export function UserRowActions({
   );
 
   return (
-    <details ref={ref} className="menu inline-block">
-      <summary className="btn-row" aria-label="Aktionen">
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="btn-row"
+      >
         Aktionen
-        <span aria-hidden className="ml-1 text-slate-400">▾</span>
-      </summary>
-      <div className="menu-panel">
-        <a className="menu-item" href={`/admin/users/${userId}/access`}>
-          Zugriffe verwalten
-        </a>
-        <Item action="reset-link">Passwort-Link senden</Item>
-        <div className="menu-divider" />
-        <Item action="toggle">{active ? "Deaktivieren" : "Aktivieren"}</Item>
-        <Item action="reset2fa" confirmText="2FA für diesen Nutzer zurücksetzen?">
-          2FA zurücksetzen
-        </Item>
-        {totpRequired ? (
-          <Item action="disable2fa" extra={{ mode: "disable" }}>
-            2FA-Pflicht aufheben
+        <span aria-hidden className="ml-1 text-slate-400">
+          ▾
+        </span>
+      </button>
+      {open && pos && (
+        <div
+          ref={menuRef}
+          role="menu"
+          className="menu-panel"
+          style={{
+            position: "fixed",
+            top: `${pos.top}px`,
+            left: `${pos.left}px`,
+            display: "block",
+            width: "240px",
+          }}
+        >
+          <a className="menu-item" href={`/admin/users/${userId}/access`}>
+            Zugriffe verwalten
+          </a>
+          <Item action="reset-link">Passwort-Link senden</Item>
+          <div className="menu-divider" />
+          <Item action="toggle">{active ? "Deaktivieren" : "Aktivieren"}</Item>
+          <Item action="reset2fa" confirmText="2FA für diesen Nutzer zurücksetzen?">
+            2FA zurücksetzen
           </Item>
-        ) : (
-          <Item action="disable2fa" extra={{ mode: "require-on" }}>
-            2FA wieder Pflicht
-          </Item>
-        )}
-        {canDelete && (
-          <>
-            <div className="menu-divider" />
-            <Item
-              action="delete"
-              danger
-              confirmText={`Nutzer ${email} endgültig löschen?`}
-            >
-              Nutzer löschen
+          {totpRequired ? (
+            <Item action="disable2fa" extra={{ mode: "disable" }}>
+              2FA-Pflicht aufheben
             </Item>
-          </>
-        )}
-      </div>
-    </details>
+          ) : (
+            <Item action="disable2fa" extra={{ mode: "require-on" }}>
+              2FA wieder Pflicht
+            </Item>
+          )}
+          {canDelete && (
+            <>
+              <div className="menu-divider" />
+              <Item
+                action="delete"
+                danger
+                confirmText={`Nutzer ${email} endgültig löschen?`}
+              >
+                Nutzer löschen
+              </Item>
+            </>
+          )}
+        </div>
+      )}
+    </>
   );
 }
