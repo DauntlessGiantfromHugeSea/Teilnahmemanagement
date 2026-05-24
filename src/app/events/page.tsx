@@ -101,7 +101,52 @@ function EventTable({
     inCard ? <>{children}</> : <div className="card overflow-hidden">{children}</div>;
   return (
     <Wrapper>
-      <table className="table">
+      {/* Mobile: Karten */}
+      <div className="md:hidden divide-y divide-slate-200/60">
+        {events.length === 0 && (
+          <div className="text-center text-slate-500 py-6 text-sm">{emptyText}</div>
+        )}
+        {events.map((e) => {
+          const dateLine =
+            (e.day1Date?.toLocaleDateString("de-DE") ?? "-") +
+            (e.day2Date ? ` – ${e.day2Date.toLocaleDateString("de-DE")}` : "");
+          return (
+            <Link
+              key={e.id}
+              href={`/events/${e.id}`}
+              className={"flex flex-col gap-1 px-4 py-3 active:bg-brand-50 transition " + (e.cancelled ? "opacity-60" : "")}
+            >
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide">
+                <span
+                  className={
+                    "badge " +
+                    (e.format === "WEBINAR"
+                      ? "bg-indigo-100 text-indigo-800"
+                      : "bg-brand-100 text-brand-700")
+                  }
+                >
+                  {e.format === "WEBINAR" ? "Webinar" : "Schulung"}
+                </span>
+                {e.cancelled && <span className="badge bg-red-100 text-red-700">abgesagt</span>}
+                <span className="text-slate-400">{dateLine}</span>
+              </div>
+              <div className={"font-semibold " + (e.cancelled ? "line-through" : "")}>
+                {e.title}
+              </div>
+              <div className="text-xs text-slate-500">{e.training.title}</div>
+              <div className="flex items-center justify-between text-xs text-slate-500 mt-1">
+                <span>
+                  {e._count.participants}
+                  {e.capacity ? ` / ${e.capacity}` : ""} Teilnehmer
+                </span>
+                <span className="text-brand-700">öffnen →</span>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      {/* Desktop: Tabelle */}
+      <table className="table hidden md:table">
         <thead>
           <tr>
             <th>Titel</th>

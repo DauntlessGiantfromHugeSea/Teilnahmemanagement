@@ -252,10 +252,63 @@ export default async function EventDetail({ params }: { params: { id: string } }
       </div>
 
       <section className="card overflow-hidden">
-        <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-5 py-3 border-b border-slate-200/70 flex items-center justify-between">
           <h2 className="font-semibold">Teilnehmer ({participants.length})</h2>
         </div>
-        <table className="table">
+
+        {/* Mobile: Karten-Ansicht, eine Karte je Teilnehmer */}
+        <div className="md:hidden divide-y divide-slate-200/60">
+          {participants.length === 0 && (
+            <div className="text-center text-slate-500 py-8 text-sm">Noch keine Teilnehmer.</div>
+          )}
+          {participants.map((p) => {
+            const base = basePriceCents(ev.training, p.dayOption);
+            const final = finalPriceCents(base, p.discountBps);
+            const initials = `${p.firstName?.[0] ?? ""}${p.lastName?.[0] ?? ""}`.toUpperCase() || "??";
+            const isCancelled = p.status === "CANCELLED";
+            return (
+              <Link
+                key={p.id}
+                href={`/events/${ev.id}/participants/${p.id}`}
+                className={"flex items-start gap-3 px-4 py-3 active:bg-brand-50 transition " + (isCancelled ? "opacity-60" : "")}
+              >
+                <span
+                  className={
+                    "h-10 w-10 shrink-0 rounded-full text-xs font-semibold flex items-center justify-center " +
+                    (isCancelled ? "bg-slate-200 text-slate-400" : "bg-brand-100 text-brand-700")
+                  }
+                >
+                  {initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className={"flex items-baseline gap-2 " + (isCancelled ? "line-through" : "")}>
+                    <span className="font-medium truncate">{p.lastName}, {p.firstName}</span>
+                  </div>
+                  {p.company && <div className="text-xs text-slate-500 truncate">{p.company}</div>}
+                  <div className="text-[11px] text-slate-500 font-mono mt-1 truncate">
+                    <PrivateValue value={p.email} reveal={isAdmin(s)} />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2 text-[11px]">
+                    <span className="badge bg-slate-100 text-slate-700">{dayLabel(p.dayOption)}</span>
+                    <span className="badge bg-slate-100 text-slate-700">{STATUS_LABELS[p.status]}</span>
+                    <span className={"badge " + invoiceTone(p.invoiceStatus)}>
+                      RE: {invoiceLabel(p.invoiceStatus)}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-semibold text-sm">{formatEUR(final)}</div>
+                  {p.discountBps > 0 && (
+                    <div className="text-[10px] text-slate-500">-{formatPct(p.discountBps)}</div>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Desktop: vollstaendige Tabelle */}
+        <table className="table hidden md:table">
           <thead>
             <tr>
               <th>Teilnehmer</th>
@@ -321,7 +374,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
                     </span>
                   </td>
                   <td className="py-3 text-right">
-                    <Link href={`/events/${ev.id}/participants/${p.id}`} className="text-brand-700 hover:underline text-sm">oeffnen</Link>
+                    <Link href={`/events/${ev.id}/participants/${p.id}`} className="text-brand-700 hover:underline text-sm">öffnen</Link>
                   </td>
                 </tr>
               );
