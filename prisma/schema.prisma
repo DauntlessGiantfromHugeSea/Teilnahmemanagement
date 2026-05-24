@@ -58,6 +58,10 @@ model User {
   totpEnabled   Boolean   @default(false)
   totpRequired  Boolean   @default(true)  // false = Login auch ohne 2FA erlaubt
   recoveryCodes String?   // verschluesselt, JSON-Array
+  // 2FA per E-Mail (Code)
+  emailCodeEnabled  Boolean   @default(false)
+  loginCodeHash     String?
+  loginCodeExpiresAt DateTime?
   // Einladung / Passwort-Reset (token-basiert)
   pwTokenHash     String?   // sha256-Hex des Token
   pwTokenExpiresAt DateTime?

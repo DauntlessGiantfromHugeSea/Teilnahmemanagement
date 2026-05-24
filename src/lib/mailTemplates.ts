@@ -157,6 +157,58 @@ export function confirmationMail(input: ConfirmationInput): {
   return { subject, text, html: htmlShell(appName, inner) };
 }
 
+export interface LoginCodeMailInput {
+  recipientName: string;
+  code: string;
+  appName: string;
+  expiresInMinutes: number;
+  purpose: "login" | "enable";
+}
+
+export function loginCodeMail(input: LoginCodeMailInput): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const { recipientName, code, appName, expiresInMinutes, purpose } = input;
+  const isEnable = purpose === "enable";
+  const subject = isEnable
+    ? `Bestätigungscode für E-Mail-2FA – ${appName}`
+    : `Ihr Login-Code: ${code}`;
+  const intro = isEnable
+    ? `Sie möchten die 2-Faktor-Authentifizierung per E-Mail aktivieren. Bitte geben Sie zur Bestätigung folgenden Code ein:`
+    : `Bitte geben Sie zur Anmeldung folgenden Code ein:`;
+
+  const text = [
+    `Hallo ${recipientName},`,
+    "",
+    intro,
+    "",
+    `    ${code}`,
+    "",
+    `Der Code ist ${expiresInMinutes} Minuten gültig.`,
+    "Falls Sie diese Anmeldung nicht ausgelöst haben, ignorieren Sie diese E-Mail.",
+    "",
+    "Beste Grüße aus Leipzig",
+    "das Team der Flüssigboden Akademie",
+  ].join("\n");
+
+  const inner = `
+<h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;color:#111827;font-weight:600;">${isEnable ? "Bestätigungscode" : "Ihr Login-Code"}</h1>
+<p style="margin:0 0 8px 0;">Hallo ${escapeHtml(recipientName)},</p>
+<p style="margin:0 0 16px 0;">${escapeHtml(intro)}</p>
+<div style="margin:14px 0 18px 0;text-align:center;">
+  <div style="display:inline-block;font-family:'SFMono-Regular',Menlo,Monaco,Consolas,'Liberation Mono',monospace;font-size:30px;font-weight:700;letter-spacing:10px;color:#111827;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:10px;padding:14px 22px;">
+    ${escapeHtml(code)}
+  </div>
+</div>
+<p style="margin:0 0 6px 0;color:#6b7280;font-size:12px;">Der Code ist <strong>${expiresInMinutes} Minuten</strong> gültig.</p>
+<p style="margin:0 0 16px 0;color:#6b7280;font-size:12px;">Falls Sie diese Anmeldung nicht ausgelöst haben, ignorieren Sie diese E-Mail.</p>
+<p style="margin:0;">Beste Grüße aus Leipzig<br>das Team der Flüssigboden Akademie</p>`;
+
+  return { subject, text, html: htmlShell(appName, inner) };
+}
+
 export interface InviteMailInput {
   recipientName: string;
   link: string;
