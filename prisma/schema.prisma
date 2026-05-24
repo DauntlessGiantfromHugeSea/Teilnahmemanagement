@@ -202,7 +202,7 @@ model AuditLog {
   participantId String?
   participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
   actorId       String?
-  actor         User?    @relation(fields: [actorId], references: [id])
+  actor         User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
   action        String   // CREATE | UPDATE | DELETE | LOGIN | GRANT | INVOICE_STATUS | ...
   entityType    String   // Participant | Event | User | EventAccess | Auth
   entityId      String?

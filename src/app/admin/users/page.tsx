@@ -4,6 +4,7 @@ import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
+import { DeleteUserButton } from "@/components/DeleteUserButton";
 
 export default async function UsersPage({
   searchParams,
@@ -91,6 +92,9 @@ export default async function UsersPage({
                     <form method="post" action={`/api/admin/users/${u.id}/reset2fa`} className="inline" title="Setzt 2FA zurück, Nutzer muss neu einrichten">
                       <button className="btn-secondary text-xs">2FA zurücksetzen</button>
                     </form>
+                    {u.id !== s.uid && (
+                      <DeleteUserButton userId={u.id} email={u.email} />
+                    )}
                     {u.totpRequired ? (
                       <form method="post" action={`/api/admin/users/${u.id}/disable2fa`} className="inline" title="2FA komplett deaktivieren - Nutzer kann ohne 2FA einloggen">
                         <input type="hidden" name="mode" value="disable" />
