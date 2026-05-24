@@ -18,7 +18,7 @@ export function UserRowActions({
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
 
   // Klick ausserhalb schliesst
   useEffect(() => {
@@ -41,7 +41,8 @@ export function UserRowActions({
   }, [open]);
 
   // Beim Oeffnen Position anhand des Buttons festlegen.
-  // Menue 220px breit, rechtsbuendig unter den Button.
+  // Menue 240px breit, rechtsbuendig. Wenn unten zu wenig Platz ist,
+  // klappt es nach oben auf.
   function toggle() {
     if (open) {
       setOpen(false);
@@ -51,8 +52,24 @@ export function UserRowActions({
     if (!r) return;
     const width = 240;
     const left = Math.max(8, Math.min(window.innerWidth - width - 8, r.right - width));
-    const top = r.bottom + 6;
-    setPos({ top, left });
+    const margin = 8;
+    const desiredH = 360; // ungefaehre maximale Hoehe der Menue-Items
+    const spaceBelow = window.innerHeight - r.bottom - margin;
+    const spaceAbove = r.top - margin;
+    let top: number;
+    let maxHeight: number;
+    if (spaceBelow >= Math.min(desiredH, 200)) {
+      top = r.bottom + 6;
+      maxHeight = spaceBelow;
+    } else if (spaceAbove > spaceBelow) {
+      // nach oben aufklappen
+      maxHeight = spaceAbove;
+      top = Math.max(margin, r.top - 6 - maxHeight);
+    } else {
+      top = r.bottom + 6;
+      maxHeight = spaceBelow;
+    }
+    setPos({ top, left, maxHeight });
     setOpen(true);
   }
 
@@ -129,6 +146,8 @@ export function UserRowActions({
             left: `${pos.left}px`,
             display: "block",
             width: "240px",
+            maxHeight: `${pos.maxHeight}px`,
+            overflowY: "auto",
           }}
         >
           <a className="menu-item" href={`/admin/users/${userId}/access`}>
