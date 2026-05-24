@@ -6,6 +6,7 @@ import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
+import { BADGE_TEMPLATES } from "@/lib/badgeTemplates";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
 import { DayOption, ParticipantStatus } from "@prisma/client";
 
@@ -130,6 +131,34 @@ export default async function EventDetail({ params }: { params: { id: string } }
               </a>
             </>
           )}
+          {/* Namensschilder: Dropdown mit Vorlagen */}
+          <details className="menu inline-block">
+            <summary className="btn-secondary cursor-pointer select-none">
+              Namensschilder
+              <span aria-hidden className="ml-1 text-slate-400">▾</span>
+            </summary>
+            <div className="menu-panel" style={{ minWidth: 260 }}>
+              <div className="px-3 py-2 text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+                Vorlage waehlen
+              </div>
+              {BADGE_TEMPLATES.map((tpl) => (
+                <a
+                  key={tpl.id}
+                  href={`/api/events/${ev.id}/badges/pdf?template=${tpl.id}`}
+                  download
+                  className="menu-item"
+                  title={tpl.description}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium">{tpl.name}</span>
+                    {tpl.description && (
+                      <span className="text-[11px] text-slate-500">{tpl.description}</span>
+                    )}
+                  </div>
+                </a>
+              ))}
+            </div>
+          </details>
           {canWrite && (
             <Link href={`/events/${ev.id}/edit`} className="btn-secondary">Bearbeiten</Link>
           )}
