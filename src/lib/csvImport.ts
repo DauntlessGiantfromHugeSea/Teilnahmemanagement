@@ -138,11 +138,19 @@ export function splitName(raw: string): { firstName: string; lastName: string } 
   return { firstName, lastName };
 }
 
-// Phone bereinigen: Contact Form 7 prefix "(Sicherheitswarnung: ...) +49..." entfernen
+// Phone bereinigen: Contact Form 7 prefix "(Sicherheitswarnung: ... vulnerabilities) +49..." entfernen.
+// Die Warnung enthaelt selbst Klammern, daher matchen wir gezielt auf das
+// Schluesselwort "vulnerabilities)" als Endmarker. Fallback: alles bis zur
+// letzten Klammer abschneiden.
 export function cleanPhone(raw: string): string {
-  const m = raw.match(/Sicherheitswarnung:.*?\)\s*(.*)$/s);
-  const cleaned = (m ? m[1] : raw).trim();
-  return cleaned;
+  if (!raw) return "";
+  if (raw.includes("Sicherheitswarnung")) {
+    const m = raw.match(/vulnerabilities\)\s*([\s\S]*)$/);
+    if (m) return m[1].trim();
+    const last = raw.lastIndexOf(")");
+    if (last >= 0) return raw.slice(last + 1).trim();
+  }
+  return raw.trim();
 }
 
 // Gemeinsame Eingabestruktur für CSV-Zeilen und Webhook-Payloads
