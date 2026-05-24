@@ -44,6 +44,14 @@ export default async function ParticipantDetail({
 
   return (
     <Shell session={s} active="events">
+      <div className="mb-4">
+        <a
+          href={`/events/${p.eventId}`}
+          className="text-sm text-slate-500 hover:text-slate-800 hover:underline"
+        >
+          ← Zurück zur Veranstaltung
+        </a>
+      </div>
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
