@@ -114,6 +114,8 @@ model Event {
   heroImageUrl    String?   // Bild oben auf der Anmeldeseite (https-URL)
   logoUrl         String?   // optional ein eigenes Logo pro Event
   pageBlocks      String?   // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
+  // Status
+  cancelled   Boolean     @default(false)
   // Interne Notizen (verschluesselt)
   notes       String?
   createdById String

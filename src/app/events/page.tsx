@@ -116,8 +116,10 @@ function EventTable({
         </thead>
         <tbody>
           {events.map((e) => (
-            <tr key={e.id}>
-              <td className="font-medium">{e.title}</td>
+            <tr key={e.id} className={e.cancelled ? "opacity-60" : ""}>
+              <td className={"font-medium " + (e.cancelled ? "line-through" : "")}>
+                {e.title}
+              </td>
               <td>
                 <span
                   className={
@@ -129,6 +131,9 @@ function EventTable({
                 >
                   {e.format === "WEBINAR" ? "Webinar" : "Schulung"}
                 </span>
+                {e.cancelled && (
+                  <span className="badge bg-red-100 text-red-700 ml-1">abgesagt</span>
+                )}
               </td>
               <td>{e.training.title}</td>
               <td>{e.day1Date?.toLocaleDateString("de-DE") ?? "-"}</td>

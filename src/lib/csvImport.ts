@@ -192,11 +192,13 @@ export async function createAnmeldung(
   if (input.eventId) {
     event = await prisma.event.findUnique({ where: { id: input.eventId } });
     if (!event) throw new Error(`Event mit id="${input.eventId}" nicht gefunden`);
+    if (event.cancelled) throw new Error("Veranstaltung wurde abgesagt");
     derivedDayOption = event.day2Date ? "BOTH" : "DAY_1";
   } else if (input.externalId) {
     const ext = input.externalId.startsWith("#") ? input.externalId : `#${input.externalId}`;
     event = await prisma.event.findUnique({ where: { externalId: ext } });
     if (!event) throw new Error(`Event mit external-id="${ext}" nicht gefunden`);
+    if (event.cancelled) throw new Error("Veranstaltung wurde abgesagt");
     derivedDayOption = event.day2Date ? "BOTH" : "DAY_1";
   } else {
     const parsed = parseTrainingDate(input.trainingDate ?? "");
@@ -222,6 +224,8 @@ export async function createAnmeldung(
           createdById: ctx.actorId,
         },
       });
+    } else if (event.cancelled) {
+      throw new Error("Veranstaltung wurde abgesagt");
     }
     derivedDayOption = deriveDayOption(parsed);
   }

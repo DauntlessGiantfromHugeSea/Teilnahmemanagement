@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
+import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
 import { DayOption, ParticipantStatus } from "@prisma/client";
 
@@ -40,17 +41,33 @@ export default async function EventDetail({ params }: { params: { id: string } }
       return (a.firstName ?? "").localeCompare(b.firstName ?? "", "de");
     });
 
+  const lastDate = ev.day2Date ?? ev.day1Date;
+  const isPast = !!(lastDate && lastDate < new Date(new Date().setHours(0, 0, 0, 0)));
+
   return (
     <Shell session={s} active="events">
+      <div className="mb-4">
+        <Link href="/events" className="text-sm text-slate-500 hover:text-slate-800 hover:underline">
+          ← Zurück zur Übersicht
+        </Link>
+      </div>
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between mb-6 gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
             <span className={"badge " + (ev.format === "WEBINAR" ? "bg-indigo-100 text-indigo-800" : "bg-brand-100 text-brand-700")}>
               {ev.format === "WEBINAR" ? "Webinar" : "Schulung"}
             </span>
+            {ev.cancelled && <span className="badge bg-red-100 text-red-700">abgesagt</span>}
+            {isPast && !ev.cancelled && <span className="badge bg-slate-200 text-slate-700">archiviert</span>}
             <span className="text-slate-500">Veranstaltung</span>
           </div>
-          <h1 className="text-2xl font-semibold mt-1">{ev.title}</h1>
+          <h1
+            className={
+              "text-2xl font-semibold mt-1 " + (ev.cancelled ? "line-through text-slate-400" : "")
+            }
+          >
+            {ev.title}
+          </h1>
           <div className="text-sm text-slate-500 mt-1 space-x-1">
             <span>{ev.training.title}</span>
             <span>&middot;</span>
@@ -75,6 +92,14 @@ export default async function EventDetail({ params }: { params: { id: string } }
           </div>
           {ev.description && (
             <p className="text-sm text-slate-600 mt-2 max-w-2xl">{ev.description}</p>
+          )}
+          {ev.cancelled && (
+            <div className="mt-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 max-w-2xl">
+              <strong>Diese Veranstaltung ist abgesagt.</strong> Neue öffentliche Anmeldungen werden
+              abgelehnt. Bestehende Teilnehmer bleiben zur Nachvollziehbarkeit erhalten.
+              Sie können die Absage zurücknehmen oder, wenn keine Teilnehmer mehr verknüpft sind,
+              die Veranstaltung endgültig löschen.
+            </div>
           )}
         </div>
         <div className="flex gap-2 flex-wrap lg:justify-end items-center">
@@ -116,6 +141,23 @@ export default async function EventDetail({ params }: { params: { id: string } }
           )}
           {isAdmin(s) && (
             <Link href={`/events/${ev.id}/access`} className="btn-secondary">Zugriffe</Link>
+          )}
+          {canWrite && (
+            <form method="post" action={`/api/events/${ev.id}/cancel`} className="inline">
+              <input type="hidden" name="mode" value={ev.cancelled ? "reactivate" : "cancel"} />
+              <button
+                className={
+                  ev.cancelled
+                    ? "btn-secondary"
+                    : "btn-secondary text-amber-700 border-amber-200 hover:bg-amber-50"
+                }
+              >
+                {ev.cancelled ? "Absage zurücknehmen" : "Veranstaltung absagen"}
+              </button>
+            </form>
+          )}
+          {canWrite && ev.cancelled && (
+            <DeleteEventButton eventId={ev.id} title={ev.title} />
           )}
         </div>
       </div>

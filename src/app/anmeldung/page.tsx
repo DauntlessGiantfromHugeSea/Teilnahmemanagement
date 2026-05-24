@@ -14,6 +14,7 @@ export default async function AnmeldungUebersicht() {
 
   const events = await prisma.event.findMany({
     where: {
+      cancelled: false,
       OR: [{ day1Date: { gte: todayStart } }, { day1Date: null }],
     },
     include: {

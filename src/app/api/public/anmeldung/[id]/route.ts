@@ -44,6 +44,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     include: { _count: { select: { participants: true } } },
   });
   if (!ev) return new NextResponse("Not found", { status: 404 });
+  if (ev.cancelled) {
+    return new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/anmeldung/${ev.id}?error=cancelled` },
+    });
+  }
 
   const f = await req.formData();
 
