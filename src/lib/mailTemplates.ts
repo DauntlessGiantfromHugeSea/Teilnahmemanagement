@@ -119,7 +119,7 @@ export function confirmationMail(input: ConfirmationInput): {
   const dayLine = dayLabel(dayOption, event);
 
   const text = [
-    `Sehr geehrte/r ${participantName},`,
+    `Hallo ${participantName},`,
     "",
     `vielen Dank für Ihre Anmeldung zu „${event.title}“. Wir bestätigen Ihnen hiermit den Eingang Ihrer Anmeldung.`,
     "",
@@ -142,7 +142,7 @@ export function confirmationMail(input: ConfirmationInput): {
   const valueStyle = "font-size:14px;color:#111827;";
   const inner = `
 <h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;color:#111827;font-weight:600;">Anmeldung bestätigt</h1>
-<p style="margin:0 0 12px 0;">Sehr geehrte/r ${escapeHtml(participantName)},</p>
+<p style="margin:0 0 12px 0;">Hallo ${escapeHtml(participantName)},</p>
 <p style="margin:0 0 16px 0;">vielen Dank für Ihre Anmeldung zu <strong>${escapeHtml(event.title)}</strong>. Wir bestätigen Ihnen hiermit den Eingang Ihrer Anmeldung.</p>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px 0;border-collapse:collapse;width:100%;">
   <tr><td style="${rowStyle}${labelStyle}">Termin</td><td style="${rowStyle}${valueStyle}"><strong>${escapeHtml(dateLine)}</strong></td></tr>
