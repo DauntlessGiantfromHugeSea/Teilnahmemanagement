@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { safeDecrypt } from "@/lib/crypto";
 import { ParticipantForm } from "@/components/ParticipantForm";
+import { DeleteParticipantButton } from "@/components/DeleteParticipantButton";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
 
 export default async function ParticipantDetail({
@@ -143,12 +144,19 @@ export default async function ParticipantDetail({
                     Diese Anmeldung ist storniert und wird in Anwesenheitslisten und
                     Buchhaltung nicht beruecksichtigt.
                   </p>
-                  <form method="post" action={`/api/participants/${p.id}/cancel`}>
+                  <form method="post" action={`/api/participants/${p.id}/cancel`} className="mb-2">
                     <input type="hidden" name="mode" value="reactivate" />
                     <button className="btn-secondary text-sm w-full">
                       Stornierung rueckgaengig
                     </button>
                   </form>
+                  <DeleteParticipantButton
+                    participantId={p.id}
+                    name={`${dec.firstName} ${dec.lastName}`.trim() || dec.email}
+                  />
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    Endgueltiges Loeschen entfernt alle Daten aus der Datenbank.
+                  </p>
                 </>
               ) : (
                 <>
