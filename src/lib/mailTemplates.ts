@@ -100,6 +100,63 @@ Sollten Sie nicht teilnehmen können, antworten Sie bitte direkt auf diese E-Mai
   return { subject, text, html };
 }
 
+export interface InviteMailInput {
+  recipientName: string;
+  link: string;
+  appName: string;
+  expiresAt: Date;
+  mode: "invite" | "reset";
+}
+
+export function inviteMail(input: InviteMailInput): {
+  subject: string;
+  text: string;
+  html: string;
+} {
+  const { recipientName, link, appName, expiresAt, mode } = input;
+  const isInvite = mode === "invite";
+  const subject = isInvite
+    ? `Ihr Zugang zu ${appName}`
+    : `Passwort zuruecksetzen - ${appName}`;
+  const intro = isInvite
+    ? `Sie wurden zur Mitnutzung von ${appName} eingeladen. Bitte legen Sie ueber den folgenden Link ein Passwort fest:`
+    : `Fuer Ihren Account in ${appName} wurde ein Passwort-Reset angefordert. Bitte setzen Sie ueber den folgenden Link ein neues Passwort:`;
+  const expires = expiresAt.toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const text = [
+    `Hallo ${recipientName},`,
+    "",
+    intro,
+    "",
+    link,
+    "",
+    `Der Link ist gueltig bis ${expires}.`,
+    "Falls Sie das nicht angefordert haben, koennen Sie diese Mail ignorieren.",
+    "",
+    "Viele Gruesse",
+    appName,
+  ].join("\n");
+
+  const html = `<!doctype html>
+<html lang="de"><body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#111;line-height:1.55;">
+<p>Hallo ${escapeHtml(recipientName)},</p>
+<p>${escapeHtml(intro)}</p>
+<p><a href="${escapeHtml(link)}" style="display:inline-block;background:#0f766e;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;">Passwort festlegen</a></p>
+<p style="color:#555;font-size:12px;">Oder kopieren Sie diesen Link in Ihren Browser:<br><span style="word-break:break-all;">${escapeHtml(link)}</span></p>
+<p style="color:#555;font-size:12px;">Der Link ist gueltig bis <strong>${escapeHtml(expires)}</strong>.<br>
+Falls Sie das nicht angefordert haben, koennen Sie diese Mail ignorieren.</p>
+<p>Viele Gruesse<br>${escapeHtml(appName)}</p>
+</body></html>`;
+
+  return { subject, text, html };
+}
+
 export interface AdminNotifyInput {
   event: Pick<Event, "title" | "day1Date" | "day2Date">;
   participantName: string;

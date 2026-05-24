@@ -8,20 +8,26 @@ import { Role } from "@prisma/client";
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: { ok?: string; error?: string };
+  searchParams: { ok?: string; error?: string; link?: string };
 }) {
   const s = await getSession();
   if (!s) redirect("/login");
   if (!isAdmin(s)) redirect("/dashboard");
   const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+  const okText = searchParams.ok || (searchParams.ok === "" ? "Erledigt." : null);
   return (
     <Shell session={s} active="users">
       <h1 className="text-2xl font-semibold mb-6">Benutzer</h1>
-      {searchParams.ok && (
-        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">Erledigt.</div>
+      {okText && (
+        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">{okText}</div>
       )}
       {searchParams.error && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{searchParams.error}</div>
+      )}
+      {searchParams.link && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800 break-all">
+          Manuell weitergeben: <span className="font-mono">{searchParams.link}</span>
+        </div>
       )}
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 card overflow-hidden">
@@ -71,6 +77,14 @@ export default async function UsersPage({
                     <a href={`/admin/users/${u.id}/access`} className="btn-secondary text-xs">
                       Zugriffe
                     </a>
+                    <form
+                      method="post"
+                      action={`/api/admin/users/${u.id}/reset-link`}
+                      className="inline"
+                      title="Sendet eine E-Mail mit einem Link zum (Neu-)Setzen des Passworts"
+                    >
+                      <button className="btn-secondary text-xs">Passwort-Link senden</button>
+                    </form>
                     <form method="post" action={`/api/admin/users/${u.id}/toggle`} className="inline">
                       <button className="btn-secondary text-xs">{u.active ? "Deaktivieren" : "Aktivieren"}</button>
                     </form>
@@ -96,8 +110,8 @@ export default async function UsersPage({
         </div>
 
         <div className="card p-6">
-          <h2 className="font-semibold mb-3">Neuen Benutzer anlegen</h2>
-          <form method="post" action="/api/admin/users" className="space-y-3">
+          <h2 className="font-semibold mb-3">Benutzer einladen</h2>
+          <form method="post" action="/api/admin/users/invite" className="space-y-3">
             <div>
               <label className="label">Name</label>
               <input name="name" required className="input" />
@@ -107,10 +121,6 @@ export default async function UsersPage({
               <input type="email" name="email" required className="input" />
             </div>
             <div>
-              <label className="label">Initial-Passwort (min. 10 Zeichen)</label>
-              <input name="password" required minLength={10} className="input" />
-            </div>
-            <div>
               <label className="label">Rolle</label>
               <select name="role" defaultValue="VIEWER" className="input">
                 {Object.values(Role).map((r) => (
@@ -118,9 +128,10 @@ export default async function UsersPage({
                 ))}
               </select>
             </div>
-            <button className="btn-primary w-full">Anlegen</button>
+            <button className="btn-primary w-full">Einladung senden</button>
             <p className="text-xs text-slate-500">
-              Der User muss beim ersten Login 2FA einrichten.
+              Der Nutzer erhält per E-Mail einen Link, über den er ein Passwort
+              setzt (gültig 14 Tage). Beim ersten Login muss 2FA eingerichtet werden.
             </p>
           </form>
         </div>
