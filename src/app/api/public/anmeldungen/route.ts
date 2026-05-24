@@ -95,7 +95,13 @@ async function getSystemActorId(): Promise<string> {
 }
 
 export async function POST(req: Request) {
+  console.log(
+    `[anmeldungen] POST eingegangen - ct=${req.headers.get("content-type")} ` +
+      `key-header=${req.headers.get("x-api-key") ? "ja" : "nein"} ` +
+      `ua=${req.headers.get("user-agent")?.slice(0, 60) ?? "-"}`
+  );
   if (!authorized(req)) {
+    console.warn("[anmeldungen] 401 - API Key fehlt/ungueltig");
     return jsonError(401, "API key fehlt oder ungültig");
   }
   let body: Record<string, unknown>;
@@ -104,8 +110,14 @@ export async function POST(req: Request) {
   } catch {
     return jsonError(400, "Body konnte nicht gelesen werden");
   }
+  console.log("[anmeldungen] Body-Keys:", Object.keys(body).join(", "));
   const input = normalize(body);
   if (!input.participantEmail || !input.participantName) {
+    console.warn("[anmeldungen] 400 - Pflichtfelder fehlen", {
+      hasName: !!input.participantName,
+      hasEmail: !!input.participantEmail,
+      bodyKeys: Object.keys(body),
+    });
     return jsonError(400, "participant-name oder participant-email fehlt");
   }
   if (!input.eventId && !input.externalId && !input.trainingDate) {
