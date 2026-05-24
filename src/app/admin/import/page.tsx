@@ -7,7 +7,7 @@ import { prisma } from "@/lib/db";
 export default async function ImportPage({
   searchParams,
 }: {
-  searchParams: { result?: string };
+  searchParams: { result?: string; resultId?: string };
 }) {
   const s = await getSession();
   if (!s) redirect("/login");
@@ -20,7 +20,20 @@ export default async function ImportPage({
   });
 
   let result: any = null;
-  if (searchParams.result) {
+  // Bevorzugt: resultId verweist auf einen AuditLog-Eintrag mit dem
+  // vollstaendigen Ergebnis (DB-persistiert, kurze URL).
+  if (searchParams.resultId) {
+    const log = await prisma.auditLog.findUnique({ where: { id: searchParams.resultId } });
+    if (log?.diff) {
+      try {
+        result = JSON.parse(log.diff);
+      } catch {
+        result = null;
+      }
+    }
+  }
+  // Rueckwaerts-Kompatibilitaet: alte URLs mit base64-Result
+  if (!result && searchParams.result) {
     try {
       result = JSON.parse(Buffer.from(searchParams.result, "base64url").toString("utf8"));
     } catch {
