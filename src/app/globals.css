@@ -44,8 +44,21 @@ summary { list-style: none; }
   .card.overflow-hidden { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .table { min-width: 640px; }
   .input { font-size: 16px; }
-  .btn { @apply py-2.5; }
+  .btn { @apply py-2.5 px-3.5; }
   body { padding-bottom: env(safe-area-inset-bottom); }
+  /* Mehr Atmung an den Raendern */
+  .max-w-7xl.mx-auto { padding-left: 16px; padding-right: 16px; }
+  /* Buttons in Header-Reihen kompakter, damit sie umbrechen ohne ueberlauf */
+  h1.text-2xl, h1.text-3xl { font-size: 22px; line-height: 1.2; }
+  /* Tap-Targets fuer kleine Action-Buttons leicht vergroessern */
+  .btn-row { padding: 8px 12px; }
+}
+
+/* Sehr schmale Mobile-Displays: noch kompakter */
+@media (max-width: 420px) {
+  .btn { font-size: 13px; padding-left: 12px; padding-right: 12px; }
+  .card { border-radius: 14px; }
+  .menu-panel { right: 12px !important; left: 12px !important; min-width: 0 !important; }
 }
 
 .nav-scroll::-webkit-scrollbar { display: none; }
@@ -255,6 +268,29 @@ select.input { padding-right: 2.25rem; }
   backdrop-filter: saturate(1.5) blur(20px);
   -webkit-backdrop-filter: saturate(1.5) blur(20px);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  padding-top: env(safe-area-inset-top);
+}
+
+/* Action-Toolbar: Buttons-Container, der auf Mobile horizontal scrollt
+   statt mit ausreichend Hoehe umzubrechen. */
+.action-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+@media (max-width: 768px) {
+  .action-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    margin-right: -16px;
+    padding-right: 16px;
+  }
+  .action-bar::-webkit-scrollbar { display: none; }
+  .action-bar { scrollbar-width: none; }
+  .action-bar > * { flex-shrink: 0; }
 }
 
 /* Kleine, dezente Action-Buttons in Tabellenzeilen */

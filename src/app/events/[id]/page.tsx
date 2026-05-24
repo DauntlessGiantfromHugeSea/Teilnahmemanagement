@@ -104,7 +104,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
             </div>
           )}
         </div>
-        <div className="flex gap-2 flex-wrap lg:justify-end items-center">
+        <div className="action-bar lg:justify-end">
           <a
             href={`/api/events/${ev.id}/attendance/pdf`}
             download
