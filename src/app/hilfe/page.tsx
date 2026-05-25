@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
+import { CopyableKey } from "@/components/CopyableKey";
 import { Role } from "@prisma/client";
 
 export const metadata = { title: "Hilfe - FB-Akademie Teilnahmemanagement" };
@@ -221,22 +222,156 @@ export default async function HilfePage() {
         )}
 
         {isAdmin && (
-          <Section id="webhook" title="WordPress-Webhook">
+          <Section id="webhook" title="WordPress-Webhook (CF7)">
             <p>
-              Für die automatische Anmeldung aus Contact Form 7 setzt du
-              <code className="font-mono text-xs"> WEBHOOK_API_KEY </code>
-              in der <code className="font-mono text-xs">.env</code> des Servers und
-              konfigurierst im CF7-Plugin den Endpunkt
-              <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
-                POST https://teilnahme.fb-akademie.de/api/public/anmeldungen
-              </code>
-              mit Header
-              <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
-                X-Api-Key: &lt;dein-key&gt;
-              </code>
+              Anmeldungen aus dem Contact-Form-7-Formular werden direkt an das
+              Tool weitergereicht. Doppelte Anmeldungen (gleiche Mail im selben
+              Event) werden automatisch übersprungen. Mit dem Webhook entfällt
+              der manuelle CSV-Import.
             </p>
+
+            <h3 className="font-semibold text-slate-800 mt-4">1. API-Key</h3>
             <p>
-              Details und Feld-Mapping stehen in der Datei <code className="font-mono text-xs">WEBHOOK.md</code> im Repo.
+              Der Key liegt server-seitig in der <code className="font-mono text-xs">.env</code>
+              {" "}als <code className="font-mono text-xs">WEBHOOK_API_KEY</code>:
+            </p>
+            <div className="mt-2">
+              <CopyableKey value={process.env.WEBHOOK_API_KEY ?? ""} label="WEBHOOK_API_KEY" />
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Erzeugen lässt sich ein neuer Key auf dem Server mit
+              {" "}<code className="font-mono">openssl rand -hex 32</code>. Nach
+              Änderung muss der App-Container neu gestartet werden
+              ({" "}<code className="font-mono">docker compose up -d app</code>).
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">2. Endpunkt</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`POST https://teilnahme.fb-akademie.de/api/public/anmeldungen
+Header:        X-Api-Key: <Key von oben>
+Content-Type:  application/json`}
+            </pre>
+            <p className="text-xs text-slate-500 mt-1">
+              Alternativ kann der Key auch als Query-Param <code className="font-mono">?api-key=…</code>
+              {" "}übergeben werden (für Plugins ohne Header-Support).
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">3. CF7 → Webhook konfigurieren</h3>
+            <p className="text-sm">
+              Plugin <strong>„CF7 to Webhook"</strong> (oder kompatibles) in
+              WordPress installieren, im CF7-Formular im Reiter „Webhook":
+            </p>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li><strong>Send to Webhook</strong>: aktivieren</li>
+              <li>
+                <strong>Webhook URL</strong>:
+                <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
+                  https://teilnahme.fb-akademie.de/api/public/anmeldungen
+                </code>
+              </li>
+              <li><strong>Method</strong>: POST &middot; <strong>Data Type</strong>: JSON</li>
+              <li>
+                <strong>Request Headers</strong> (eine Zeile):
+                <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded break-all">
+                  {`{"Content-Type":"application/json","X-Api-Key":"`}
+                  {process.env.WEBHOOK_API_KEY?.slice(0, 6) ?? "…"}
+                  {"…"}
+                  {process.env.WEBHOOK_API_KEY?.slice(-4) ?? "…"}
+                  {`"}`}
+                </code>
+                <span className="text-xs text-slate-500">
+                  (Vollständigen Key oben einsetzen, Anführungszeichen beibehalten.)
+                </span>
+              </li>
+              <li>
+                <strong>Request Body</strong> (Feld-Mapping, deutsche CF7-Tag-Namen
+                bleiben erhalten):
+                <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto mt-1">
+{`{
+  "participant-name":     "[participant-name]",
+  "company-name":         "[company-name]",
+  "participant-email":    "[participant-email]",
+  "phone-number":         "[phone-number]",
+  "training-date":        "[training-date]",
+  "billing-company-name": "[billing-company-name]",
+  "billing-name":         "[billing-name]",
+  "billing-street":       "[billing-street]",
+  "billing-zipcode-city": "[billing-zipcode-city]",
+  "billing-email":        "[billing-email]",
+  "remarks":              "[remarks]"
+}`}
+                </pre>
+              </li>
+            </ul>
+
+            <h3 className="font-semibold text-slate-800 mt-5">4. Pflichtfelder</h3>
+            <p className="text-sm">
+              Mindestens <strong>name</strong>, <strong>email</strong> und{" "}
+              <strong>eines</strong> der drei Event-Felder müssen ankommen.
+              Reihenfolge der Erkennung:
+            </p>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li>
+                <code className="font-mono text-xs">event-id</code>{" "}
+                — interne Event-ID aus dem Tool (CUID, steht in der URL{" "}
+                <code className="font-mono text-xs">/events/&lt;id&gt;</code>).
+                Empfohlen für Formulare, die nur ein einzelnes Event abdecken.
+              </li>
+              <li>
+                <code className="font-mono text-xs">external-id</code>{" "}
+                — die Schulungs-ID mit Doppelkreuz, z. B.{" "}
+                <code className="font-mono text-xs">#260603</code>. Event muss
+                bereits existieren.
+              </li>
+              <li>
+                <code className="font-mono text-xs">training-date</code>{" "}
+                — vollständiger Wert wie aus der CF7-Select-Liste, inklusive
+                <code className="font-mono text-xs"> (ID: #260603)</code>.
+                Event wird automatisch angelegt, falls noch nicht vorhanden.
+              </li>
+            </ul>
+            <p className="text-sm mt-2">
+              Außerdem optional: <code className="font-mono text-xs">day-option</code>{" "}
+              (<code className="font-mono text-xs">DAY_1</code>,
+              <code className="font-mono text-xs"> DAY_2</code> oder
+              <code className="font-mono text-xs"> BOTH</code>),
+              <code className="font-mono text-xs"> nachname-vorname</code> als
+              Alias für <code className="font-mono text-xs">participant-name</code>,
+              <code className="font-mono text-xs"> strasse</code>,
+              <code className="font-mono text-xs"> plz</code>,
+              <code className="font-mono text-xs"> ort</code>,
+              <code className="font-mono text-xs"> kostenstelle</code>,
+              <code className="font-mono text-xs"> email-rechnung</code>.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">5. Antworten des Endpunkts</h3>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li><strong>201</strong> – neu angelegt</li>
+              <li><strong>200</strong> + <code className="font-mono text-xs">status: "duplicate"</code> – war bereits vorhanden</li>
+              <li><strong>400</strong> – Pflichtfeld fehlt</li>
+              <li><strong>401</strong> – API-Key falsch oder fehlt</li>
+              <li><strong>422</strong> – Datenfehler (z. B. Event abgesagt oder nicht gefunden)</li>
+            </ul>
+
+            <h3 className="font-semibold text-slate-800 mt-5">6. Manueller Test mit curl</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`curl -X POST https://teilnahme.fb-akademie.de/api/public/anmeldungen \\
+  -H "X-Api-Key: <Key>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "event-id": "<id aus /events/...>",
+    "participant-name": "Mustermann, Max",
+    "participant-email": "max@example.com",
+    "company-name": "Beispiel GmbH"
+  }'`}
+            </pre>
+
+            <h3 className="font-semibold text-slate-800 mt-5">7. Erfolg prüfen</h3>
+            <p className="text-sm">
+              Im Tool unter <strong>Veranstaltungen → Event → Teilnehmer</strong>{" "}
+              taucht die Anmeldung sofort auf. Bei Fehlern hilft der
+              Audit-Verlauf (Admin → Verlauf): die Aktion heißt
+              <code className="font-mono text-xs"> WEBHOOK_ANMELDUNG</code>.
             </p>
           </Section>
         )}
