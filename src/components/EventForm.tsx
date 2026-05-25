@@ -1,4 +1,5 @@
 import type { Event, Training, EventFormat } from "@prisma/client";
+import { EventDaysPicker } from "./EventDaysPicker";
 
 interface Props {
   event?: Event;
@@ -18,9 +19,24 @@ function eurInputValue(cents?: number | null) {
   return (cents / 100).toFixed(2);
 }
 
+function parseExtraDays(json?: string | null): string[] {
+  if (!json) return [];
+  try {
+    const arr = JSON.parse(json);
+    return Array.isArray(arr) ? arr.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 export function EventForm({ event, training, action, allowAddAnother }: Props) {
   const format: EventFormat = event?.format ?? "PRESENCE";
   const isTwoDay = !!event?.day2Date;
+  const initialDates: (string | null)[] = [
+    dateInputValue(event?.day1Date) || null,
+    dateInputValue(event?.day2Date) || null,
+    ...parseExtraDays(event?.extraDays).map((s) => s),
+  ];
 
   return (
     <form
@@ -66,37 +82,12 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             </div>
           </label>
         </div>
-        <div className="only-presence pt-2">
-          <div className="text-xs text-slate-500 mb-2">Dauer</div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <label className="block">
-              <input
-                type="radio"
-                name="duration"
-                value="ONE"
-                defaultChecked={!isTwoDay}
-                className="peer sr-only"
-              />
-              <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
-                <div className="font-semibold">1 Tag</div>
-                <div className="text-xs text-slate-500 mt-0.5">Eintägige Schulung</div>
-              </div>
-            </label>
-            <label className="block">
-              <input
-                type="radio"
-                name="duration"
-                value="TWO"
-                defaultChecked={isTwoDay}
-                className="peer sr-only"
-              />
-              <div className="card p-3 cursor-pointer text-sm peer-checked:ring-2 peer-checked:ring-brand-500 peer-checked:bg-brand-50">
-                <div className="font-semibold">2 Tage</div>
-                <div className="text-xs text-slate-500 mt-0.5">Termine an zwei Tagen</div>
-              </div>
-            </label>
-          </div>
-        </div>
+        {/* Anzahl Tage wird im Termine-Block unten gewaehlt (1..10). */}
+        <input
+          type="hidden"
+          name="duration"
+          value={isTwoDay ? "TWO" : "ONE"}
+        />
       </section>
 
       <section className="space-y-4">
@@ -169,23 +160,16 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
           <h2 className="font-semibold text-slate-800">3. Termin</h2>
           <p className="text-xs text-slate-500">Datum und Uhrzeit der Durchführung.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <EventDaysPicker initialDates={initialDates} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="label">Tag 1</label>
-            <input name="day1Date" type="date" defaultValue={dateInputValue(event?.day1Date)} className="input" />
-          </div>
-          <div>
-            <label className="label">Beginn</label>
+            <label className="label">Beginn (täglich)</label>
             <input name="startTime" type="time" defaultValue={event?.startTime ?? ""} className="input" />
           </div>
           <div>
-            <label className="label">Ende</label>
+            <label className="label">Ende (täglich)</label>
             <input name="endTime" type="time" defaultValue={event?.endTime ?? ""} className="input" />
           </div>
-        </div>
-        <div className="only-twoday">
-          <label className="label">Tag 2</label>
-          <input name="day2Date" type="date" defaultValue={dateInputValue(event?.day2Date)} className="input max-w-xs" />
         </div>
       </section>
 

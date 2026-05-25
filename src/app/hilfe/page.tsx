@@ -39,6 +39,7 @@ export default async function HilfePage() {
             {isAdmin && <li><a href="#admin" className="text-brand-700 hover:underline">Administration</a></li>}
             {isAdmin && <li><a href="#csv" className="text-brand-700 hover:underline">CSV-Import</a></li>}
             {isAdmin && <li><a href="#webhook" className="text-brand-700 hover:underline">WordPress-Webhook</a></li>}
+            {isAdmin && <li><a href="#embed" className="text-brand-700 hover:underline">Anmeldeseite einbetten &amp; stylen</a></li>}
             <li><a href="#pwa" className="text-brand-700 hover:underline">App auf Handy / Desktop installieren</a></li>
             <li><a href="#sicherheit" className="text-brand-700 hover:underline">Sicherheit &amp; Datenschutz</a></li>
           </ul>
@@ -372,6 +373,103 @@ Content-Type:  application/json`}
               taucht die Anmeldung sofort auf. Bei Fehlern hilft der
               Audit-Verlauf (Admin → Verlauf): die Aktion heißt
               <code className="font-mono text-xs"> WEBHOOK_ANMELDUNG</code>.
+            </p>
+          </Section>
+        )}
+
+        {isAdmin && (
+          <Section id="embed" title="Anmeldeseite einbetten & stylen">
+            <p>
+              Die öffentliche Anmeldeseite eines Events liegt unter{" "}
+              <code className="font-mono text-xs">/anmeldung/&lt;event-id&gt;</code>{" "}
+              und kann per <code className="font-mono text-xs">&lt;iframe&gt;</code> in
+              WordPress eingebettet werden. Sie nutzt unten dokumentierte
+              CSS-Klassen, die du in deinem WordPress-Theme oder per{" "}
+              <code className="font-mono text-xs">style</code>-Block überschreiben kannst.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-4">Einbettung</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`<iframe
+  src="https://teilnahme.fb-akademie.de/anmeldung/<event-id>"
+  style="width:100%; min-height:1400px; border:0;"
+  loading="lazy"
+  title="Anmeldung"
+></iframe>`}
+            </pre>
+            <p className="text-xs text-slate-500 mt-1">
+              Die Event-ID steht in der URL des Tools unter{" "}
+              <code className="font-mono">/events/&lt;id&gt;</code>.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">CSS-Klassen (Designsystem)</h3>
+            <p className="text-sm">
+              Alle Buttons, Karten, Inputs und Tabellen nutzen ein
+              konsistentes Klassenschema. Im iframe-Kontext überschreibst du
+              sie z. B. so:
+            </p>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`/* Eigene Markenfarbe und Schaltflächen */
+.btn-primary {
+  background: #1e3a8a !important;
+  box-shadow: none !important;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+/* Karten an dunkles Theme anpassen */
+.card {
+  background: rgba(20, 20, 20, 0.78) !important;
+  color: #f1f5f9 !important;
+}`}
+            </pre>
+
+            <div className="overflow-x-auto mt-3">
+              <table className="table w-full">
+                <thead>
+                  <tr><th>Klasse</th><th>Element</th><th>Beschreibung</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code className="font-mono text-xs">.btn</code></td><td>alle Buttons</td><td>Basis: Padding, Radius, Übergänge</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-primary</code></td><td>Haupt-Aktion</td><td>Türkiser Gradient mit weißer Schrift</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-secondary</code></td><td>Sekundäre Aktion</td><td>Glas-Look, transparent</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-danger</code></td><td>Destruktive Aktion</td><td>Roter Gradient</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-row</code></td><td>Mini-Button in Tabellen</td><td>Glas-Look, kleinere Schrift</td></tr>
+                  <tr><td><code className="font-mono text-xs">.input</code></td><td>Form-Felder</td><td>Glas-Hintergrund, Fokus-Glow</td></tr>
+                  <tr><td><code className="font-mono text-xs">.label</code></td><td>Label über Inputs</td><td>Klein, fett, slate-600</td></tr>
+                  <tr><td><code className="font-mono text-xs">.card</code></td><td>Container</td><td>Glas-Karte mit Backdrop-Blur</td></tr>
+                  <tr><td><code className="font-mono text-xs">.glass / .glass-strong</code></td><td>generische Glas-Flächen</td><td>Direkt einsetzbar</td></tr>
+                  <tr><td><code className="font-mono text-xs">.table</code></td><td>Tabellen</td><td>Header transluzent, Zeilen-Hover</td></tr>
+                  <tr><td><code className="font-mono text-xs">.badge</code></td><td>kleine Status-Pills</td><td>Pille mit Border</td></tr>
+                  <tr><td><code className="font-mono text-xs">.toast-ok / .toast-error / .toast-warn</code></td><td>Hinweis-Banner</td><td>Erfolg / Fehler / Warnung</td></tr>
+                  <tr><td><code className="font-mono text-xs">.topbar</code></td><td>Sticky-Header</td><td>Glas-Top-Bar (nur App-Bereich)</td></tr>
+                  <tr><td><code className="font-mono text-xs">.menu-panel</code></td><td>Dropdowns</td><td>Floating-Glas-Menüs</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="font-semibold text-slate-800 mt-5">Designtokens (CSS-Variablen)</h3>
+            <p className="text-sm">
+              Lassen sich global überschreiben — am einfachsten direkt auf{" "}
+              <code className="font-mono text-xs">:root</code>:
+            </p>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`:root {
+  --bg-base: #eef2f5;            /* Seitenhintergrund */
+  --glass-bg: rgba(255,255,255,0.62);
+  --glass-bg-strong: rgba(255,255,255,0.78);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --shadow-card: 0 1px 2px rgba(15,23,42,0.04), 0 12px 30px -18px rgba(15,23,42,0.18);
+}`}
+            </pre>
+
+            <h3 className="font-semibold text-slate-800 mt-5">Markenfarbe</h3>
+            <p className="text-sm">
+              Brand-Türkis ist in Tailwind als{" "}
+              <code className="font-mono text-xs">brand-{"{50..900}"}</code> definiert,
+              Standardton <code className="font-mono text-xs">rgb(0, 126, 128)</code>.
+              Verwendet u. a. von <code className="font-mono text-xs">.btn-primary</code>,
+              Fokus-Ring der Inputs, aktive Nav-Pills und der Top-Streifen.
             </p>
           </Section>
         )}

@@ -107,6 +107,8 @@ model Event {
   // Termin
   day1Date    DateTime?
   day2Date    DateTime?
+  // Zusaetzliche Termine ab Tag 3 (JSON-Array von YYYY-MM-DD-Strings)
+  extraDays   String?
   startTime   String?     // HH:MM
   endTime     String?     // HH:MM
   // Kapazitaet

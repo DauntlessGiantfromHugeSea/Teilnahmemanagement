@@ -8,6 +8,7 @@ import { decryptParticipant } from "@/lib/participants";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
 import { PrivateValue } from "@/components/PrivateValue";
 import { BADGE_TEMPLATES } from "@/lib/badgeTemplates";
+import { formatEventDates, getEventLastDate } from "@/lib/eventDates";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
 import { DayOption, ParticipantStatus } from "@prisma/client";
 
@@ -43,7 +44,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
       return (a.firstName ?? "").localeCompare(b.firstName ?? "", "de");
     });
 
-  const lastDate = ev.day2Date ?? ev.day1Date;
+  const lastDate = getEventLastDate(ev);
   const isPast = !!(lastDate && lastDate < new Date(new Date().setHours(0, 0, 0, 0)));
 
   return (
@@ -74,8 +75,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
             <span>{ev.training.title}</span>
             <span>&middot;</span>
             <span>
-              {ev.day1Date?.toLocaleDateString("de-DE") ?? "-"}
-              {ev.day2Date ? ` / ${ev.day2Date.toLocaleDateString("de-DE")}` : ""}
+              {formatEventDates(ev)}
               {ev.startTime ? `, ${ev.startTime}${ev.endTime ? `-${ev.endTime}` : ""} Uhr` : ""}
             </span>
             {ev.format === "WEBINAR" && ev.meetingUrl ? (
