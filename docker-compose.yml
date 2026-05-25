@@ -54,6 +54,8 @@ services:
       MAIL_LOGO_URL: ${MAIL_LOGO_URL:-}
       MAIL_BRAND_COLOR: ${MAIL_BRAND_COLOR:-#0f766e}
       MAIL_FOOTER_LINE: ${MAIL_FOOTER_LINE:-}
+      # Iframe-Embedding der oeffentlichen Anmeldeseiten
+      IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de}
       NODE_ENV: production
       # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
       RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}

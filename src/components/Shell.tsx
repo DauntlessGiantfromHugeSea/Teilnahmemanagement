@@ -21,6 +21,7 @@ const ADMIN = [
   { id: "media", href: "/admin/media", label: "Media-Library" },
   { id: "audit", href: "/admin/audit", label: "Verlauf" },
   { id: "import", href: "/admin/import", label: "Import (CSV)" },
+  { id: "settings", href: "/admin/settings", label: "Einstellungen" },
 ];
 
 export function Shell({ session, active, children }: Props) {
