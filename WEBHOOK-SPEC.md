@@ -208,3 +208,71 @@ curl -X POST https://teilnahme.fb-akademie.de/api/public/anmeldungen \
   --data-urlencode "participant-email=max@example.com" \
   --data-urlencode "training-date=18.03.2026 Basisschulung (ID: #260301)"
 ```
+
+---
+
+## 10. Newsletter-Webhook
+
+Ein zweiter, generischer Webhook nimmt Newsletter-Anmeldungen entgegen (z. B.
+aus einem separaten CF7-Formular). Quelle:
+`src/app/api/public/newsletter/route.ts`, `src/lib/newsletter.ts`.
+
+| | |
+| --- | --- |
+| **Methode / Pfad** | `POST /api/public/newsletter` |
+| **Content-Type** | `application/json`, `application/x-www-form-urlencoded` oder `multipart/form-data` |
+| **Auth** | identisch zu §2 — **derselbe** `WEBHOOK_API_KEY` (`X-Api-Key` oder `Authorization: Bearer`) |
+
+Ein `GET` liefert nur einen Hinweis-JSON mit den Feldnamen.
+
+### Felder
+
+| Logisches Feld | Pflicht | Akzeptierte Schlüssel (Aliase) | Bedeutung |
+| --- | --- | --- | --- |
+| E-Mail | **ja** | `your-email`, `email`, `e-mail`, `mail`, `newsletter-email` | muss ein `@` enthalten |
+| Vorname | nein | `first-name`, `firstName`, `vorname`, `your-firstname` | |
+| Nachname | nein | `last-name`, `lastName`, `nachname`, `your-lastname` | |
+| Voller Name | nein | `your-name`, `name` | wird gesplittet, falls Vor-/Nachname fehlen (1. Wort = Vorname, Rest = Nachname) |
+| Firma | nein | `company`, `firma`, `company-name` | |
+| Tags | nein | `tags`, `tag` | Komma-getrennt oder Array |
+| Quelle | nein | `source`, `_source` | Default `cf7` |
+| Einwilligungs-URL | nein | `page-url`, `_url`, `referer` | Beleg für Consent (sonst `Referer`-Header) |
+
+Die Einwilligungs-IP wird aus dem `X-Forwarded-For`-Header (erste Adresse)
+übernommen.
+
+### Verhalten
+
+- **Immer Double-Opt-In (DSGVO):** Es wird kein bestätigter Abonnent angelegt,
+  sondern eine **Bestätigungsmail** verschickt. Erst nach Klick auf den Link ist
+  die Person aktiv.
+- **Idempotent über E-Mail** (`emailHash`):
+  - existiert noch nicht → neuer Eintrag, Status `pending`
+  - existiert als `PENDING`/`UNSUBSCRIBED`/`BOUNCED` → erneutes Opt-In, Status `reactivated`
+  - existiert bereits als `SUBSCRIBED` → keine neue Mail, Status `already_subscribed`
+- Name, E-Mail und Firma werden verschlüsselt gespeichert.
+
+### Antworten
+
+| Status | Body | Bedeutung |
+| --- | --- | --- |
+| `201` | `{ "ok": true, "status": "pending" \| "reactivated" \| "already_subscribed" }` | Erfolgreich verarbeitet |
+| `400` | `{ "ok": false, "error": … }` | Body nicht lesbar oder E-Mail fehlt/ungültig |
+| `401` | `{ "ok": false, "error": … }` | API-Key fehlt/falsch |
+| `422` | `{ "ok": false, "error": … }` | Verarbeitung fehlgeschlagen |
+
+### Beispiel
+
+```bash
+curl -X POST https://teilnahme.fb-akademie.de/api/public/newsletter \
+  -H "X-Api-Key: $WEBHOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "interessent@example.com",
+    "first-name": "Erika",
+    "last-name": "Beispiel",
+    "company": "Beispiel GmbH",
+    "tags": "fernwaerme,basis",
+    "source": "website-footer"
+  }'
+```
