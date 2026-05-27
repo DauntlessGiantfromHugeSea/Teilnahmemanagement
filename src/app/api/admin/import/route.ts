@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
@@ -34,24 +35,20 @@ export async function POST(req: Request) {
     return new NextResponse("Unbekannter Modus", { status: 400 });
   }
 
-  await audit({
-    actorId: s.uid,
-    action: "IMPORT_CSV",
-    entityType: mode === "anmeldungen" ? "Event" : "Participant",
-    diff: {
-      mode,
-      total: result.total,
-      created: result.created,
-      skipped: result.skipped,
-      failed: result.failed,
+  // Vollstaendiges Ergebnis im AuditLog persistieren - die zurueckgegebene
+  // ID landet als kurzer Query-Parameter in der Redirect-URL. Vermeidet
+  // ueberlange URLs (Safari downloadet die ansonsten als leere Datei).
+  const log = await prisma.auditLog.create({
+    data: {
+      actorId: s.uid,
+      action: "IMPORT_CSV",
+      entityType: mode === "anmeldungen" ? "Event" : "Participant",
+      diff: JSON.stringify({ mode, ...result }),
     },
   });
 
-  // Ergebnis als base64url-Query an die Seite hängen, damit die UI es darstellt
-  const json = JSON.stringify(result);
-  const enc = Buffer.from(json, "utf8").toString("base64url");
   return new NextResponse(null, {
     status: 303,
-    headers: { Location: `/admin/import?result=${enc}` },
+    headers: { Location: `/admin/import?resultId=${log.id}` },
   });
 }

@@ -77,7 +77,66 @@ export default async function AccountingPage({
         </div>
       </form>
 
-      <div className="card overflow-hidden">
+      {/* Mobile-Karten */}
+      <div className="md:hidden card overflow-hidden divide-y divide-slate-200/60">
+        {rows.length === 0 && (
+          <div className="text-center text-slate-500 py-8 text-sm">Keine Einträge.</div>
+        )}
+        {rows.map(({ p, dec, cents, done }) => {
+          const initials =
+            `${dec.firstName?.[0] ?? ""}${dec.lastName?.[0] ?? ""}`.toUpperCase() || "??";
+          return (
+            <div key={p.id} className={"p-4 " + (done ? "opacity-60" : "")}>
+              <div className="flex items-start gap-3">
+                <span
+                  className={
+                    "h-10 w-10 shrink-0 rounded-full text-xs font-semibold flex items-center justify-center " +
+                    (done ? "bg-slate-200 text-slate-400" : "bg-brand-100 text-brand-700")
+                  }
+                >
+                  {initials}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className={"font-medium " + (done ? "line-through" : "")}>
+                    {dec.lastName}, {dec.firstName}
+                  </div>
+                  {dec.company && (
+                    <div className="text-xs text-slate-500 truncate">{dec.company}</div>
+                  )}
+                  <Link
+                    href={`/events/${p.event.id}`}
+                    className="text-xs text-brand-700 hover:underline block mt-1 truncate"
+                  >
+                    {p.event.title}
+                  </Link>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-semibold whitespace-nowrap">{formatEUR(cents)}</div>
+                </div>
+              </div>
+              <div className="mt-3">
+                {done ? (
+                  <form method="post" action={`/api/participants/${p.id}/invoice`}>
+                    <input type="hidden" name="invoiceStatus" value="OPEN" />
+                    <button className="btn-secondary text-xs w-full">
+                      Rechnung wieder offen markieren
+                    </button>
+                  </form>
+                ) : (
+                  <form method="post" action={`/api/participants/${p.id}/invoice`}>
+                    <input type="hidden" name="invoiceStatus" value="ISSUED" />
+                    <button className="btn-primary text-xs w-full">
+                      Rechnung gestellt
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="card overflow-hidden hidden md:block">
         <table className="table">
           <thead>
             <tr>

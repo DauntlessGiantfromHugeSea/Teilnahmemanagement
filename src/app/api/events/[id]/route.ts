@@ -37,6 +37,21 @@ function formatOrDefault(v: FormDataEntryValue | null): EventFormat {
   return String(v) === "WEBINAR" ? "WEBINAR" : "PRESENCE";
 }
 
+function cleanExtraDays(v: FormDataEntryValue | null): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  try {
+    const arr = JSON.parse(s);
+    if (!Array.isArray(arr)) return null;
+    const ok = arr
+      .map((x) => (typeof x === "string" ? x.trim() : ""))
+      .filter((x) => /^\d{4}-\d{2}-\d{2}$/.test(x));
+    return ok.length ? JSON.stringify(ok) : null;
+  } catch {
+    return null;
+  }
+}
+
 async function resolveUpload(
   f: FormData,
   fileField: string,
@@ -83,7 +98,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       format,
       description,
       day1Date: dateOrNull(f.get("day1Date")),
-      day2Date: twoDay ? dateOrNull(f.get("day2Date")) : null,
+      day2Date: dateOrNull(f.get("day2Date")),
+      extraDays: cleanExtraDays(f.get("extraDays")),
       startTime: strOrNull(f.get("startTime")),
       endTime: strOrNull(f.get("endTime")),
       location: format === "WEBINAR" ? null : strOrNull(f.get("location")),

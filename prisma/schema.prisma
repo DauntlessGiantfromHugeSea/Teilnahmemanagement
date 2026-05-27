@@ -77,6 +77,13 @@ model User {
   totpEnabled   Boolean   @default(false)
   totpRequired  Boolean   @default(true)  // false = Login auch ohne 2FA erlaubt
   recoveryCodes String?   // verschluesselt, JSON-Array
+  // 2FA per E-Mail (Code)
+  emailCodeEnabled  Boolean   @default(false)
+  loginCodeHash     String?
+  loginCodeExpiresAt DateTime?
+  // Einladung / Passwort-Reset (token-basiert)
+  pwTokenHash     String?   // sha256-Hex des Token
+  pwTokenExpiresAt DateTime?
   // Meta
   active        Boolean   @default(true)
   lastLoginAt   DateTime?
@@ -119,6 +126,8 @@ model Event {
   // Termin
   day1Date    DateTime?
   day2Date    DateTime?
+  // Zusaetzliche Termine ab Tag 3 (JSON-Array von YYYY-MM-DD-Strings)
+  extraDays   String?
   startTime   String?     // HH:MM
   endTime     String?     // HH:MM
   // Kapazitaet
@@ -130,6 +139,8 @@ model Event {
   heroImageUrl    String?   // Bild oben auf der Anmeldeseite (https-URL)
   logoUrl         String?   // optional ein eigenes Logo pro Event
   pageBlocks      String?   // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
+  // Status
+  cancelled   Boolean     @default(false)
   // Interne Notizen (verschluesselt)
   notes       String?
   createdById String
@@ -286,7 +297,7 @@ model AuditLog {
   participantId String?
   participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
   actorId       String?
-  actor         User?    @relation(fields: [actorId], references: [id])
+  actor         User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
   action        String   // CREATE | UPDATE | DELETE | LOGIN | GRANT | INVOICE_STATUS | ...
   entityType    String   // Participant | Event | User | EventAccess | Auth
   entityId      String?

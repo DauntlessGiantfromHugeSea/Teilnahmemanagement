@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
+import { CopyableKey } from "@/components/CopyableKey";
 import { Role } from "@prisma/client";
 
 export const metadata = { title: "Hilfe - FB-Akademie Teilnahmemanagement" };
@@ -38,6 +39,7 @@ export default async function HilfePage() {
             {isAdmin && <li><a href="#admin" className="text-brand-700 hover:underline">Administration</a></li>}
             {isAdmin && <li><a href="#csv" className="text-brand-700 hover:underline">CSV-Import</a></li>}
             {isAdmin && <li><a href="#webhook" className="text-brand-700 hover:underline">WordPress-Webhook</a></li>}
+            {isAdmin && <li><a href="#embed" className="text-brand-700 hover:underline">Anmeldeseite einbetten &amp; stylen</a></li>}
             <li><a href="#pwa" className="text-brand-700 hover:underline">App auf Handy / Desktop installieren</a></li>
             <li><a href="#sicherheit" className="text-brand-700 hover:underline">Sicherheit &amp; Datenschutz</a></li>
           </ul>
@@ -221,22 +223,253 @@ export default async function HilfePage() {
         )}
 
         {isAdmin && (
-          <Section id="webhook" title="WordPress-Webhook">
+          <Section id="webhook" title="WordPress-Webhook (CF7)">
             <p>
-              Für die automatische Anmeldung aus Contact Form 7 setzt du
-              <code className="font-mono text-xs"> WEBHOOK_API_KEY </code>
-              in der <code className="font-mono text-xs">.env</code> des Servers und
-              konfigurierst im CF7-Plugin den Endpunkt
-              <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
-                POST https://teilnahme.fb-akademie.de/api/public/anmeldungen
-              </code>
-              mit Header
-              <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
-                X-Api-Key: &lt;dein-key&gt;
-              </code>
+              Anmeldungen aus dem Contact-Form-7-Formular werden direkt an das
+              Tool weitergereicht. Doppelte Anmeldungen (gleiche Mail im selben
+              Event) werden automatisch übersprungen. Mit dem Webhook entfällt
+              der manuelle CSV-Import.
             </p>
+
+            <h3 className="font-semibold text-slate-800 mt-4">1. API-Key</h3>
             <p>
-              Details und Feld-Mapping stehen in der Datei <code className="font-mono text-xs">WEBHOOK.md</code> im Repo.
+              Der Key liegt server-seitig in der <code className="font-mono text-xs">.env</code>
+              {" "}als <code className="font-mono text-xs">WEBHOOK_API_KEY</code>:
+            </p>
+            <div className="mt-2">
+              <CopyableKey value={process.env.WEBHOOK_API_KEY ?? ""} label="WEBHOOK_API_KEY" />
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Erzeugen lässt sich ein neuer Key auf dem Server mit
+              {" "}<code className="font-mono">openssl rand -hex 32</code>. Nach
+              Änderung muss der App-Container neu gestartet werden
+              ({" "}<code className="font-mono">docker compose up -d app</code>).
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">2. Endpunkt</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`POST https://teilnahme.fb-akademie.de/api/public/anmeldungen
+Header:        X-Api-Key: <Key von oben>
+Content-Type:  application/json`}
+            </pre>
+            <p className="text-xs text-slate-500 mt-1">
+              Alternativ kann der Key auch als Query-Param <code className="font-mono">?api-key=…</code>
+              {" "}übergeben werden (für Plugins ohne Header-Support).
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">3. CF7 → Webhook konfigurieren</h3>
+            <p className="text-sm">
+              Plugin <strong>„CF7 to Webhook"</strong> (oder kompatibles) in
+              WordPress installieren, im CF7-Formular im Reiter „Webhook":
+            </p>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li><strong>Send to Webhook</strong>: aktivieren</li>
+              <li>
+                <strong>Webhook URL</strong>:
+                <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
+                  https://teilnahme.fb-akademie.de/api/public/anmeldungen
+                </code>
+              </li>
+              <li><strong>Method</strong>: POST &middot; <strong>Data Type</strong>: JSON</li>
+              <li>
+                <strong>Request Headers</strong> (eine Zeile):
+                <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded break-all">
+                  {`{"Content-Type":"application/json","X-Api-Key":"`}
+                  {process.env.WEBHOOK_API_KEY?.slice(0, 6) ?? "…"}
+                  {"…"}
+                  {process.env.WEBHOOK_API_KEY?.slice(-4) ?? "…"}
+                  {`"}`}
+                </code>
+                <span className="text-xs text-slate-500">
+                  (Vollständigen Key oben einsetzen, Anführungszeichen beibehalten.)
+                </span>
+              </li>
+              <li>
+                <strong>Request Body</strong> (Feld-Mapping, deutsche CF7-Tag-Namen
+                bleiben erhalten):
+                <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto mt-1">
+{`{
+  "participant-name":     "[participant-name]",
+  "company-name":         "[company-name]",
+  "participant-email":    "[participant-email]",
+  "phone-number":         "[phone-number]",
+  "training-date":        "[training-date]",
+  "billing-company-name": "[billing-company-name]",
+  "billing-name":         "[billing-name]",
+  "billing-street":       "[billing-street]",
+  "billing-zipcode-city": "[billing-zipcode-city]",
+  "billing-email":        "[billing-email]",
+  "remarks":              "[remarks]"
+}`}
+                </pre>
+              </li>
+            </ul>
+
+            <h3 className="font-semibold text-slate-800 mt-5">4. Pflichtfelder</h3>
+            <p className="text-sm">
+              Mindestens <strong>name</strong>, <strong>email</strong> und{" "}
+              <strong>eines</strong> der drei Event-Felder müssen ankommen.
+              Reihenfolge der Erkennung:
+            </p>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li>
+                <code className="font-mono text-xs">event-id</code>{" "}
+                — interne Event-ID aus dem Tool (CUID, steht in der URL{" "}
+                <code className="font-mono text-xs">/events/&lt;id&gt;</code>).
+                Empfohlen für Formulare, die nur ein einzelnes Event abdecken.
+              </li>
+              <li>
+                <code className="font-mono text-xs">external-id</code>{" "}
+                — die Schulungs-ID mit Doppelkreuz, z. B.{" "}
+                <code className="font-mono text-xs">#260603</code>. Event muss
+                bereits existieren.
+              </li>
+              <li>
+                <code className="font-mono text-xs">training-date</code>{" "}
+                — vollständiger Wert wie aus der CF7-Select-Liste, inklusive
+                <code className="font-mono text-xs"> (ID: #260603)</code>.
+                Event wird automatisch angelegt, falls noch nicht vorhanden.
+              </li>
+            </ul>
+            <p className="text-sm mt-2">
+              Außerdem optional: <code className="font-mono text-xs">day-option</code>{" "}
+              (<code className="font-mono text-xs">DAY_1</code>,
+              <code className="font-mono text-xs"> DAY_2</code> oder
+              <code className="font-mono text-xs"> BOTH</code>),
+              <code className="font-mono text-xs"> nachname-vorname</code> als
+              Alias für <code className="font-mono text-xs">participant-name</code>,
+              <code className="font-mono text-xs"> strasse</code>,
+              <code className="font-mono text-xs"> plz</code>,
+              <code className="font-mono text-xs"> ort</code>,
+              <code className="font-mono text-xs"> kostenstelle</code>,
+              <code className="font-mono text-xs"> email-rechnung</code>.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">5. Antworten des Endpunkts</h3>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li><strong>201</strong> – neu angelegt</li>
+              <li><strong>200</strong> + <code className="font-mono text-xs">status: "duplicate"</code> – war bereits vorhanden</li>
+              <li><strong>400</strong> – Pflichtfeld fehlt</li>
+              <li><strong>401</strong> – API-Key falsch oder fehlt</li>
+              <li><strong>422</strong> – Datenfehler (z. B. Event abgesagt oder nicht gefunden)</li>
+            </ul>
+
+            <h3 className="font-semibold text-slate-800 mt-5">6. Manueller Test mit curl</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`curl -X POST https://teilnahme.fb-akademie.de/api/public/anmeldungen \\
+  -H "X-Api-Key: <Key>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "event-id": "<id aus /events/...>",
+    "participant-name": "Mustermann, Max",
+    "participant-email": "max@example.com",
+    "company-name": "Beispiel GmbH"
+  }'`}
+            </pre>
+
+            <h3 className="font-semibold text-slate-800 mt-5">7. Erfolg prüfen</h3>
+            <p className="text-sm">
+              Im Tool unter <strong>Veranstaltungen → Event → Teilnehmer</strong>{" "}
+              taucht die Anmeldung sofort auf. Bei Fehlern hilft der
+              Audit-Verlauf (Admin → Verlauf): die Aktion heißt
+              <code className="font-mono text-xs"> WEBHOOK_ANMELDUNG</code>.
+            </p>
+          </Section>
+        )}
+
+        {isAdmin && (
+          <Section id="embed" title="Anmeldeseite einbetten & stylen">
+            <p>
+              Die öffentliche Anmeldeseite eines Events liegt unter{" "}
+              <code className="font-mono text-xs">/anmeldung/&lt;event-id&gt;</code>{" "}
+              und kann per <code className="font-mono text-xs">&lt;iframe&gt;</code> in
+              WordPress eingebettet werden. Sie nutzt unten dokumentierte
+              CSS-Klassen, die du in deinem WordPress-Theme oder per{" "}
+              <code className="font-mono text-xs">style</code>-Block überschreiben kannst.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-4">Einbettung</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`<iframe
+  src="https://teilnahme.fb-akademie.de/anmeldung/<event-id>"
+  style="width:100%; min-height:1400px; border:0;"
+  loading="lazy"
+  title="Anmeldung"
+></iframe>`}
+            </pre>
+            <p className="text-xs text-slate-500 mt-1">
+              Die Event-ID steht in der URL des Tools unter{" "}
+              <code className="font-mono">/events/&lt;id&gt;</code>.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">CSS-Klassen (Designsystem)</h3>
+            <p className="text-sm">
+              Alle Buttons, Karten, Inputs und Tabellen nutzen ein
+              konsistentes Klassenschema. Im iframe-Kontext überschreibst du
+              sie z. B. so:
+            </p>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`/* Eigene Markenfarbe und Schaltflächen */
+.btn-primary {
+  background: #1e3a8a !important;
+  box-shadow: none !important;
+}
+.btn-primary:hover { filter: brightness(1.05); }
+
+/* Karten an dunkles Theme anpassen */
+.card {
+  background: rgba(20, 20, 20, 0.78) !important;
+  color: #f1f5f9 !important;
+}`}
+            </pre>
+
+            <div className="overflow-x-auto mt-3">
+              <table className="table w-full">
+                <thead>
+                  <tr><th>Klasse</th><th>Element</th><th>Beschreibung</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code className="font-mono text-xs">.btn</code></td><td>alle Buttons</td><td>Basis: Padding, Radius, Übergänge</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-primary</code></td><td>Haupt-Aktion</td><td>Türkiser Gradient mit weißer Schrift</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-secondary</code></td><td>Sekundäre Aktion</td><td>Glas-Look, transparent</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-danger</code></td><td>Destruktive Aktion</td><td>Roter Gradient</td></tr>
+                  <tr><td><code className="font-mono text-xs">.btn-row</code></td><td>Mini-Button in Tabellen</td><td>Glas-Look, kleinere Schrift</td></tr>
+                  <tr><td><code className="font-mono text-xs">.input</code></td><td>Form-Felder</td><td>Glas-Hintergrund, Fokus-Glow</td></tr>
+                  <tr><td><code className="font-mono text-xs">.label</code></td><td>Label über Inputs</td><td>Klein, fett, slate-600</td></tr>
+                  <tr><td><code className="font-mono text-xs">.card</code></td><td>Container</td><td>Glas-Karte mit Backdrop-Blur</td></tr>
+                  <tr><td><code className="font-mono text-xs">.glass / .glass-strong</code></td><td>generische Glas-Flächen</td><td>Direkt einsetzbar</td></tr>
+                  <tr><td><code className="font-mono text-xs">.table</code></td><td>Tabellen</td><td>Header transluzent, Zeilen-Hover</td></tr>
+                  <tr><td><code className="font-mono text-xs">.badge</code></td><td>kleine Status-Pills</td><td>Pille mit Border</td></tr>
+                  <tr><td><code className="font-mono text-xs">.toast-ok / .toast-error / .toast-warn</code></td><td>Hinweis-Banner</td><td>Erfolg / Fehler / Warnung</td></tr>
+                  <tr><td><code className="font-mono text-xs">.topbar</code></td><td>Sticky-Header</td><td>Glas-Top-Bar (nur App-Bereich)</td></tr>
+                  <tr><td><code className="font-mono text-xs">.menu-panel</code></td><td>Dropdowns</td><td>Floating-Glas-Menüs</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h3 className="font-semibold text-slate-800 mt-5">Designtokens (CSS-Variablen)</h3>
+            <p className="text-sm">
+              Lassen sich global überschreiben — am einfachsten direkt auf{" "}
+              <code className="font-mono text-xs">:root</code>:
+            </p>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`:root {
+  --bg-base: #eef2f5;            /* Seitenhintergrund */
+  --glass-bg: rgba(255,255,255,0.62);
+  --glass-bg-strong: rgba(255,255,255,0.78);
+  --text: #0f172a;
+  --text-muted: #475569;
+  --shadow-card: 0 1px 2px rgba(15,23,42,0.04), 0 12px 30px -18px rgba(15,23,42,0.18);
+}`}
+            </pre>
+
+            <h3 className="font-semibold text-slate-800 mt-5">Markenfarbe</h3>
+            <p className="text-sm">
+              Brand-Türkis ist in Tailwind als{" "}
+              <code className="font-mono text-xs">brand-{"{50..900}"}</code> definiert,
+              Standardton <code className="font-mono text-xs">rgb(0, 126, 128)</code>.
+              Verwendet u. a. von <code className="font-mono text-xs">.btn-primary</code>,
+              Fokus-Ring der Inputs, aktive Nav-Pills und der Top-Streifen.
             </p>
           </Section>
         )}

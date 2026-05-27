@@ -6,12 +6,16 @@ import { Logo } from "@/components/Logo";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: { error?: string; ok?: string };
 }) {
   const s = await getSession();
   if (s) redirect("/dashboard");
 
   const errorMsg = errorText(searchParams.error);
+  const okMsg =
+    searchParams.ok === "password-set"
+      ? "Passwort gespeichert. Bitte melden Sie sich jetzt an."
+      : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -21,6 +25,11 @@ export default async function LoginPage({
           <h1 className="text-xl font-semibold text-slate-800">Anmelden</h1>
           <p className="text-sm text-slate-500">Teilnahmemanagement</p>
         </div>
+        {okMsg && (
+          <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">
+            {okMsg}
+          </div>
+        )}
         {errorMsg && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
             {errorMsg}

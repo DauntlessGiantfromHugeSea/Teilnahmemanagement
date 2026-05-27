@@ -138,11 +138,19 @@ export function splitName(raw: string): { firstName: string; lastName: string } 
   return { firstName, lastName };
 }
 
-// Phone bereinigen: Contact Form 7 prefix "(Sicherheitswarnung: ...) +49..." entfernen
+// Phone bereinigen: Contact Form 7 prefix "(Sicherheitswarnung: ... vulnerabilities) +49..." entfernen.
+// Die Warnung enthaelt selbst Klammern, daher matchen wir gezielt auf das
+// Schluesselwort "vulnerabilities)" als Endmarker. Fallback: alles bis zur
+// letzten Klammer abschneiden.
 export function cleanPhone(raw: string): string {
-  const m = raw.match(/Sicherheitswarnung:.*?\)\s*(.*)$/s);
-  const cleaned = (m ? m[1] : raw).trim();
-  return cleaned;
+  if (!raw) return "";
+  if (raw.includes("Sicherheitswarnung")) {
+    const m = raw.match(/vulnerabilities\)\s*([\s\S]*)$/);
+    if (m) return m[1].trim();
+    const last = raw.lastIndexOf(")");
+    if (last >= 0) return raw.slice(last + 1).trim();
+  }
+  return raw.trim();
 }
 
 // Gemeinsame Eingabestruktur für CSV-Zeilen und Webhook-Payloads
@@ -158,6 +166,16 @@ export interface AnmeldungInput {
   billingZipCity?: string;
   billingEmail?: string;
   remarks?: string;
+  // Adresse des Teilnehmers (optional)
+  street?: string;
+  zip?: string;
+  city?: string;
+  costCenter?: string;
+  // Optionale, direkte Event-Zuordnung (Webhook-Komfort fuer einzelne Events).
+  // Wenn gesetzt, hat dies Vorrang vor trainingDate.
+  eventId?: string;       // interne DB-Id
+  externalId?: string;    // "#260603"
+  dayOption?: DayOption;  // erlaubt explizite Tagewahl
 }
 
 export interface CreatedAnmeldung {
@@ -174,35 +192,57 @@ export async function createAnmeldung(
   if (!input.participantEmail || !input.participantName) {
     throw new Error("Name oder E-Mail fehlt");
   }
-  const parsed = parseTrainingDate(input.trainingDate ?? "");
-  if (!parsed.externalId) {
-    throw new Error("Keine Event-ID in training-date erkennbar");
-  }
 
-  let event = await prisma.event.findUnique({ where: { externalId: parsed.externalId } });
-  if (!event) {
-    let training = await prisma.training.findFirst({ where: { title: parsed.trainingTitle } });
-    if (!training) {
-      training = await prisma.training.create({
-        data: { title: parsed.trainingTitle, priceDay1: 0, priceDay2: 0, priceBoth: 0 },
-      });
+  // Event-Aufloesung in 3 Schritten: eventId -> externalId -> trainingDate parsen.
+  let event = null as Awaited<ReturnType<typeof prisma.event.findUnique>>;
+  let derivedDayOption: DayOption = "DAY_1";
+
+  if (input.eventId) {
+    event = await prisma.event.findUnique({ where: { id: input.eventId } });
+    if (!event) throw new Error(`Event mit id="${input.eventId}" nicht gefunden`);
+    if (event.cancelled) throw new Error("Veranstaltung wurde abgesagt");
+    derivedDayOption = event.day2Date ? "BOTH" : "DAY_1";
+  } else if (input.externalId) {
+    const ext = input.externalId.startsWith("#") ? input.externalId : `#${input.externalId}`;
+    event = await prisma.event.findUnique({ where: { externalId: ext } });
+    if (!event) throw new Error(`Event mit external-id="${ext}" nicht gefunden`);
+    if (event.cancelled) throw new Error("Veranstaltung wurde abgesagt");
+    derivedDayOption = event.day2Date ? "BOTH" : "DAY_1";
+  } else {
+    const parsed = parseTrainingDate(input.trainingDate ?? "");
+    if (!parsed.externalId) {
+      throw new Error("Keine Event-ID erkennbar (event-id, external-id oder training-date angeben)");
     }
-    event = await prisma.event.create({
-      data: {
-        externalId: parsed.externalId,
-        trainingId: training.id,
-        title: parsed.eventTitle,
-        format: "PRESENCE",
-        day1Date: parsed.day1Date,
-        day2Date: parsed.day2Date,
-        createdById: ctx.actorId,
-      },
-    });
+    event = await prisma.event.findUnique({ where: { externalId: parsed.externalId } });
+    if (!event) {
+      let training = await prisma.training.findFirst({ where: { title: parsed.trainingTitle } });
+      if (!training) {
+        training = await prisma.training.create({
+          data: { title: parsed.trainingTitle, priceDay1: 0, priceDay2: 0, priceBoth: 0 },
+        });
+      }
+      event = await prisma.event.create({
+        data: {
+          externalId: parsed.externalId,
+          trainingId: training.id,
+          title: parsed.eventTitle,
+          format: "PRESENCE",
+          day1Date: parsed.day1Date,
+          day2Date: parsed.day2Date,
+          createdById: ctx.actorId,
+        },
+      });
+    } else if (event.cancelled) {
+      throw new Error("Veranstaltung wurde abgesagt");
+    }
+    derivedDayOption = deriveDayOption(parsed);
   }
 
   const { firstName, lastName } = splitName(input.participantName);
   const phone = cleanPhone(input.phone ?? "");
-  const dayOption = deriveDayOption(parsed);
+  let dayOption: DayOption = input.dayOption ?? derivedDayOption;
+  // Wenn das Event nur einen Tag hat, ist BOTH/DAY_2 nicht erlaubt.
+  if (!event.day2Date && dayOption !== "DAY_1") dayOption = "DAY_1";
   const emailLc = input.participantEmail.trim().toLowerCase();
   const emailHash = blindIndex(emailLc);
 
@@ -225,6 +265,10 @@ export async function createAnmeldung(
     phone: encryptField(phone || null),
     company: encryptField(input.companyName ?? null),
     notes: encryptField(input.remarks ?? null),
+    street: encryptField(input.street ?? null),
+    zip: encryptField(input.zip ?? null),
+    city: encryptField(input.city ?? null),
+    costCenter: encryptField(input.costCenter ?? null),
     billingCompany: encryptField(input.billingCompany ?? null),
     billingName: encryptField(input.billingName ?? null),
     billingStreet: encryptField(input.billingStreet ?? null),

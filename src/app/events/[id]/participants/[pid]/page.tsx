@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { safeDecrypt } from "@/lib/crypto";
 import { ParticipantForm } from "@/components/ParticipantForm";
+import { DeleteParticipantButton } from "@/components/DeleteParticipantButton";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
 
 export default async function ParticipantDetail({
@@ -43,6 +44,14 @@ export default async function ParticipantDetail({
 
   return (
     <Shell session={s} active="events">
+      <div className="mb-4">
+        <a
+          href={`/events/${p.eventId}`}
+          className="text-sm text-slate-500 hover:text-slate-800 hover:underline"
+        >
+          ← Zurück zur Veranstaltung
+        </a>
+      </div>
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-wide">
@@ -143,12 +152,19 @@ export default async function ParticipantDetail({
                     Diese Anmeldung ist storniert und wird in Anwesenheitslisten und
                     Buchhaltung nicht beruecksichtigt.
                   </p>
-                  <form method="post" action={`/api/participants/${p.id}/cancel`}>
+                  <form method="post" action={`/api/participants/${p.id}/cancel`} className="mb-2">
                     <input type="hidden" name="mode" value="reactivate" />
                     <button className="btn-secondary text-sm w-full">
                       Stornierung rueckgaengig
                     </button>
                   </form>
+                  <DeleteParticipantButton
+                    participantId={p.id}
+                    name={`${dec.firstName} ${dec.lastName}`.trim() || dec.email}
+                  />
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    Endgueltiges Loeschen entfernt alle Daten aus der Datenbank.
+                  </p>
                 </>
               ) : (
                 <>

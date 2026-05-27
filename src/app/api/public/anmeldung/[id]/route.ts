@@ -3,6 +3,8 @@ import { prisma } from "@/lib/db";
 import { encryptField, blindIndex } from "@/lib/crypto";
 import { audit } from "@/lib/audit";
 import { splitName, cleanPhone } from "@/lib/csvImport";
+import { sendMail } from "@/lib/mailer";
+import { confirmationMail, adminNotificationMail } from "@/lib/mailTemplates";
 import type { DayOption, Prisma } from "@prisma/client";
 
 const TURNSTILE_VERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -42,6 +44,12 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     include: { _count: { select: { participants: true } } },
   });
   if (!ev) return new NextResponse("Not found", { status: 404 });
+  if (ev.cancelled) {
+    return new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/anmeldung/${ev.id}?error=cancelled` },
+    });
+  }
 
   const f = await req.formData();
 
@@ -135,6 +143,46 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     participantId: p.id,
     diff: { source: "public-form", eventId: ev.id, dayOption },
   });
+
+  // Mailing - blockiert die Antwort nicht. Fehler werden geloggt.
+  const appName = process.env.APP_NAME ?? "FB-Akademie Teilnahmemanagement";
+  const appUrl = process.env.APP_URL ?? "";
+  const participantName = `${firstName} ${lastName}`.trim() || name;
+  const conf = confirmationMail({
+    event: ev,
+    participantName,
+    participantEmail: email,
+    dayOption,
+    appName,
+    appUrl,
+  });
+  void sendMail({
+    to: email,
+    subject: conf.subject,
+    text: conf.text,
+    html: conf.html,
+  }).catch((e) => console.error("[anmeldung] Bestätigungsmail fehlgeschlagen:", e));
+
+  const adminTo = process.env.MAIL_ADMIN?.trim();
+  if (adminTo) {
+    const note = adminNotificationMail({
+      event: ev,
+      participantName,
+      participantEmail: email,
+      company,
+      dayOption,
+      appUrl,
+      participantId: p.id,
+      eventId: ev.id,
+    });
+    void sendMail({
+      to: adminTo.split(",").map((s) => s.trim()).filter(Boolean),
+      subject: note.subject,
+      text: note.text,
+      html: note.html,
+      replyTo: email,
+    }).catch((e) => console.error("[anmeldung] Admin-Mail fehlgeschlagen:", e));
+  }
 
   return new NextResponse(null, {
     status: 303,
