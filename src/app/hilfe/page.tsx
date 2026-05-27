@@ -39,6 +39,7 @@ export default async function HilfePage() {
             {isAdmin && <li><a href="#admin" className="text-brand-700 hover:underline">Administration</a></li>}
             {isAdmin && <li><a href="#csv" className="text-brand-700 hover:underline">CSV-Import</a></li>}
             {isAdmin && <li><a href="#webhook" className="text-brand-700 hover:underline">WordPress-Webhook</a></li>}
+            {isAdmin && <li><a href="#webhook-newsletter" className="text-brand-700 hover:underline">Newsletter-Webhook (Kontaktformulare)</a></li>}
             {isAdmin && <li><a href="#embed" className="text-brand-700 hover:underline">Anmeldeseite einbetten &amp; stylen</a></li>}
             <li><a href="#pwa" className="text-brand-700 hover:underline">App auf Handy / Desktop installieren</a></li>
             <li><a href="#sicherheit" className="text-brand-700 hover:underline">Sicherheit &amp; Datenschutz</a></li>
@@ -373,6 +374,115 @@ Content-Type:  application/json`}
               taucht die Anmeldung sofort auf. Bei Fehlern hilft der
               Audit-Verlauf (Admin → Verlauf): die Aktion heißt
               <code className="font-mono text-xs"> WEBHOOK_ANMELDUNG</code>.
+            </p>
+          </Section>
+        )}
+
+        {isAdmin && (
+          <Section id="webhook-newsletter" title="Newsletter-Webhook (Kontaktformulare)">
+            <p>
+              Externe Kontakt- oder Newsletter-Formulare (z. B. ein separates
+              CF7-Formular auf der Website) können neue Abonnenten direkt in die
+              Mailing-Kontaktliste schicken. Es wird <strong>immer</strong> ein
+              doppeltes Opt-In (DSGVO) ausgelöst – der Kontakt bekommt also zuerst
+              eine Bestätigungsmail und erscheint erst nach Klick als „Aktiv" unter{" "}
+              <strong>Newsletter</strong>.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-4">1. API-Key</h3>
+            <p>
+              Es gilt <strong>derselbe</strong> Key wie beim Anmelde-Webhook –
+              server-seitig in der <code className="font-mono text-xs">.env</code>
+              {" "}als <code className="font-mono text-xs">WEBHOOK_API_KEY</code>:
+            </p>
+            <div className="mt-2">
+              <CopyableKey value={process.env.WEBHOOK_API_KEY ?? ""} label="WEBHOOK_API_KEY" />
+            </div>
+
+            <h3 className="font-semibold text-slate-800 mt-5">2. Endpunkt</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`POST https://teilnahme.fb-akademie.de/api/public/newsletter
+Header:        X-Api-Key: <Key von oben>
+Content-Type:  application/json`}
+            </pre>
+
+            <h3 className="font-semibold text-slate-800 mt-5">3. CF7 → Webhook konfigurieren</h3>
+            <p className="text-sm">
+              Wie beim Anmelde-Webhook, nur mit der Newsletter-URL und einem
+              schlankeren Body. Im CF7-Formular im Reiter „Webhook":
+            </p>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li><strong>Send to Webhook</strong>: aktivieren</li>
+              <li>
+                <strong>Webhook URL</strong>:
+                <code className="block mt-1 font-mono text-xs bg-slate-100 px-2 py-1 rounded">
+                  https://teilnahme.fb-akademie.de/api/public/newsletter
+                </code>
+              </li>
+              <li><strong>Method</strong>: POST &middot; <strong>Data Type</strong>: JSON</li>
+              <li>
+                <strong>Request Headers</strong>: identisch zum Anmelde-Webhook
+                ({" "}<code className="font-mono text-xs">X-Api-Key</code> mit dem Key oben).
+              </li>
+              <li>
+                <strong>Request Body</strong> (Feld-Mapping):
+                <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto mt-1">
+{`{
+  "email":      "[your-email]",
+  "first-name": "[first-name]",
+  "last-name":  "[last-name]",
+  "company":    "[company]",
+  "tags":       "[tags]",
+  "source":     "website-kontaktformular"
+}`}
+                </pre>
+              </li>
+            </ul>
+
+            <h3 className="font-semibold text-slate-800 mt-5">4. Felder</h3>
+            <p className="text-sm">
+              Pflicht ist nur <strong>email</strong> (Aliase:{" "}
+              <code className="font-mono text-xs">your-email</code>,{" "}
+              <code className="font-mono text-xs">email</code>,{" "}
+              <code className="font-mono text-xs">e-mail</code>,{" "}
+              <code className="font-mono text-xs">mail</code>,{" "}
+              <code className="font-mono text-xs">newsletter-email</code>). Optional:{" "}
+              <code className="font-mono text-xs">first-name</code>/<code className="font-mono text-xs">vorname</code>,{" "}
+              <code className="font-mono text-xs">last-name</code>/<code className="font-mono text-xs">nachname</code>,{" "}
+              <code className="font-mono text-xs">your-name</code>/<code className="font-mono text-xs">name</code> (wird
+              gesplittet),{" "}
+              <code className="font-mono text-xs">company</code>/<code className="font-mono text-xs">firma</code>,{" "}
+              <code className="font-mono text-xs">tags</code> (kommagetrennt) und{" "}
+              <code className="font-mono text-xs">source</code>.
+            </p>
+
+            <h3 className="font-semibold text-slate-800 mt-5">5. Antworten des Endpunkts</h3>
+            <ul className="list-disc ml-5 text-sm space-y-1">
+              <li><strong>201</strong> + <code className="font-mono text-xs">status: "pending"</code> – neu, Bestätigungsmail verschickt</li>
+              <li><strong>201</strong> + <code className="font-mono text-xs">status: "reactivated"</code> – war abgemeldet/ausstehend, neues Opt-In</li>
+              <li><strong>201</strong> + <code className="font-mono text-xs">status: "already_subscribed"</code> – bereits aktiv, keine neue Mail</li>
+              <li><strong>400</strong> – E-Mail fehlt oder ungültig</li>
+              <li><strong>401</strong> – API-Key falsch oder fehlt</li>
+              <li><strong>422</strong> – Verarbeitung fehlgeschlagen</li>
+            </ul>
+
+            <h3 className="font-semibold text-slate-800 mt-5">6. Manueller Test mit curl</h3>
+            <pre className="font-mono text-xs bg-slate-100 px-3 py-2 rounded overflow-x-auto">
+{`curl -X POST https://teilnahme.fb-akademie.de/api/public/newsletter \\
+  -H "X-Api-Key: <Key>" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "email": "interessent@example.com",
+    "first-name": "Erika",
+    "company": "Beispiel GmbH"
+  }'`}
+            </pre>
+
+            <h3 className="font-semibold text-slate-800 mt-5">7. Kontakte einsehen</h3>
+            <p className="text-sm">
+              Neue Kontakte erscheinen unter <strong>Newsletter</strong> (im Header,
+              nur für Admins) mit Status. Ausstehende Opt-Ins stehen auf
+              „Ausstehend", bis der Bestätigungslink geklickt wurde.
             </p>
           </Section>
         )}
