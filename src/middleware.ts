@@ -6,6 +6,7 @@ const PUBLIC = [
   /^\/api\/auth\/.*/,
   /^\/api\/public\/.*/,
   /^\/anmeldung(\/.*)?$/,
+  /^\/newsletter\/(confirm|unsubscribe)(\/.*)?$/,
   /^\/_next\/.*/,
   /^\/favicon\.ico$/,
   /^\/manifest\.webmanifest$/,

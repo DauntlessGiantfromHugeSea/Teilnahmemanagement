@@ -42,6 +42,13 @@ services:
       # Beide leer = Spamschutz nur via Honeypot (akzeptabel fuer Testbetrieb).
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      # SMTP / Mailversand (Newsletter, Double-Opt-In, Test-Mails)
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_SECURE: ${SMTP_SECURE:-true}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
       NODE_ENV: production
       # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
       RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}
