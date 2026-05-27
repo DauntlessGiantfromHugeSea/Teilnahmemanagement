@@ -47,6 +47,25 @@ enum EventFormat {
   WEBINAR   // Online-Webinar
 }
 
+enum NewsletterStatus {
+  PENDING       // Double-Opt-In ausstehend (Bestaetigungsmail verschickt)
+  SUBSCRIBED    // bestaetigt, erhaelt Newsletter
+  UNSUBSCRIBED  // abgemeldet
+  BOUNCED       // Zustellung dauerhaft fehlgeschlagen
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  FAILED
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -203,6 +222,74 @@ model Comment {
   author        User     @relation(fields: [authorId], references: [id])
   body          String   // verschluesselt
   createdAt     DateTime @default(now())
+}
+
+// Newsletter-Abonnent. E-Mail/Name verschluesselt (PII), Lookup ueber emailHash.
+model NewsletterSubscriber {
+  id             String   @id @default(cuid())
+  email          String   // verschluesselt
+  emailHash      String   @unique // HMAC-SHA-256 fuer Dedup/Lookup
+  firstName      String?  // verschluesselt
+  lastName       String?  // verschluesselt
+  company        String?  // verschluesselt
+  status         NewsletterStatus @default(PENDING)
+  source         String   @default("manual") // cf7 | webhook | manual | import | <formname>
+  tags           String?  // JSON-Array von Strings (Segmentierung)
+  // Double-Opt-In / Abmeldung
+  confirmToken     String?  @unique
+  unsubscribeToken String   @unique
+  consentAt        DateTime?  // Zeitpunkt der (Webhook-)Einwilligung
+  confirmedAt      DateTime?  // Zeitpunkt der Double-Opt-In-Bestaetigung
+  unsubscribedAt   DateTime?
+  // DSGVO-Nachweis
+  consentIp        String?
+  consentSource    String?  // Roh-Info zur Herkunft (z.B. Formular-URL)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  emails EmailLog[]
+
+  @@index([status])
+  @@index([emailHash])
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  subject     String
+  bodyHtml    String   // HTML-Inhalt (Platzhalter erlaubt: {{firstName}}, {{unsubscribe}})
+  bodyText    String?  // optionaler Text-Fallback
+  status      CampaignStatus @default(DRAFT)
+  // Segmentierung: leeres tagFilter = an alle SUBSCRIBED
+  tagFilter   String?  // JSON-Array von Tags (mind. einer muss matchen)
+  createdById String?
+  sentAt      DateTime?
+  recipientCount Int   @default(0)
+  sentCount      Int   @default(0)
+  failedCount    Int   @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  emails EmailLog[]
+
+  @@index([status])
+}
+
+model EmailLog {
+  id           String   @id @default(cuid())
+  toHash       String   // emailHash des Empfaengers (kein Klartext)
+  subject      String
+  kind         String   // TRANSACTIONAL | OPTIN | CAMPAIGN
+  status       EmailStatus
+  error        String?
+  campaignId   String?
+  campaign     Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  subscriberId String?
+  subscriber   NewsletterSubscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([campaignId])
+  @@index([toHash])
+  @@index([createdAt])
 }
 
 model AuditLog {

@@ -1,36 +1,43 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
-// Stabiles SMTP-Setup mit Connection-Pool und Retry-Logik.
+// Stabiles SMTP-Setup mit Connection-Pool, Retry-Logik und List-Unsubscribe.
 //
 // Konfiguration ueber Environment-Variablen:
 //   SMTP_HOST           z.B. w020deb9.kasserver.com
 //   SMTP_PORT           465 (SSL) oder 587 (STARTTLS) - Default: 465
-//   SMTP_SECURE         "true" fuer SSL (Port 465), "false" fuer STARTTLS (587).
-//                       Wird automatisch aus Port abgeleitet, wenn nicht gesetzt.
-//   SMTP_USER           Postfach-Username (z.B. m07f3b68 oder noreply@domain.tld)
+//   SMTP_SECURE         "true" fuer SSL (465), "false" fuer STARTTLS (587).
+//                       Wird aus dem Port abgeleitet, wenn nicht gesetzt.
+//   SMTP_USER           Postfach-Username
 //   SMTP_PASS           Postfach-Passwort
-//   MAIL_FROM           Absender, z.B. "FB-Akademie <noreply@fluessigbodenakademie.de>"
-//   MAIL_ADMIN          Optionale Empfaengeradresse fuer Admin-Benachrichtigungen
-//                       (kommagetrennte Liste erlaubt)
+//   MAIL_FROM           Absender (Fallback: SMTP_FROM fuer Abwaertskompat.)
 //   MAIL_REPLY_TO       Optionaler Reply-To-Header
+//   MAIL_ADMIN          Optionale Empfaengeradresse fuer Admin-Benachrichtigungen
 //
-// Komplett ohne SMTP-Konfiguration werden alle Mails uebersprungen und nur
-// geloggt. Damit bleibt die App auch ohne Mailing voll funktionsfaehig.
+// Ohne SMTP-Konfiguration werden Mails uebersprungen und nur geloggt - die App
+// bleibt damit auch ohne Mailing voll funktionsfaehig.
 
 export interface MailOptions {
   to: string | string[];
   subject: string;
-  text: string;
+  text?: string;
   html?: string;
   replyTo?: string;
   bcc?: string | string[];
+  listUnsubscribe?: string; // URL oder <mailto:>; setzt List-Unsubscribe Header
 }
+
+// Abwaertskompatibler Alias fuer aelteren Newsletter-Code.
+export type SendMailInput = MailOptions;
 
 export interface SendResult {
   ok: boolean;
   skipped?: boolean;
   messageId?: string;
   error?: string;
+}
+
+function mailFrom(): string | undefined {
+  return process.env.MAIL_FROM ?? process.env.SMTP_FROM ?? undefined;
 }
 
 let cachedTransporter: Transporter | null = null;
@@ -51,9 +58,12 @@ export function isMailingConfigured(): boolean {
     process.env.SMTP_HOST &&
       process.env.SMTP_USER &&
       process.env.SMTP_PASS &&
-      process.env.MAIL_FROM
+      mailFrom()
   );
 }
+
+// Alias fuer aelteren Newsletter-Code.
+export const mailerConfigured = isMailingConfigured;
 
 function getTransporter(): Transporter | null {
   if (!isMailingConfigured()) return null;
@@ -79,6 +89,9 @@ function getTransporter(): Transporter | null {
     connectionTimeout: 15_000,
     greetingTimeout: 10_000,
     socketTimeout: 30_000,
+    // Sanftes Rate-Limit fuer Newsletter-Versand (viele Mails nacheinander).
+    rateDelta: 1000,
+    rateLimit: 8,
   });
   cachedConfigKey = key;
   return cachedTransporter;
@@ -100,7 +113,7 @@ const RETRYABLE_ERRORS = new Set([
 function isRetryable(err: any): boolean {
   if (!err) return false;
   if (RETRYABLE_ERRORS.has(err.code)) return true;
-  // SMTP 4xx = vorübergehend, 5xx = endgültig
+  // SMTP 4xx = voruebergehend, 5xx = endgueltig
   if (typeof err.responseCode === "number" && err.responseCode >= 400 && err.responseCode < 500) {
     return true;
   }
@@ -108,9 +121,9 @@ function isRetryable(err: any): boolean {
 }
 
 /**
- * Versendet eine E-Mail. Schlägt nie hart fehl - gibt stattdessen
- * { ok:false, error } zurück, damit Aufrufer den eigentlichen Vorgang
- * (z. B. Anmeldung) auch ohne erfolgreiche Mail abschließen können.
+ * Versendet eine E-Mail. Schlaegt nie hart fehl - gibt stattdessen
+ * { ok:false, error } bzw. { ok:false, skipped:true } zurueck, damit Aufrufer
+ * den eigentlichen Vorgang (z. B. Anmeldung) auch ohne Mail abschliessen koennen.
  */
 export async function sendMail(opts: MailOptions): Promise<SendResult> {
   const transporter = getTransporter();
@@ -122,17 +135,22 @@ export async function sendMail(opts: MailOptions): Promise<SendResult> {
     return { ok: false, skipped: true };
   }
 
-  const from = process.env.MAIL_FROM!;
   const replyTo = opts.replyTo ?? process.env.MAIL_REPLY_TO ?? undefined;
+  const headers: Record<string, string> = {};
+  if (opts.listUnsubscribe) {
+    headers["List-Unsubscribe"] = `<${opts.listUnsubscribe}>`;
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  }
 
   const message = {
-    from,
+    from: mailFrom(),
     to: opts.to,
     subject: opts.subject,
-    text: opts.text,
+    text: opts.text ?? (opts.html ? htmlToText(opts.html) : undefined),
     html: opts.html,
     replyTo,
     bcc: opts.bcc,
+    headers,
   };
 
   const delays = [0, 2_000, 5_000]; // 3 Versuche
@@ -157,11 +175,25 @@ export async function sendMail(opts: MailOptions): Promise<SendResult> {
 }
 
 /**
- * Prüft die SMTP-Konfiguration durch einen Verbindungs- und Auth-Test.
+ * Prueft die SMTP-Konfiguration durch einen Verbindungs- und Auth-Test.
  * Wirft eine Exception bei Fehlern.
  */
 export async function verifyMailer(): Promise<void> {
   const t = getTransporter();
   if (!t) throw new Error("SMTP nicht konfiguriert (SMTP_HOST / SMTP_USER / SMTP_PASS / MAIL_FROM fehlen)");
   await t.verify();
+}
+
+export function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }

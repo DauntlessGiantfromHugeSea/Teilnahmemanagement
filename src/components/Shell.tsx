@@ -18,6 +18,7 @@ const PRIMARY = [
 
 const ADMIN = [
   { id: "users", href: "/admin/users", label: "Benutzer" },
+  { id: "newsletter", href: "/admin/newsletter", label: "Newsletter" },
   { id: "media", href: "/admin/media", label: "Media-Library" },
   { id: "audit", href: "/admin/audit", label: "Verlauf" },
   { id: "import", href: "/admin/import", label: "Import (CSV)" },
