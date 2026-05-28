@@ -227,6 +227,12 @@ export default async function EventDetail({ params }: { params: { id: string } }
               >
                 Anmeldeseite öffnen
               </a>
+              <a
+                href={`/events/${ev.id}/mail`}
+                className="btn-secondary text-xs whitespace-nowrap"
+              >
+                Mail an Teilnehmer
+              </a>
             </div>
           </div>
         </section>
