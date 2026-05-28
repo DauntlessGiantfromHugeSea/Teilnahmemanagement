@@ -117,6 +117,23 @@ export default async function ParticipantDetail({
             </section>
           )}
 
+          {[dec.billingCompany, dec.billingName, dec.billingStreet, dec.billingZipCity, dec.billingEmail].some(Boolean) && (
+            <section className="card p-6">
+              <h2 className="font-semibold mb-4">Rechnungsdaten</h2>
+              <dl className="grid grid-cols-2 gap-3 text-sm">
+                <Row label="Firma (Rechnung)" value={dec.billingCompany} />
+                <Row label="Empfänger" value={dec.billingName} />
+                <Row label="Straße" value={dec.billingStreet} />
+                <Row label="PLZ / Ort" value={dec.billingZipCity} />
+                <Row label="E-Mail (Rechnung)" value={dec.billingEmail} />
+              </dl>
+              <p className="text-[11px] text-slate-400 mt-3">
+                Aus dem Anmeldeformular übernommen. Bearbeitung folgt in einer
+                späteren Version.
+              </p>
+            </section>
+          )}
+
           <section className="card p-6">
             <h2 className="font-semibold mb-4">Kommentare</h2>
             {canWrite && (
