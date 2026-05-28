@@ -1,4 +1,4 @@
-const LOGO = "https://fb-akademie.de/wp-content/uploads/2025/01/LogoFBAblue.png";
+const LOGO = "https://fluessigbodenakademie.de/wp-content/uploads/2025/01/LogoFBAblue.png";
 
 export function brandWrap(innerHtml: string, opts?: { unsubscribeUrl?: string }): string {
   const year = new Date().getFullYear();

@@ -2,7 +2,7 @@
 export function Logo({ className = "h-10 w-auto" }: { className?: string }) {
   return (
     <img
-      src="https://fb-akademie.de/wp-content/uploads/2025/01/LogoFBAblue.png"
+      src="https://fluessigbodenakademie.de/wp-content/uploads/2025/01/LogoFBAblue.png"
       alt="FB-Akademie"
       className={className}
     />
