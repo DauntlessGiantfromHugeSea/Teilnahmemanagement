@@ -1,4 +1,4 @@
-const LOGO = "https://fb-akademie.de/wp-content/uploads/2025/01/LogoFBAblue.png";
+const LOGO = `${(process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "")}/logo-fba.png`;
 
 export function brandWrap(innerHtml: string, opts?: { unsubscribeUrl?: string }): string {
   const year = new Date().getFullYear();
