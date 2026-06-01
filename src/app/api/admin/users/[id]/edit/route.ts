@@ -5,6 +5,10 @@ import { isAdmin } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { Role } from "@prisma/client";
 
+function redirectTo(path: string) {
+  return new NextResponse(null, { status: 303, headers: { Location: path } });
+}
+
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s || !isAdmin(s)) return new NextResponse("Forbidden", { status: 403 });
@@ -19,36 +23,25 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const before = await prisma.user.findUnique({ where: { id: params.id } });
   if (!before) return new NextResponse("Not found", { status: 404 });
 
+  const editPath = `/admin/users/${params.id}/edit`;
+
   if (!name) {
-    return NextResponse.redirect(
-      new URL(`/admin/users/${params.id}/edit?error=${encodeURIComponent("Name darf nicht leer sein.")}`, req.url),
-      303
-    );
+    return redirectTo(`${editPath}?error=${encodeURIComponent("Name darf nicht leer sein.")}`);
   }
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-    return NextResponse.redirect(
-      new URL(`/admin/users/${params.id}/edit?error=${encodeURIComponent("Ungültige E-Mail-Adresse.")}`, req.url),
-      303
-    );
+    return redirectTo(`${editPath}?error=${encodeURIComponent("Ungültige E-Mail-Adresse.")}`);
   }
   if (!Object.values(Role).includes(role)) {
-    return NextResponse.redirect(
-      new URL(`/admin/users/${params.id}/edit?error=${encodeURIComponent("Ungültige Rolle.")}`, req.url),
-      303
-    );
+    return redirectTo(`${editPath}?error=${encodeURIComponent("Ungültige Rolle.")}`);
   }
 
   if (email !== before.email) {
     const dupe = await prisma.user.findUnique({ where: { email } });
     if (dupe && dupe.id !== before.id) {
-      return NextResponse.redirect(
-        new URL(`/admin/users/${params.id}/edit?error=${encodeURIComponent("E-Mail bereits vergeben.")}`, req.url),
-        303
-      );
+      return redirectTo(`${editPath}?error=${encodeURIComponent("E-Mail bereits vergeben.")}`);
     }
   }
 
-  // Eigenes Konto: weder Rolle herabstufen noch deaktivieren
   let finalRole = role;
   let finalActive = active;
   if (params.id === s.uid) {
@@ -79,8 +72,5 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
   }
 
-  return NextResponse.redirect(
-    new URL(`/admin/users/${params.id}/edit?ok=${encodeURIComponent("Gespeichert.")}`, req.url),
-    303
-  );
+  return redirectTo(`${editPath}?ok=${encodeURIComponent("Gespeichert.")}`);
 }
