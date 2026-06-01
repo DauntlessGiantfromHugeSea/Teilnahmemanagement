@@ -1,10 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
-import { UserRowActions } from "@/components/UserRowActions";
 
 export const dynamic = "force-dynamic";
 
@@ -69,22 +69,7 @@ export default async function UsersPage({
                       <div className="text-xs text-slate-500 font-mono">{u.email}</div>
                     </td>
                     <td>
-                      <form
-                        method="post"
-                        action={`/api/admin/users/${u.id}/role`}
-                        className="flex gap-1.5 items-center"
-                      >
-                        <select name="role" defaultValue={u.role} className="input py-1.5 text-xs w-auto">
-                          {Object.values(Role).map((r) => (
-                            <option key={r} value={r}>
-                              {r}
-                            </option>
-                          ))}
-                        </select>
-                        <button className="btn-row" title="Rolle speichern">
-                          Setzen
-                        </button>
-                      </form>
+                      <span className="badge bg-slate-100 text-slate-700">{u.role}</span>
                     </td>
                     <td>
                       {u.totpEnabled || u.emailCodeEnabled ? (
@@ -110,13 +95,9 @@ export default async function UsersPage({
                       )}
                     </td>
                     <td className="text-right">
-                      <UserRowActions
-                        userId={u.id}
-                        email={u.email}
-                        active={u.active}
-                        totpRequired={u.totpRequired}
-                        canDelete={u.id !== s.uid}
-                      />
+                      <Link href={`/admin/users/${u.id}/edit`} className="btn-row">
+                        Bearbeiten
+                      </Link>
                     </td>
                   </tr>
                 ))}

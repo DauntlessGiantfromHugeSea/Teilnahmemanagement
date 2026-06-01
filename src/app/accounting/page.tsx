@@ -50,6 +50,95 @@ export default async function AccountingPage({
         </div>
       </div>
 
+      {/* Excel-Export: Mehrere Veranstaltungen auswaehlen */}
+      <details className="card p-4 mb-4">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-700 flex items-center justify-between">
+          <span>Excel exportieren</span>
+          <span className="text-xs text-slate-500 font-normal">
+            Veranstaltungen auswählen und als .xlsx herunterladen
+          </span>
+        </summary>
+        <form method="post" action="/api/accounting/export" className="mt-4 space-y-3">
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <button
+              type="button"
+              className="text-brand-700 hover:underline"
+              onClick={undefined}
+              data-action="check-all"
+            >
+              alle wählen
+            </button>
+            <button
+              type="button"
+              className="text-slate-500 hover:underline"
+              data-action="check-none"
+            >
+              keine
+            </button>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2 max-h-80 overflow-auto pr-1">
+            {events.map((e) => {
+              const dates = [e.day1Date, e.day2Date]
+                .filter(Boolean)
+                .map((d) => d!.toLocaleDateString("de-DE"))
+                .join(" / ");
+              return (
+                <label
+                  key={e.id}
+                  className="flex items-start gap-3 p-3 rounded-lg border-2 border-slate-200 hover:border-brand-300 hover:bg-brand-50/30 cursor-pointer transition"
+                >
+                  <input
+                    type="checkbox"
+                    name="eventIds"
+                    value={e.id}
+                    defaultChecked={eventId === e.id}
+                    className="mt-1 h-5 w-5 accent-brand-600 export-evt"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm truncate">{e.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{dates || "ohne Datum"}</div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <button className="btn-primary text-sm" type="submit">
+              Excel herunterladen
+            </button>
+            <button
+              className="btn-secondary text-sm"
+              type="submit"
+              name="eventIds"
+              value="ALL"
+              formNoValidate
+            >
+              Alle exportieren
+            </button>
+            <span className="text-xs text-slate-500">
+              Die Datei enthält je Veranstaltung ein Tabellenblatt sowie ein Übersichtsblatt.
+            </span>
+          </div>
+        </form>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){
+              var root=document.currentScript.parentElement;
+              if(!root) return;
+              root.addEventListener('click',function(e){
+                var t=e.target;
+                if(!(t instanceof HTMLElement)) return;
+                var a=t.getAttribute('data-action');
+                if(!a) return;
+                e.preventDefault();
+                var boxes=root.querySelectorAll('input.export-evt');
+                boxes.forEach(function(b){ b.checked = (a==='check-all'); });
+              });
+            })();`,
+          }}
+        />
+      </details>
+
       <form method="get" className="card p-3 mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
         <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide shrink-0">
           Filter
