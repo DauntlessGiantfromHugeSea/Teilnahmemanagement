@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { Role } from "@prisma/client";
+import { ConfirmForm } from "@/components/ConfirmForm";
 
 export const dynamic = "force-dynamic";
 
@@ -251,12 +252,9 @@ export default async function EditUserPage({
           </form>
 
           {has2fa && (
-            <form
-              method="post"
+            <ConfirmForm
               action={`/api/admin/users/${u.id}/reset2fa`}
-              onSubmit={(e) => {
-                if (!confirm("2FA für diesen Nutzer zurücksetzen?")) e.preventDefault();
-              }}
+              message="2FA für diesen Nutzer zurücksetzen?"
               className="block"
             >
               <button className="w-full flex items-start gap-3 p-4 rounded-lg border-2 border-slate-200 hover:border-amber-300 hover:bg-amber-50/30 transition text-left">
@@ -268,16 +266,13 @@ export default async function EditUserPage({
                 </div>
                 <span className="text-slate-400">⚠</span>
               </button>
-            </form>
+            </ConfirmForm>
           )}
 
           {!isSelf && (
-            <form
-              method="post"
+            <ConfirmForm
               action={`/api/admin/users/${u.id}/delete`}
-              onSubmit={(e) => {
-                if (!confirm(`Nutzer ${u.email} endgültig löschen?`)) e.preventDefault();
-              }}
+              message={`Nutzer ${u.email} endgültig löschen?`}
               className="block"
             >
               <button className="w-full flex items-start gap-3 p-4 rounded-lg border-2 border-rose-200 hover:border-rose-400 hover:bg-rose-50/40 transition text-left">
@@ -289,7 +284,7 @@ export default async function EditUserPage({
                 </div>
                 <span className="text-rose-400">✕</span>
               </button>
-            </form>
+            </ConfirmForm>
           )}
         </div>
       </section>
