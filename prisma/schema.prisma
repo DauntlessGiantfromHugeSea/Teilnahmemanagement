@@ -94,6 +94,7 @@ model User {
   comments      Comment[]
   auditEntries  AuditLog[]
   createdEvents Event[]   @relation("EventCreatedBy")
+  createdCerts  Certificate[] @relation("CertCreatedBy")
 }
 
 model Training {
@@ -109,6 +110,9 @@ model Training {
   updatedAt   DateTime @updatedAt
 
   events      Event[]
+
+  // Defaults fuer die Zertifikatserstellung (JSON, siehe lib/certificates.ts)
+  certDefaults String?
 }
 
 model Event {
@@ -209,9 +213,60 @@ model Participant {
 
   comments     Comment[]
   history      AuditLog[]
+  certificates Certificate[]
 
   @@index([emailHash])
   @@index([eventId])
+}
+
+enum CertificateType {
+  ZERTIFIKAT          // mit Kompetenzfeldern (bestanden)
+  TEILNAHMEBESCHEINIGUNG
+}
+
+enum CertificateStatus {
+  DRAFT       // erzeugt, noch nicht freigegeben (nicht gueltig)
+  RELEASED    // freigegeben, oeffentlich abrufbar, verschickbar
+  REVOKED     // widerrufen
+}
+
+model Certificate {
+  id            String   @id @default(cuid())
+  // menschenlesbare Nummer (z.B. 26-TN-LM-26/230) - eindeutig
+  number        String   @unique
+  // URL-sicherer Slug fuer /zertifikat/<slug> (Nummer mit / -> -)
+  slug          String   @unique
+
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  type          CertificateType
+  status        CertificateStatus @default(DRAFT)
+
+  // Snapshot der Daten zum Zeitpunkt der Erstellung (entkoppelt vom Event)
+  data          String   // JSON: { firstName, lastName, company, eventTitle, eventDate, location, ... }
+
+  // PDF-Hash fuer Integritaetscheck (optional)
+  pdfHash       String?
+
+  // Wenn vom Tool generiert: NULL. Wenn importiert: Pfad zum hochgeladenen Original.
+  importedPath  String?
+
+  issuedAt      DateTime?
+  releasedAt    DateTime?
+  revokedAt     DateTime?
+  revokeReason  String?
+
+  sentAt        DateTime?
+  sentTo        String?
+
+  createdById   String
+  createdBy     User     @relation("CertCreatedBy", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([participantId])
+  @@index([status])
 }
 
 model Comment {

@@ -7,6 +7,8 @@ const PUBLIC = [
   /^\/api\/auth\/.*/,
   /^\/api\/public\/.*/,
   /^\/anmeldung(\/.*)?$/,
+  /^\/zertifikat\/.+$/,
+  /^\/api\/zertifikat\/.+$/,
   /^\/set-password(\/.*)?$/,
   /^\/newsletter\/(confirm|unsubscribe)(\/.*)?$/,
   /^\/_next\/.*/,
