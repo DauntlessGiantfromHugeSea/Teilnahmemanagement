@@ -14,6 +14,7 @@ const PRIMARY = [
   { id: "dashboard", href: "/dashboard", label: "Dashboard", roles: ["ADMIN", "EDITOR", "ACCOUNTING", "VIEWER"] },
   { id: "events", href: "/events", label: "Veranstaltungen", roles: ["ADMIN", "EDITOR", "ACCOUNTING", "VIEWER"] },
   { id: "accounting", href: "/accounting", label: "Buchhaltung", roles: ["ADMIN", "ACCOUNTING"] },
+  { id: "exports", href: "/exports/participants", label: "Export", roles: ["ADMIN", "EDITOR", "ACCOUNTING"] },
   { id: "newsletter", href: "/admin/newsletter", label: "Newsletter", roles: ["ADMIN"] },
 ];
 
