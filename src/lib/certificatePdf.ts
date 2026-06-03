@@ -194,8 +194,8 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, draw
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
     size: 11, leading: 16, spaceAfter: 48,
   });
-  drawText(ctx, t.geschaeftsfuehrer, { size: 11, font: "bold" });
-  drawText(ctx, t.geschaeftsfuehrerRole, { size: 10, color: COLOR_MUTED });
+  drawText(ctx, t.geschaeftsfuehrer, { size: 11 });
+  drawText(ctx, t.geschaeftsfuehrerRole, { size: 10 });
 }
 
 function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string, drawTitle: boolean) {
@@ -224,6 +224,6 @@ function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string, drawT
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
     size: 11, leading: 16, spaceAfter: 48,
   });
-  drawText(ctx, t.geschaeftsfuehrer, { size: 11, font: "bold" });
-  drawText(ctx, t.geschaeftsfuehrerRole, { size: 10, color: COLOR_MUTED });
+  drawText(ctx, t.geschaeftsfuehrer, { size: 11 });
+  drawText(ctx, t.geschaeftsfuehrerRole, { size: 10 });
 }
