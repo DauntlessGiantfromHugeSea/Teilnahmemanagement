@@ -88,21 +88,36 @@ export default async function EventCertificatesPage({
 
       {/* Bulk-Aktionen */}
       {canWrite && (
-        <div className="card p-4 mb-5 flex flex-wrap items-center gap-3">
-          <a
-            href={`/api/events/${ev.id}/certificates/print`}
-            className="btn-secondary text-sm"
-          >
-            Alle freigegebenen drucken (PDF)
-          </a>
-          <form method="post" action={`/api/events/${ev.id}/certificates/send-batch`}>
-            <button className="btn-primary text-sm">
-              Alle freigegebenen versenden
-            </button>
-          </form>
-          <span className="text-xs text-slate-500">
-            Versendet nur Zertifikate mit Status „freigegeben" und noch nicht verschickt.
-          </span>
+        <div className="card p-4 mb-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={`/api/events/${ev.id}/certificates/print`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Alle für den Druck (PDF)
+            </a>
+            <span className="text-xs text-slate-500">
+              Enthält Entwürfe und freigegebene — zum Ausdrucken, Unterschreiben und Stempeln vor dem Event.
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={`/api/events/${ev.id}/certificates/print?released=1`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Nur freigegebene drucken
+            </a>
+            <form method="post" action={`/api/events/${ev.id}/certificates/send-batch`}>
+              <button className="btn-primary text-sm">
+                Alle freigegebenen per Mail versenden
+              </button>
+            </form>
+            <span className="text-xs text-slate-500">
+              Mail-Versand nur auf deinen Klick; bereits versendete werden übersprungen.
+            </span>
+          </div>
         </div>
       )}
 
