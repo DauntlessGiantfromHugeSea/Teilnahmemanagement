@@ -80,39 +80,64 @@ export async function saveCertTexts(t: Partial<CertTexts>): Promise<void> {
   textsCache = null;
 }
 
-// --- Globaler fortlaufender Sequenzzaehler ---
-const KEY_SEQ = "certSeq";
+// --- Fortlaufende Sequenzzaehler PRO TYP ---
+//
+// Z-Zertifikate und Teilnahmebescheinigungen verwenden unterschiedliche
+// Nummernformate und damit separate Counter. Bestehend ausgestellte Nummern
+// werden niemals neu vergeben - der Counter springt beim Bootstrap auf das
+// Maximum der bereits in der DB vorhandenen Nummern dieses Typs.
 
-export async function nextSequence(): Promise<number> {
-  const row = await prisma.appSetting.findUnique({ where: { key: KEY_SEQ } });
-  let current = 0;
+const SEQ_KEY: Record<"ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG", string> = {
+  ZERTIFIKAT: "certSeqZ",
+  TEILNAHMEBESCHEINIGUNG: "certSeqTN",
+};
+
+async function bootstrapFromDb(type: "ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG"): Promise<number> {
+  const all = await prisma.certificate.findMany({
+    where: { type },
+    select: { number: true },
+  });
+  let max = -1;
+  for (const c of all) {
+    const m = c.number.match(/\/(\d+)$/);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+  }
+  return max; // -1 wenn nichts vorhanden
+}
+
+export async function nextSequence(type: "ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG"): Promise<number> {
+  const key = SEQ_KEY[type];
+  const row = await prisma.appSetting.findUnique({ where: { key } });
+  let current: number;
   if (row) {
     const n = parseInt(row.value, 10);
-    if (Number.isFinite(n)) current = n;
+    current = Number.isFinite(n) ? n : await bootstrapFromDb(type);
   } else {
-    // Bootstrap: Maximum aus bestehenden Zertifikatsnummern lesen.
-    const all = await prisma.certificate.findMany({ select: { number: true } });
-    for (const c of all) {
-      const m = c.number.match(/\/(\d+)$/);
-      if (m) {
-        const n = parseInt(m[1], 10);
-        if (Number.isFinite(n) && n > current) current = n;
-      }
-    }
+    current = await bootstrapFromDb(type);
   }
   const next = current + 1;
   await prisma.appSetting.upsert({
-    where: { key: KEY_SEQ },
-    create: { key: KEY_SEQ, value: String(next) },
+    where: { key },
+    create: { key, value: String(next) },
     update: { value: String(next) },
   });
   return next;
 }
 
-export async function setNextSequence(n: number): Promise<void> {
-  await prisma.appSetting.upsert({
-    where: { key: KEY_SEQ },
-    create: { key: KEY_SEQ, value: String(Math.max(0, n - 1)) },
-    update: { value: String(Math.max(0, n - 1)) },
-  });
+// Hebt den Counter auf mindestens 'minValue' an (idempotent), damit nach einem
+// Import keine alten Nummern noch einmal vergeben werden.
+export async function bumpSequenceTo(type: "ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG", minValue: number): Promise<void> {
+  const key = SEQ_KEY[type];
+  const row = await prisma.appSetting.findUnique({ where: { key } });
+  const current = row ? parseInt(row.value, 10) : -1;
+  if (!Number.isFinite(current) || current < minValue) {
+    await prisma.appSetting.upsert({
+      where: { key },
+      create: { key, value: String(minValue) },
+      update: { value: String(minValue) },
+    });
+  }
 }

@@ -92,15 +92,17 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
   };
 }
 
-// Globaler fortlaufender Counter ueber AppSetting.
+// Fortlaufende Nummer pro Typ aus AppSetting.
 export async function nextCertificateNumber(args: {
   year: number;
+  type: CertificateType;
   firstName: string;
   lastName: string;
 }): Promise<string> {
-  const seq = await nextSequence();
+  const seq = await nextSequence(args.type);
   return buildCertificateNumber({
     year: args.year,
+    type: args.type,
     firstName: args.firstName,
     lastName: args.lastName,
     sequence: seq,
@@ -124,6 +126,7 @@ export async function createCertificateDraft(args: {
   const year = new Date().getFullYear();
   const number = await nextCertificateNumber({
     year,
+    type: args.type,
     firstName: dec.firstName ?? "",
     lastName: dec.lastName ?? "",
   });

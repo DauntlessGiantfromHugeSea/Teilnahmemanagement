@@ -16,19 +16,23 @@ export default async function ZertifikateImportPage({
   if (!isAdmin(s)) redirect("/dashboard");
 
   const total = await prisma.certificate.count();
+  const zTotal = await prisma.certificate.count({ where: { type: "ZERTIFIKAT" } });
+  const tnTotal = await prisma.certificate.count({ where: { type: "TEILNAHMEBESCHEINIGUNG" } });
 
   return (
     <Shell session={s} active="zertifikate">
       <h1 className="text-2xl font-semibold mb-1">Historische Zertifikate importieren</h1>
       <p className="text-sm text-slate-500 mb-4 max-w-3xl">
-        Lädt die bestehende Excel (Zertifikate_FBA_V.xx.xlsm) ein und legt für jede Zeile
-        einen Zertifikats-Eintrag mit Status „freigegeben" an. Dubletten (gleiche Nummer
-        wie bereits vorhanden) werden übersprungen. Importierte Zertifikate haben keinen
-        verknüpften Teilnehmer-Datensatz, sind aber über die Validierungs-URL aufrufbar.
+        Lädt die aufbereiteten CSVs ein. Zeilen mit gesetzter Zertifikatsnummer werden 1:1
+        übernommen — bereits ausgestellte Nummern bleiben unverändert. Zeilen ohne Nummer
+        bekommen automatisch die nächste freie Nummer im korrekten Format
+        (Z: <code>JJ-INI-FBA/NNN</code>, TN: <code>JJ-TN-INI-JJ/NNN</code>).
+        Dubletten werden übersprungen.
       </p>
 
       <div className="card p-4 mb-4 text-sm">
-        Aktuell in der Datenbank: <strong>{total}</strong> Zertifikate.
+        Aktuell in der Datenbank: <strong>{total}</strong> Einträge — davon{" "}
+        <strong>{zTotal}</strong> Zertifikate und <strong>{tnTotal}</strong> Teilnahmebescheinigungen.
       </div>
 
       {searchParams.ok && <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>}
@@ -38,15 +42,29 @@ export default async function ZertifikateImportPage({
         method="post"
         action="/api/admin/zertifikate/import"
         encType="multipart/form-data"
-        className="card p-4 space-y-3 max-w-xl"
+        className="card p-4 space-y-4 max-w-2xl"
       >
         <div>
-          <label className="label">Excel-Datei (.xlsm / .xlsx)</label>
-          <input type="file" name="file" accept=".xlsm,.xlsx" required className="input" />
+          <label className="label">Zertifikate-CSV (optional)</label>
+          <input type="file" name="zertifikate" accept=".csv,text/csv" className="input" />
+          <p className="text-xs text-slate-500 mt-1">
+            Spalten: <code>ID; Zertifikatsnummer; Ausgestellt_am; Gueltig_bis; Nachname; Vorname;
+            Aussteller; Schulungsort; Schulungsleiter; Datum_Schulung; Kompetenzfeld; Kopffeld;
+            Bestaetigungstext; Bewertungstext</code>
+          </p>
+        </div>
+        <div>
+          <label className="label">Teilnahmebescheinigungen-CSV (optional)</label>
+          <input type="file" name="teilnahme" accept=".csv,text/csv" className="input" />
+          <p className="text-xs text-slate-500 mt-1">
+            Spalten: <code>ID; Zertifikatsnummer; Ausgestellt_am; Nachname; Vorname; Firma;
+            Datum_Schulung; Schulungsort; Schulungsleiter; Praesenz_Online; Titel</code>
+          </p>
         </div>
         <button className="btn-primary">Importieren</button>
         <p className="text-xs text-slate-500">
-          Bei 1000+ Zeilen kann der Import 30–60 Sekunden dauern. Lass das Browser-Tab in der Zwischenzeit offen.
+          UTF-8, Semikolon oder Komma als Trennzeichen. Bei 1000+ Zeilen kann der Import
+          30–60 Sekunden dauern.
         </p>
       </form>
     </Shell>

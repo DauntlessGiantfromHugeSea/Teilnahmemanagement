@@ -153,14 +153,18 @@ export interface CertificateData {
   bodyText?: string;
 }
 
-// Erzeugt eine Zertifikatsnummer im Format JJ-INI-FBA/NNN.
-// Beispiel: 24-TC-FBA/991
-//   - JJ:  zweistelliges Jahr der Ausstellung
-//   - INI: Initialen Nachname+Vorname (z.B. "TC" fuer Tanner Claudio)
-//   - FBA: fester Aussteller-Code
-//   - NNN: global fortlaufender Zaehler ueber alle Zertifikate und Bescheinigungen
+// Erzeugt eine Zertifikatsnummer.
+//
+// Format pro Typ:
+//   ZERTIFIKAT:             JJ-{INI}-FBA/NNN          z.B. 24-SC-FBA/991
+//   TEILNAHMEBESCHEINIGUNG: JJ-TN-{INI}-JJ/NNN        z.B. 24-TN-SA-24/0
+//
+//   - JJ:  zweistelliges Jahr (beim TN doppelt: ausgestellt + intern)
+//   - INI: Initialen Nachname+Vorname (z.B. "SC" fuer Schicke Corinna)
+//   - NNN: fortlaufender Zaehler pro Typ
 export function buildCertificateNumber(args: {
   year: number;
+  type: CertificateType;
   firstName: string;
   lastName: string;
   sequence: number;
@@ -171,7 +175,10 @@ export function buildCertificateNumber(args: {
   const ln = stripDiacritics(args.lastName).charAt(0).toUpperCase() || "X";
   const fn = stripDiacritics(args.firstName).charAt(0).toUpperCase() || "X";
   const ini = `${ln}${fn}`;
-  const seq = String(args.sequence).padStart(3, "0");
+  const seq = String(args.sequence);
+  if (args.type === "TEILNAHMEBESCHEINIGUNG") {
+    return `${yy}-TN-${ini}-${yy}/${seq}`;
+  }
   return `${yy}-${ini}-FBA/${seq}`;
 }
 
