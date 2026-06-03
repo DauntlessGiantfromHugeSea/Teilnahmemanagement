@@ -49,10 +49,10 @@ export default async function ZertifikatValidierungsPage({
             <dl className="space-y-3 text-sm">
               <Row label="Nummer">{cert.number}</Row>
               <Row label="Teilnehmer/in">{data.firstName} {data.lastName}</Row>
-              {data.company && <Row label="Firma">{data.company}</Row>}
               <Row label="Schulung">{data.eventTitle}</Row>
               <Row label="Datum">{data.eventDateShort}</Row>
-              <Row label="Aussteller">{data.aussteller}</Row>
+              {data.kompetenzfeld && <Row label="Kompetenzfeld">{data.kompetenzfeld.label}</Row>}
+              {data.validUntilShort && <Row label="Gültig bis">{data.validUntilShort}</Row>}
               {cert.releasedAt && (
                 <Row label="Freigegeben am">
                   {new Date(cert.releasedAt).toLocaleDateString("de-DE")}

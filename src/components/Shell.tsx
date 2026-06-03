@@ -24,7 +24,7 @@ const ADMIN = [
   { id: "audit", href: "/admin/audit", label: "Verlauf" },
   { id: "import", href: "/admin/import", label: "Import (CSV)" },
   { id: "settings", href: "/admin/settings", label: "Einstellungen" },
-  { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Kompetenzfelder" },
+  { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
 ];
 
 export function Shell({ session, active, children }: Props) {

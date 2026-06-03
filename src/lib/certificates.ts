@@ -9,9 +9,15 @@ import {
   type CertificateType,
   type CertificateData,
 } from "./certificateContent";
-import { resolveKompetenzfelder } from "./kompetenzfelder";
+import { resolveKompetenzfelder, getCertTexts, nextSequence } from "./kompetenzfelder";
 import type { Participant, Event, Training } from "@prisma/client";
 
+function fmtDateShort(d: Date | null | undefined): string {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("de-DE", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  });
+}
 function fmtDateLong(d: Date | null | undefined): string {
   if (!d) return "";
   return new Date(d).toLocaleDateString("de-DE", {
@@ -39,91 +45,74 @@ function fmtEventDateLine(ev: { day1Date: Date | null; day2Date: Date | null; st
   return `${datePart}${timePart}`;
 }
 
-function fmtEventDateShort(ev: { day1Date: Date | null; day2Date: Date | null }): string {
-  return fmtDateLong(ev.day1Date);
-}
-
 export interface BuildCertificateDataArgs {
   participant: Participant;
   event: Event & { training: Training };
   type: CertificateType;
-  kompetenzfeldIds?: string[]; // nur fuer ZERTIFIKAT
+  kompetenzfeldId?: string; // EIN Kompetenzfeld pro Zertifikat
   issuedAt?: Date;
 }
 
 export async function buildCertificateData(args: BuildCertificateDataArgs): Promise<CertificateData> {
   const dec = decryptParticipant(args.participant);
   const defaults = parseDefaults(args.event.training.certDefaults);
+  const texts = await getCertTexts();
   const issued = args.issuedAt ?? new Date();
+  const validUntil = new Date(issued);
+  validUntil.setMonth(validUntil.getMonth() + (texts.validityMonths ?? 24));
+
   const eventDateLine = fmtEventDateLine(args.event);
-  const eventDateShort = fmtEventDateShort(args.event);
+  const eventDateShort = fmtDateShort(args.event.day1Date);
   const location = args.event.format === "WEBINAR"
     ? "Online-Webinar"
     : (args.event.location ?? "Leipzig");
 
-  const kompetenzfelder =
-    args.type === "ZERTIFIKAT" && args.kompetenzfeldIds && args.kompetenzfeldIds.length > 0
-      ? await resolveKompetenzfelder(args.kompetenzfeldIds)
-      : undefined;
+  let kompetenzfeld: CertificateData["kompetenzfeld"] = undefined;
+  if (args.type === "ZERTIFIKAT" && args.kompetenzfeldId) {
+    const resolved = await resolveKompetenzfelder([args.kompetenzfeldId]);
+    if (resolved[0]) kompetenzfeld = resolved[0];
+  }
 
   return {
     firstName: dec.firstName ?? "",
     lastName: dec.lastName ?? "",
-    company: dec.company ?? undefined,
     eventTitle: args.event.title,
     trainingTitle: args.event.training.title,
     eventDateLine,
     eventDateShort,
     location,
-    schulungsleiter: defaults.schulungsleiter ?? "Wolf-Hagen Stolzenburg",
-    geschaeftsfuehrer: defaults.geschaeftsfuehrer ?? "Wolf-Hagen Stolzenburg",
-    aussteller: defaults.aussteller ?? "Flüssigboden Akademie, Leipzig",
-    ueLine: defaults.ueLine,
-    kompetenzfelder,
+    texts,
+    issuedDateShort: fmtDateShort(issued),
+    validUntilShort: fmtDateShort(validUntil),
+    kompetenzfeld,
     bodyText:
       args.type === "TEILNAHMEBESCHEINIGUNG"
         ? (args.event.certTnBody?.trim() || defaults.tnBody)
         : undefined,
-    issuedDateLine: `Leipzig, am ${fmtDateLong(issued)}`,
   };
 }
 
-// Naechste fortlaufende Nummer pro Jahr+Typ
+// Globaler fortlaufender Counter ueber AppSetting.
 export async function nextCertificateNumber(args: {
   year: number;
-  type: CertificateType;
   firstName: string;
   lastName: string;
 }): Promise<string> {
-  const yy = String(args.year % 100).padStart(2, "0");
-  const typ = args.type === "ZERTIFIKAT" ? "Z" : "T";
-  // Prefix bis vor /NNN: "TC24-" oder "Z24-"  -- damit zaehlen wir pro Jahr+Typ
-  const prefix = `${typ}${yy}-`;
-  const last = await prisma.certificate.findFirst({
-    where: { number: { startsWith: prefix } },
-    orderBy: { createdAt: "desc" },
-  });
-  let nextSeq = 1;
-  if (last) {
-    const m = last.number.match(/\/(\d+)$/);
-    if (m) nextSeq = parseInt(m[1], 10) + 1;
-  }
+  const seq = await nextSequence();
   return buildCertificateNumber({
     year: args.year,
-    type: args.type,
     firstName: args.firstName,
     lastName: args.lastName,
-    sequence: nextSeq,
+    sequence: seq,
   });
 }
 
-// Legt einen DRAFT-Datensatz fuer einen Teilnehmer an. Idempotent pro (participant,type)?
-// Nein - wir erlauben mehrere Zertifikate pro Teilnehmer (z.B. ein TN + ein Z).
+// Legt einen DRAFT-Datensatz fuer einen Teilnehmer an.
 export async function createCertificateDraft(args: {
   participantId: string;
   type: CertificateType;
   createdById: string;
-  kompetenzfeldIds?: string[];
+  kompetenzfeldId?: string;
 }): Promise<{ id: string; number: string; slug: string }> {
   const participant = await prisma.participant.findUnique({
     where: { id: args.participantId },
@@ -131,11 +120,10 @@ export async function createCertificateDraft(args: {
   });
   if (!participant) throw new Error("Teilnehmer nicht gefunden.");
 
-  const year = (participant.event.day1Date ?? new Date()).getFullYear();
   const dec = decryptParticipant(participant);
+  const year = new Date().getFullYear();
   const number = await nextCertificateNumber({
     year,
-    type: args.type,
     firstName: dec.firstName ?? "",
     lastName: dec.lastName ?? "",
   });
@@ -145,7 +133,7 @@ export async function createCertificateDraft(args: {
     participant,
     event: participant.event,
     type: args.type,
-    kompetenzfeldIds: args.kompetenzfeldIds,
+    kompetenzfeldId: args.kompetenzfeldId,
   });
 
   const cert = await prisma.certificate.create({

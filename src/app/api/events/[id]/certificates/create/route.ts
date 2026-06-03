@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           participantId,
           type,
           createdById: s.uid,
-          kompetenzfeldIds: [k],
+          kompetenzfeldId: k,
         });
         created.push(res.number);
       }

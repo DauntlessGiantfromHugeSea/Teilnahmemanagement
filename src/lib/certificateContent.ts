@@ -69,11 +69,40 @@ export const KOMPETENZFELDER: { id: string; label: string; text: string }[] = [
   },
 ];
 
-export const NORM_LINE =
-  "Nach den Anforderungen der Werksnorm WN 23.0.2 und der RegNorm – Guide für Verfüllbaustoffe – nationales Register zur Veröffentlichung von Normen VSS 2023-08";
+// Bearbeitbare Standardtexte fuer Zertifikate (ueber /admin/zertifikat-texte).
+export interface CertTexts {
+  title: string;                  // "Zertifikat"
+  subtitle: string;               // "RSS Flüssigboden®"
+  normLine: string;               // 2-zeilige Norm-Linie (vor Eigenüberwachung)
+  bewertungLine: string;          // Bewertung-Footer
+  validityLine: string;           // "Dieses Zertifikat ist gültig bis zum {validUntil}"
+  validityMonths: number;         // Gueltigkeitsdauer in Monaten (default 24)
+  herrnFrauLabel: string;         // "Herrn/Frau"
+  leipzigDateLabel: string;       // "Leipzig, den {issuedAt}"
+  geschaeftsfuehrer: string;      // "Wolf-Hagen Stolzenburg"
+  geschaeftsfuehrerRole: string;  // "Geschäftsführer"
+  // Welche Kompetenzfelder bekommen die Norm-Linie (IDs)
+  normLineForIds: string[];
+  // TN-Bescheinigung
+  tnTitle: string;                // "Teilnahmebescheinigung"
+}
 
-export const BEWERTUNG_LINE =
-  "Die Bewertung erfolgte durch die Flüssigboden Akademie UG in Zusammenarbeit mit der Forschungsinstitut für Flüssigboden GmbH in ihrer Eigenschaft als Verfahrensentwicklerin, Rezepturentwicklerin und Fachplanerin.";
+export const DEFAULT_CERT_TEXTS: CertTexts = {
+  title: "Zertifikat",
+  subtitle: "RSS Flüssigboden®",
+  normLine:
+    "Nach den Anforderungen der Technischen Richtlinie Flüssigboden 25.0.2 und der RegNorm – Guide für Verfüllbaustoffe – nationales Register zur Veröffentlichung von Normen VSS 2023-08",
+  bewertungLine:
+    "Die Bewertung erfolgte durch die Flüssigboden Akademie UG in Zusammenarbeit mit der Forschungsinstitut für Flüssigboden GmbH in ihrer Eigenschaft als Verfahrensentwicklerin, Rezepturentwicklerin und Fachplanerin.",
+  validityLine: "Dieses Zertifikat ist gültig bis zum {validUntil}",
+  validityMonths: 24,
+  herrnFrauLabel: "Herrn/Frau",
+  leipzigDateLabel: "Leipzig, den {issuedAt}",
+  geschaeftsfuehrer: "Wolf-Hagen Stolzenburg",
+  geschaeftsfuehrerRole: "Geschäftsführer",
+  normLineForIds: ["VIII"],
+  tnTitle: "Teilnahmebescheinigung",
+};
 
 // Default-Inhalt fuer Teilnahmebescheinigungen. Pro Training via certDefaults
 // ueberschreibbar.
@@ -108,47 +137,42 @@ export function parseDefaults(raw: string | null | undefined): TrainingCertDefau
 export interface CertificateData {
   firstName: string;
   lastName: string;
-  company?: string;
   eventTitle: string;
   trainingTitle: string;
   eventDateLine: string;       // z.B. "18. März 2026, von 08:00 – 17:00 Uhr"
-  eventDateShort: string;      // z.B. "18. März 2026"
-  location: string;            // z.B. "Leipzig" oder "Online-Webinar"
-  schulungsleiter: string;
-  geschaeftsfuehrer: string;
-  aussteller: string;
-  ueLine?: string;
-  // Zertifikat:
-  kompetenzfelder?: { id: string; label: string; text: string }[];
+  eventDateShort: string;      // z.B. "18.03.2026"
+  location: string;
+  // Texte zum Zeitpunkt der Erstellung (eingefroren)
+  texts: CertTexts;
+  // Ausstellung / Gueltigkeit
+  issuedDateShort: string;     // "07.11.2024"
+  validUntilShort: string;     // "07.11.2026"
+  // Zertifikat: EIN Kompetenzfeld pro PDF
+  kompetenzfeld?: { id: string; label: string; text: string };
   // Teilnahmebescheinigung:
   bodyText?: string;
-  // Datum der Ausstellung
-  issuedDateLine: string;      // z.B. "Leipzig, am 18. März 2026"
 }
 
-// Erzeugt die naechste Zertifikatsnummer im Format TYPJJ-INI-FBA-JJ/NNN.
-// Beispiel: T24-LM-FBA-24/991
-//   - TYP: "Z" (Zertifikat) oder "T" (Teilnahmebescheinigung)
-//   - JJ:  zweistelliges Jahr (an TYP gehängt und nochmal vor NNN)
-//   - INI: Initialen Nachname+Vorname (z.B. "LM")
-//   - FBA: festes Aussteller-Kürzel
-//   - NNN: fortlaufend pro Jahr+Typ (min. 3-stellig)
+// Erzeugt eine Zertifikatsnummer im Format JJ-INI-FBA/NNN.
+// Beispiel: 24-TC-FBA/991
+//   - JJ:  zweistelliges Jahr der Ausstellung
+//   - INI: Initialen Nachname+Vorname (z.B. "TC" fuer Tanner Claudio)
+//   - FBA: fester Aussteller-Code
+//   - NNN: global fortlaufender Zaehler ueber alle Zertifikate und Bescheinigungen
 export function buildCertificateNumber(args: {
   year: number;
-  type: CertificateType;
   firstName: string;
   lastName: string;
   sequence: number;
 }): string {
   const yy = String(args.year % 100).padStart(2, "0");
-  const typ = args.type === "ZERTIFIKAT" ? "Z" : "T";
   const stripDiacritics = (s: string) =>
     s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^A-Za-z]/g, "");
   const ln = stripDiacritics(args.lastName).charAt(0).toUpperCase() || "X";
   const fn = stripDiacritics(args.firstName).charAt(0).toUpperCase() || "X";
   const ini = `${ln}${fn}`;
   const seq = String(args.sequence).padStart(3, "0");
-  return `${typ}${yy}-${ini}-FBA-${yy}/${seq}`;
+  return `${yy}-${ini}-FBA/${seq}`;
 }
 
 export function numberToSlug(num: string): string {
