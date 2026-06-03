@@ -6,10 +6,10 @@ import {
   buildCertificateNumber,
   numberToSlug,
   parseDefaults,
-  KOMPETENZFELDER,
   type CertificateType,
   type CertificateData,
 } from "./certificateContent";
+import { resolveKompetenzfelder } from "./kompetenzfelder";
 import type { Participant, Event, Training } from "@prisma/client";
 
 function fmtDateLong(d: Date | null | undefined): string {
@@ -20,9 +20,21 @@ function fmtDateLong(d: Date | null | undefined): string {
 }
 
 function fmtEventDateLine(ev: { day1Date: Date | null; day2Date: Date | null; startTime: string | null; endTime: string | null }): string {
-  const d1 = fmtDateLong(ev.day1Date);
-  const d2 = fmtDateLong(ev.day2Date);
-  const datePart = d2 ? `${d1} bis ${d2}` : d1;
+  const d1 = ev.day1Date ? new Date(ev.day1Date) : null;
+  const d2 = ev.day2Date ? new Date(ev.day2Date) : null;
+  let datePart = "";
+  if (d1 && d2) {
+    const sameMonth = d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth();
+    if (sameMonth) {
+      const day1 = d1.toLocaleDateString("de-DE", { day: "2-digit" });
+      const rest = d2.toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+      datePart = `${day1}.–${rest}`;
+    } else {
+      datePart = `${fmtDateLong(d1)} – ${fmtDateLong(d2)}`;
+    }
+  } else if (d1) {
+    datePart = fmtDateLong(d1);
+  }
   const timePart = ev.startTime && ev.endTime ? `, von ${ev.startTime} – ${ev.endTime} Uhr` : "";
   return `${datePart}${timePart}`;
 }
@@ -39,7 +51,7 @@ export interface BuildCertificateDataArgs {
   issuedAt?: Date;
 }
 
-export function buildCertificateData(args: BuildCertificateDataArgs): CertificateData {
+export async function buildCertificateData(args: BuildCertificateDataArgs): Promise<CertificateData> {
   const dec = decryptParticipant(args.participant);
   const defaults = parseDefaults(args.event.training.certDefaults);
   const issued = args.issuedAt ?? new Date();
@@ -51,7 +63,7 @@ export function buildCertificateData(args: BuildCertificateDataArgs): Certificat
 
   const kompetenzfelder =
     args.type === "ZERTIFIKAT" && args.kompetenzfeldIds && args.kompetenzfeldIds.length > 0
-      ? KOMPETENZFELDER.filter((k) => args.kompetenzfeldIds!.includes(k.id))
+      ? await resolveKompetenzfelder(args.kompetenzfeldIds)
       : undefined;
 
   return {
@@ -68,7 +80,10 @@ export function buildCertificateData(args: BuildCertificateDataArgs): Certificat
     aussteller: defaults.aussteller ?? "Flüssigboden Akademie, Leipzig",
     ueLine: defaults.ueLine,
     kompetenzfelder,
-    bodyText: args.type === "TEILNAHMEBESCHEINIGUNG" ? defaults.tnBody : undefined,
+    bodyText:
+      args.type === "TEILNAHMEBESCHEINIGUNG"
+        ? (args.event.certTnBody?.trim() || defaults.tnBody)
+        : undefined,
     issuedDateLine: `Leipzig, am ${fmtDateLong(issued)}`,
   };
 }
@@ -126,7 +141,7 @@ export async function createCertificateDraft(args: {
   });
   const slug = numberToSlug(number);
 
-  const data = buildCertificateData({
+  const data = await buildCertificateData({
     participant,
     event: participant.event,
     type: args.type,

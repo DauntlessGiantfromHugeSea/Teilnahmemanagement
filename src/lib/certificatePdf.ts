@@ -84,17 +84,18 @@ function drawParagraph(ctx: DrawCtx, text: string, opts?: {
 }
 
 function drawIdFooter(page: PDFPage, font: PDFFont, certNumber: string, validateUrl: string) {
-  // Klein unten links - getrennt vom Brandbalken oben
+  // Ueber dem vorhandenen Adress-Footer der Hintergrund-PDF platzieren
+  // (Adresse beginnt bei ca. y=80). Wir bleiben oberhalb mit Sicherheitsabstand.
   page.drawText(`Nr. ${certNumber}`, {
     x: TEXT_LEFT,
-    y: 28,
+    y: 130,
     size: 7,
     font,
     color: COLOR_MUTED,
   });
   page.drawText(`Validierung: ${validateUrl}`, {
     x: TEXT_LEFT,
-    y: 18,
+    y: 120,
     size: 7,
     font,
     color: COLOR_MUTED,
@@ -134,12 +135,7 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
 
   // Anrede
   drawParagraph(ctx, "Hiermit wird bescheinigt, dass", { align: "center", size: 11, spaceAfter: 6 });
-  drawParagraph(ctx, `${d.firstName} ${d.lastName}`, { align: "center", size: 18, bold: true, spaceAfter: 4 });
-  if (d.company) {
-    drawParagraph(ctx, d.company, { align: "center", size: 11, color: COLOR_MUTED, spaceAfter: 12 });
-  } else {
-    ctx.y -= 8;
-  }
+  drawParagraph(ctx, `${d.firstName} ${d.lastName}`, { align: "center", size: 18, bold: true, spaceAfter: 14 });
 
   drawParagraph(
     ctx,
@@ -176,12 +172,7 @@ function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
   drawParagraph(ctx, `Nr. ${number}`, { align: "center", size: 10, color: COLOR_MUTED, spaceAfter: 16 });
 
   drawParagraph(ctx, "Hiermit wird bescheinigt, dass", { align: "center", size: 11, spaceAfter: 6 });
-  drawParagraph(ctx, `${d.firstName} ${d.lastName}`, { align: "center", size: 18, bold: true, spaceAfter: 4 });
-  if (d.company) {
-    drawParagraph(ctx, d.company, { align: "center", size: 11, color: COLOR_MUTED, spaceAfter: 12 });
-  } else {
-    ctx.y -= 8;
-  }
+  drawParagraph(ctx, `${d.firstName} ${d.lastName}`, { align: "center", size: 18, bold: true, spaceAfter: 14 });
 
   drawParagraph(
     ctx,
@@ -190,7 +181,11 @@ function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
   );
 
   if (d.bodyText) {
-    drawParagraph(ctx, d.bodyText, { size: 10, leading: 14, spaceAfter: 12 });
+    const paras = d.bodyText.split(/\n\s*\n/);
+    for (const p of paras) {
+      drawParagraph(ctx, p.replace(/\s*\n\s*/g, " ").trim(), { size: 10, leading: 14, spaceAfter: 8 });
+    }
+    ctx.y -= 4;
   }
 
   drawSignature(ctx, d);

@@ -2,10 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canViewEvent, canWriteEvent } from "@/lib/rbac";
+import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
-import { KOMPETENZFELDER, parseDefaults } from "@/lib/certificateContent";
+import { parseDefaults } from "@/lib/certificateContent";
+import { getKompetenzfelder } from "@/lib/kompetenzfelder";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function EventCertificatesPage({
   if (!s) redirect("/login");
   if (!(await canViewEvent(s, params.id))) redirect("/events");
   const canWrite = await canWriteEvent(s, params.id);
+  const admin = isAdmin(s);
 
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
@@ -42,6 +44,7 @@ export default async function EventCertificatesPage({
 
   const defaults = parseDefaults(ev.training.certDefaults);
   const defaultK = new Set(defaults.defaultKompetenzfelder ?? []);
+  const kompetenzfelder = await getKompetenzfelder();
 
   const allCerts = participants.flatMap((p) => p.certificates);
   const draftCount = allCerts.filter((c) => c.status === "DRAFT").length;
@@ -115,7 +118,6 @@ export default async function EventCertificatesPage({
           <tbody>
             {participants.map((p) => {
               const tn = p.certificates.find((c) => c.type === "TEILNAHMEBESCHEINIGUNG");
-              const z = p.certificates.find((c) => c.type === "ZERTIFIKAT");
               return (
                 <tr key={p.id} className="align-top">
                   <td className="py-3">
@@ -130,7 +132,7 @@ export default async function EventCertificatesPage({
                       <span className="text-xs text-slate-400 italic">noch keine</span>
                     )}
                     {p.certificates.map((c) => (
-                      <CertRow key={c.id} cert={c} canWrite={canWrite} />
+                      <CertRow key={c.id} cert={c} canWrite={canWrite} isAdmin={admin} />
                     ))}
                   </td>
                   {canWrite && (
@@ -144,10 +146,9 @@ export default async function EventCertificatesPage({
                           </button>
                         </form>
                       )}
-                      {!z && (
-                        <details className="text-left">
+                      <details className="text-left">
                           <summary className="text-xs text-brand-700 hover:underline cursor-pointer list-none text-right">
-                            + Zertifikat (Kompetenzfelder wählen)
+                            + Zertifikat(e) (Kompetenzfelder wählen)
                           </summary>
                           <form
                             method="post"
@@ -160,7 +161,7 @@ export default async function EventCertificatesPage({
                               Welche Kompetenzfelder bestätigen?
                             </div>
                             <div className="space-y-1 max-h-72 overflow-auto pr-1">
-                              {KOMPETENZFELDER.map((k) => (
+                              {kompetenzfelder.map((k) => (
                                 <label key={k.id} className="flex items-start gap-2 text-xs cursor-pointer">
                                   <input
                                     type="checkbox"
@@ -174,11 +175,13 @@ export default async function EventCertificatesPage({
                               ))}
                             </div>
                             <button className="btn-primary text-xs px-3 py-1.5 w-full">
-                              Zertifikat anlegen
+                              Zertifikat(e) anlegen
                             </button>
+                            <p className="text-[10px] text-slate-500 mt-1">
+                              Pro ausgewähltem Kompetenzfeld wird ein eigenes Zertifikat (eigene Nummer, eigene PDF) angelegt.
+                            </p>
                           </form>
                         </details>
-                      )}
                     </td>
                   )}
                 </tr>
@@ -201,9 +204,11 @@ export default async function EventCertificatesPage({
 function CertRow({
   cert,
   canWrite,
+  isAdmin,
 }: {
   cert: { id: string; number: string; slug: string; type: "ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG"; status: "DRAFT" | "RELEASED" | "REVOKED"; sentAt: Date | null; sentTo: string | null };
   canWrite: boolean;
+  isAdmin: boolean;
 }) {
   const typeLabel = cert.type === "ZERTIFIKAT" ? "Zertifikat" : "Teilnahmebescheinigung";
   const badge =
@@ -245,6 +250,11 @@ function CertRow({
       {canWrite && cert.status === "DRAFT" && (
         <form method="post" action={`/api/certificates/${cert.id}/delete`} className="inline">
           <button className="text-slate-500 hover:text-rose-700 hover:underline">löschen</button>
+        </form>
+      )}
+      {isAdmin && cert.status === "REVOKED" && (
+        <form method="post" action={`/api/certificates/${cert.id}/delete`} className="inline">
+          <button className="text-rose-700 hover:underline">endgültig löschen</button>
         </form>
       )}
     </div>

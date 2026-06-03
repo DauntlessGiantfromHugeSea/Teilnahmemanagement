@@ -421,6 +421,30 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
         </div>
       </section>
 
+      {/* Teilnahmebescheinigung */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-slate-800">Teilnahmebescheinigung</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Optionaler Fließtext, der auf der Teilnahmebescheinigung dieser Veranstaltung erscheint
+            (zwischen Schulungs-Zeile und Unterschrift). Wenn leer, wird der Standardtext aus der Schulung verwendet.
+          </p>
+        </div>
+        <div>
+          <label className="label">Beschreibungstext</label>
+          <textarea
+            name="certTnBody"
+            rows={8}
+            defaultValue={event?.certTnBody ?? ""}
+            placeholder={"Die Fortbildung vermittelte vertiefte Kenntnisse zu …\n\nSchwerpunkte waren …"}
+            className="input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Absätze durch Leerzeile trennen. Wird auf jeder neu erstellten Teilnahmebescheinigung dieses Events übernommen.
+          </p>
+        </div>
+      </section>
+
       {/* 6. Kapazität & Notizen */}
       <section className="space-y-4">
         <div>

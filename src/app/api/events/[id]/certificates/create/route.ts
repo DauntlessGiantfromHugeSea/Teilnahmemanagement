@@ -23,13 +23,36 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
 
   try {
-    const res = await createCertificateDraft({
-      participantId,
-      type,
-      createdById: s.uid,
-      kompetenzfeldIds: type === "ZERTIFIKAT" ? kompetenz : undefined,
-    });
-    return back(params.id, { ok: `${type === "ZERTIFIKAT" ? "Zertifikat" : "Teilnahmebescheinigung"} ${res.number} angelegt.` });
+    if (type === "ZERTIFIKAT") {
+      const ids = kompetenz.filter(Boolean);
+      if (ids.length === 0) {
+        return back(params.id, { error: "Bitte mindestens ein Kompetenzfeld auswählen." });
+      }
+      // Pro Kompetenzfeld ein eigenes Zertifikat anlegen.
+      const created: string[] = [];
+      for (const k of ids) {
+        const res = await createCertificateDraft({
+          participantId,
+          type,
+          createdById: s.uid,
+          kompetenzfeldIds: [k],
+        });
+        created.push(res.number);
+      }
+      return back(params.id, {
+        ok:
+          created.length === 1
+            ? `Zertifikat ${created[0]} angelegt.`
+            : `${created.length} Zertifikate angelegt (je Kompetenzfeld).`,
+      });
+    } else {
+      const res = await createCertificateDraft({
+        participantId,
+        type,
+        createdById: s.uid,
+      });
+      return back(params.id, { ok: `Teilnahmebescheinigung ${res.number} angelegt.` });
+    }
   } catch (e: any) {
     return back(params.id, { error: e?.message ?? "Fehler beim Anlegen." });
   }

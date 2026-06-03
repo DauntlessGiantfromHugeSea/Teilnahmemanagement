@@ -143,6 +143,9 @@ model Event {
   heroImageUrl    String?   // Bild oben auf der Anmeldeseite (https-URL)
   logoUrl         String?   // optional ein eigenes Logo pro Event
   pageBlocks      String?   // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
+  // Optionaler Override fuer den Fliesstext der Teilnahmebescheinigung dieses Events.
+  // Wenn leer, wird Training.certDefaults.tnBody verwendet.
+  certTnBody      String?   // Plaintext, Absaetze durch Leerzeile
   // Status
   cancelled   Boolean     @default(false)
   // Interne Notizen (verschluesselt)
@@ -228,6 +231,15 @@ enum CertificateStatus {
   DRAFT       // erzeugt, noch nicht freigegeben (nicht gueltig)
   RELEASED    // freigegeben, oeffentlich abrufbar, verschickbar
   REVOKED     // widerrufen
+}
+
+// Globale Konfiguration als simpler Key/Value-Store (JSON-Werte).
+// Wird z.B. fuer die Kompetenzfeld-Texte verwendet, damit diese ohne Deploy
+// angepasst werden koennen.
+model AppSetting {
+  key       String   @id
+  value     String   // JSON
+  updatedAt DateTime @updatedAt
 }
 
 model Certificate {
