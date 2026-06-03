@@ -16,6 +16,12 @@ import nodemailer, { type Transporter } from "nodemailer";
 // Ohne SMTP-Konfiguration werden Mails uebersprungen und nur geloggt - die App
 // bleibt damit auch ohne Mailing voll funktionsfaehig.
 
+export interface MailAttachment {
+  filename: string;
+  content: Buffer | Uint8Array;
+  contentType?: string;
+}
+
 export interface MailOptions {
   to: string | string[];
   subject: string;
@@ -24,6 +30,7 @@ export interface MailOptions {
   replyTo?: string;
   bcc?: string | string[];
   listUnsubscribe?: string; // URL oder <mailto:>; setzt List-Unsubscribe Header
+  attachments?: MailAttachment[];
 }
 
 // Abwaertskompatibler Alias fuer aelteren Newsletter-Code.
@@ -151,6 +158,11 @@ export async function sendMail(opts: MailOptions): Promise<SendResult> {
     replyTo,
     bcc: opts.bcc,
     headers,
+    attachments: opts.attachments?.map((a) => ({
+      filename: a.filename,
+      content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content),
+      contentType: a.contentType,
+    })),
   };
 
   const delays = [0, 2_000, 5_000]; // 3 Versuche

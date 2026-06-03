@@ -7,7 +7,11 @@ import { EXPORT_FIELDS, DEFAULT_FIELDS } from "@/lib/exportFields";
 
 export const dynamic = "force-dynamic";
 
-export default async function ParticipantsExportPage() {
+export default async function ParticipantsExportPage({
+  searchParams,
+}: {
+  searchParams: { ok?: string; error?: string };
+}) {
   const s = await getSession();
   if (!s) redirect("/login");
   if (!(isAdmin(s) || isAccounting(s) || s.role === "EDITOR")) redirect("/dashboard");
@@ -31,6 +35,13 @@ export default async function ParticipantsExportPage() {
           Veranstaltungen und Felder wählen, dann als .xlsx herunterladen.
         </p>
       </div>
+
+      {searchParams.ok && (
+        <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>
+      )}
+      {searchParams.error && (
+        <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>
+      )}
 
       <form method="post" action="/api/exports/participants" className="space-y-6">
         {/* Veranstaltungen */}
@@ -150,12 +161,62 @@ export default async function ParticipantsExportPage() {
           </div>
         </section>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-slate-500">
-            Die Datei wird im Browser heruntergeladen.
-          </span>
+        {/* Aktion: Download oder Mail */}
+        <section className="card p-5">
+          <h2 className="font-semibold mb-3">Aktion</h2>
+          <div className="space-y-2">
+            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/60">
+              <input type="radio" name="mode" value="download" defaultChecked className="mt-1 h-4 w-4 accent-brand-600 mode-radio" data-mode="download" />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-sm">Herunterladen</div>
+                <div className="text-xs text-slate-600 mt-0.5">Excel-Datei im Browser speichern.</div>
+              </div>
+            </label>
+            <label className="flex items-start gap-3 p-3 rounded-lg border-2 border-slate-200 hover:bg-slate-50 cursor-pointer transition has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50/60">
+              <input type="radio" name="mode" value="email" className="mt-1 h-4 w-4 accent-brand-600 mode-radio" data-mode="email" />
+              <div className="min-w-0 flex-1 w-full">
+                <div className="font-semibold text-sm">Per E-Mail versenden</div>
+                <div className="text-xs text-slate-600 mt-0.5">
+                  Excel direkt aus dem Tool als Anhang verschicken. Antworten gehen an deine Adresse ({s.email}).
+                </div>
+                <div className="mt-3 space-y-3 email-fields hidden">
+                  <div>
+                    <label className="label">Empfänger</label>
+                    <input
+                      type="text"
+                      name="to"
+                      placeholder="empfaenger@example.com, weitere@example.com"
+                      className="input text-sm font-mono"
+                    />
+                    <p className="text-xs text-slate-500 mt-1">Mehrere Adressen mit Komma oder Semikolon trennen.</p>
+                  </div>
+                  <div>
+                    <label className="label">Betreff (optional)</label>
+                    <input
+                      type="text"
+                      name="subject"
+                      placeholder="Teilnehmerliste"
+                      className="input text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Nachricht (optional)</label>
+                    <textarea
+                      name="message"
+                      rows={4}
+                      placeholder="Anbei die Teilnehmerliste …"
+                      className="input text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <div className="flex items-center justify-end gap-3">
           <button className="btn-primary" type="submit">
-            Excel herunterladen
+            Ausführen
           </button>
         </div>
 
@@ -178,6 +239,20 @@ export default async function ParticipantsExportPage() {
                   form.querySelectorAll('input.export-fld').forEach(function(b){ b.checked=(b.getAttribute('data-default')==='1'); });
                 }
               });
+              function syncMode(){
+                var sel = form.querySelector('input.mode-radio:checked');
+                var mode = sel ? sel.getAttribute('data-mode') : 'download';
+                form.querySelectorAll('.email-fields').forEach(function(el){
+                  if(mode==='email') el.classList.remove('hidden'); else el.classList.add('hidden');
+                });
+                var toInput = form.querySelector('input[name="to"]');
+                if(toInput) toInput.required = (mode==='email');
+              }
+              form.addEventListener('change', function(e){
+                var t = e.target;
+                if(t instanceof HTMLElement && t.classList.contains('mode-radio')) syncMode();
+              });
+              syncMode();
             })();`,
           }}
         />

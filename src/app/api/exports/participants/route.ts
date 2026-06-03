@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { isAdmin, isAccounting } from "@/lib/rbac";
 import { decryptParticipant } from "@/lib/participants";
 import { basePriceCents, finalPriceCents } from "@/lib/pricing";
+import { sendMail, isMailingConfigured } from "@/lib/mailer";
 import {
   EXPORT_FIELDS,
   DEFAULT_FIELDS,
@@ -29,6 +30,25 @@ function fmtDateTime(d: Date | null | undefined): string {
 
 const ALL_KEYS = new Set<string>(EXPORT_FIELDS.map((f) => f.key));
 
+function backWith(params: Record<string, string>) {
+  const qs = new URLSearchParams(params).toString();
+  return new NextResponse(null, {
+    status: 303,
+    headers: { Location: `/exports/participants${qs ? `?${qs}` : ""}` },
+  });
+}
+
+function parseRecipients(raw: string): string[] {
+  return raw
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function isValidEmail(e: string): boolean {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e);
+}
+
 export async function POST(req: Request) {
   const s = await getSession();
   if (!s || !(isAdmin(s) || isAccounting(s) || s.role === "EDITOR")) {
@@ -36,6 +56,8 @@ export async function POST(req: Request) {
   }
 
   const f = await req.formData();
+
+  const mode = String(f.get("mode") ?? "download"); // "download" | "email"
 
   const rawEventIds = f.getAll("eventIds").map((v) => String(v));
   const allEvents = rawEventIds.includes("ALL") || rawEventIds.length === 0;
@@ -55,6 +77,9 @@ export async function POST(req: Request) {
   });
 
   if (events.length === 0) {
+    if (mode === "email") {
+      return backWith({ error: "Keine Veranstaltungen ausgewählt." });
+    }
     return new NextResponse("Keine Veranstaltungen ausgewählt.", { status: 400 });
   }
 
@@ -89,7 +114,7 @@ export async function POST(req: Request) {
       case "eventTitle":    return ev.title;
       case "eventDay1":     return fmtDate(ev.day1Date);
       case "eventDay2":     return fmtDate(ev.day2Date);
-      case "eventLocation": return ev.format === "WEBINAR" ? (ev.meetingUrl ? "Webinar" : "Webinar") : (ev.location ?? "");
+      case "eventLocation": return ev.format === "WEBINAR" ? "Webinar" : (ev.location ?? "");
       case "eventFormat":   return ev.format === "WEBINAR" ? "Webinar" : "Präsenz";
       case "dayOption":     return dayOptionLabel(p.dayOption);
       case "status":        return statusLabel(p.status);
@@ -180,6 +205,53 @@ export async function POST(req: Request) {
   const stamp = new Date().toISOString().slice(0, 10);
   const fname = `teilnehmer_${stamp}.xlsx`;
   const body = new Uint8Array(buf as ArrayBuffer);
+
+  if (mode === "email") {
+    if (!isMailingConfigured()) {
+      return backWith({ error: "Mailversand ist nicht konfiguriert (SMTP fehlt)." });
+    }
+    const toRaw = String(f.get("to") ?? "");
+    const recipients = parseRecipients(toRaw);
+    if (recipients.length === 0) {
+      return backWith({ error: "Bitte mindestens einen Empfänger angeben." });
+    }
+    const invalid = recipients.filter((e) => !isValidEmail(e));
+    if (invalid.length > 0) {
+      return backWith({ error: `Ungültige E-Mail-Adresse: ${invalid.join(", ")}` });
+    }
+    const subjectIn = String(f.get("subject") ?? "").trim();
+    const messageIn = String(f.get("message") ?? "").trim();
+    const subject = subjectIn || `Teilnehmerliste ${stamp} (${parts.length} TN)`;
+
+    const eventList = events.map((e) => `- ${e.title}${e.day1Date ? ` (${fmtDate(e.day1Date)})` : ""}`).join("\n");
+    const text = [
+      messageIn,
+      messageIn ? "" : null,
+      `Im Anhang die Teilnehmerliste (${parts.length} Teilnehmer) für folgende Veranstaltung(en):`,
+      eventList,
+      "",
+      `Erzeugt am ${new Date().toLocaleString("de-DE")} von ${s.name} (${s.email}).`,
+    ].filter((l) => l !== null).join("\n");
+
+    const res = await sendMail({
+      to: recipients,
+      replyTo: s.email,
+      subject,
+      text,
+      attachments: [
+        {
+          filename: fname,
+          content: body,
+          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      ],
+    });
+
+    if (!res.ok) {
+      return backWith({ error: `Versand fehlgeschlagen: ${res.error ?? "unbekannter Fehler"}` });
+    }
+    return backWith({ ok: `Excel an ${recipients.join(", ")} gesendet.` });
+  }
 
   return new NextResponse(body, {
     status: 200,
