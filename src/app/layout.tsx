@@ -1,6 +1,8 @@
 import "./globals.css";
 import Script from "next/script";
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
+import { GlobalFooter } from "@/components/GlobalFooter";
 
 export const metadata: Metadata = {
   title: "FB-Akademie Teilnahmemanagement",
@@ -39,15 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="de">
       <body className="min-h-screen antialiased flex flex-col">
         <div className="flex-1">{children}</div>
-        <footer className="border-t border-slate-200 bg-white/60 py-4 px-4 text-xs text-slate-500 text-center">
-          <a href="https://fb-akademie.de/impressum" target="_blank" rel="noopener noreferrer" className="hover:text-brand-700 hover:underline">
-            Impressum
-          </a>
-          <span className="mx-2 text-slate-300">·</span>
-          <a href="https://fb-akademie.de/datenschutz" target="_blank" rel="noopener noreferrer" className="hover:text-brand-700 hover:underline">
-            Datenschutz
-          </a>
-        </footer>
+        <Suspense fallback={null}><GlobalFooter /></Suspense>
         <Script id="sw-register" strategy="afterInteractive">
           {`if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

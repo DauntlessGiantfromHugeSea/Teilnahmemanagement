@@ -10,10 +10,11 @@ export const dynamic = "force-dynamic";
 
 interface Props {
   params: { id: string };
-  searchParams: { error?: string; day?: string };
+  searchParams: { error?: string; day?: string; embed?: string };
 }
 
 export default async function AnmeldungPage({ params, searchParams }: Props) {
+  const embed = searchParams.embed === "1" || searchParams.embed === "form";
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
     include: { training: true, _count: { select: { participants: true } } },
@@ -50,8 +51,8 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
 
   return (
     <div className="min-h-screen bg-transparent">
-      {/* Hero in voller Breite */}
-      {ev.heroImageUrl ? (
+      {/* Hero in voller Breite (im Embed-Modus ausgeblendet) */}
+      {!embed && (ev.heroImageUrl ? (
         <div className="relative w-full bg-brand-900 aspect-[21/9] sm:aspect-[21/8] max-h-[60vh] overflow-hidden">
           <img
             src={ev.heroImageUrl}
@@ -100,9 +101,10 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
             <h1 className="text-2xl sm:text-5xl font-semibold leading-tight max-w-3xl">{ev.title}</h1>
           </div>
         </div>
-      )}
+      ))}
 
-      <div className="w-full max-w-3xl mx-auto px-4 py-6 sm:py-10">
+      <div className={`w-full max-w-3xl mx-auto ${embed ? "px-0 py-0" : "px-4 py-6 sm:py-10"}`}>
+        {!embed && (<>
         {/* Meta-Leiste als eigene Karte */}
         <div className="card -mt-12 sm:-mt-16 relative z-10">
           <div className="px-5 sm:px-6 py-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
@@ -168,9 +170,10 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                 )}
               </div>
             )}
+        </>)}
 
             {/* Formular */}
-            <div className="card mt-6 p-6 sm:p-8">
+            <div className={embed ? "p-4 sm:p-6" : "card mt-6 p-6 sm:p-8"}>
               <h2 className="text-lg font-semibold mb-1">Verbindliche Anmeldung</h2>
               <p className="text-sm text-slate-500 mb-6">
                 Ihre Daten werden verschlüsselt übertragen.
@@ -307,9 +310,11 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
           </>
         )}
 
-        <p className="text-center text-xs text-slate-400 mt-6 tracking-wider uppercase">
-          Flüssigboden Akademie
-        </p>
+        {!embed && (
+          <p className="text-center text-xs text-slate-400 mt-6 tracking-wider uppercase">
+            Flüssigboden Akademie
+          </p>
+        )}
       </div>
     </div>
   );
