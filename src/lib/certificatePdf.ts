@@ -190,14 +190,10 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, draw
     });
   }
 
-  // Leipzig, den ...
+  // Leipzig, den ... - Name+Position folgen wie in einem Brief 3 Zeilen darunter.
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
-    size: 11, leading: 16,
+    size: 11, leading: 16, spaceAfter: 48,
   });
-
-  // Geschaeftsfuehrer-Block fixiert oberhalb des Validierungs-Footers,
-  // damit zwischen "Geschäftsführer" und der Validierungs-Zeile genug Abstand bleibt.
-  ctx.y = 170;
   drawText(ctx, t.geschaeftsfuehrer, { size: 11, font: "bold" });
   drawText(ctx, t.geschaeftsfuehrerRole, { size: 10, color: COLOR_MUTED });
 }
@@ -226,10 +222,8 @@ function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string, drawT
   }
 
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
-    size: 11, leading: 16,
+    size: 11, leading: 16, spaceAfter: 48,
   });
-
-  ctx.y = 170;
   drawText(ctx, t.geschaeftsfuehrer, { size: 11, font: "bold" });
   drawText(ctx, t.geschaeftsfuehrerRole, { size: 10, color: COLOR_MUTED });
 }

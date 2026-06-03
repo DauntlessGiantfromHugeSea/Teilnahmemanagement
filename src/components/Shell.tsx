@@ -26,6 +26,7 @@ const ADMIN = [
   { id: "settings", href: "/admin/settings", label: "Einstellungen" },
   { id: "zertifikate", href: "/admin/zertifikate", label: "Alle Zertifikate" },
   { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
+  { id: "feedback-fragen", href: "/admin/feedback-fragen", label: "Feedback-Fragen" },
 ];
 
 export function Shell({ session, active, children }: Props) {
