@@ -408,3 +408,17 @@ model FeedbackResponse {
   answers     String   // JSON
   submittedAt DateTime @default(now())
 }
+
+// OTP-Codes fuer das Teilnehmer-Portal /meine-zertifikate.
+// Code wird per Mail an die hinterlegte Adresse geschickt; einmalig einlösbar.
+model CertificateOtp {
+  id        String   @id @default(cuid())
+  emailHash String   // SHA-256-HMAC der E-Mail
+  codeHash  String   // SHA-256 des 6-stelligen Codes
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([emailHash])
+}

@@ -9,6 +9,8 @@ const PUBLIC = [
   /^\/anmeldung(\/.*)?$/,
   /^\/zertifikat(\/.+)?$/,
   /^\/api\/zertifikat\/.+$/,
+  /^\/meine-zertifikate(\/.*)?$/,
+  /^\/api\/meine-zertifikate(\/.*)?$/,
   /^\/feedback\/.+$/,
   /^\/api\/feedback\/.+$/,
   /^\/set-password(\/.*)?$/,

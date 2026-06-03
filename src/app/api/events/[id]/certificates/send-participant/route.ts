@@ -1,15 +1,14 @@
-// Versendet alle freigegebenen Zertifikate EINES Teilnehmers in einer
-// einzelnen Mail mit allen PDFs als Anhang. Skippt bereits versendete.
+// Versendet EINE Mail an einen Teilnehmer mit Link auf das Zertifikats-Portal
+// (Login per OTP). Alle freigegebenen Zertifikate werden dort gelistet und
+// koennen runtergeladen werden - kein Mail-Anhang.
 
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { canWriteEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
-import { parseCertificateData } from "@/lib/certificates";
-import { renderCertificatePdf } from "@/lib/certificatePdf";
-import { sendMail, isMailingConfigured } from "@/lib/mailer";
-import { htmlShell } from "@/lib/mailTemplates";
+import { isMailingConfigured } from "@/lib/mailer";
+import { sendPortalInvite } from "@/lib/sendPortalInvite";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
@@ -44,82 +43,23 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!email || !EMAIL_RE.test(email)) {
     return back({ error: `Keine gültige E-Mail-Adresse für ${dec.firstName} ${dec.lastName}.` });
   }
-
-  const todo = participant.certificates.filter((c) => !c.sentAt);
-  if (todo.length === 0) {
-    const total = participant.certificates.length;
-    return back({
-      ok: total === 0
-        ? `Keine freigegebenen Zertifikate für ${dec.firstName} ${dec.lastName}.`
-        : `Alle ${total} freigegebenen Zertifikate wurden bereits versendet.`,
-    });
+  if (participant.certificates.length === 0) {
+    return back({ error: `Keine freigegebenen Zertifikate für ${dec.firstName} ${dec.lastName}.` });
   }
 
-  const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
-  const appName = process.env.APP_NAME ?? "Flüssigboden Akademie";
-
-  const attachments: { filename: string; content: Uint8Array; contentType: string }[] = [];
-  const lines: { number: string; type: string; validate: string }[] = [];
-  for (const c of todo) {
-    try {
-      const data = parseCertificateData(c.data);
-      const validateUrl = `${appUrl}/zertifikat/${c.slug}`;
-      const pdf = await renderCertificatePdf({
-        type: c.type, number: c.number, data, validateUrl,
-      });
-      const safeName = c.number.replace(/[\\/?*\[\]:]/g, "-");
-      attachments.push({ filename: `${safeName}.pdf`, content: pdf, contentType: "application/pdf" });
-      lines.push({ number: c.number, type: c.type === "ZERTIFIKAT" ? "Zertifikat" : "Teilnahmebescheinigung", validate: validateUrl });
-    } catch (e: any) {
-      return back({ error: `Render-Fehler bei ${c.number}: ${e?.message ?? e}` });
-    }
-  }
-
-  const escape = (str: string) =>
-    str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const rows = lines.map((l) => `
-    <tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;">${escape(l.type)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-family:monospace;">${escape(l.number)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;"><a href="${escape(l.validate)}" style="color:#0f766e;">prüfen</a></td>
-    </tr>`).join("");
-  const inner = `
-<h1 style="margin:0 0 16px 0;font-size:20px;color:#111827;font-weight:600;">Ihre Zertifikate</h1>
-<p style="margin:0 0 12px 0;">Hallo ${escape(dec.firstName ?? "")} ${escape(dec.lastName ?? "")},</p>
-<p style="margin:0 0 12px 0;">
-  vielen Dank für Ihre Teilnahme an <strong>${escape(participant.event.title)}</strong>.
-  Anbei finden Sie Ihre ${todo.length === 1 ? "Bescheinigung" : `${todo.length} Bescheinigungen`}
-  als PDF-Anhang. Jede ist über die Validierungs-URL online überprüfbar.
-</p>
-<table style="border-collapse:collapse;font-size:13px;margin:8px 0 16px 0;">${rows}</table>
-<p style="margin:18px 0 0 0;">Beste Grüße aus Leipzig<br>das Team der Flüssigboden Akademie</p>`;
-  const text = [
-    `Hallo ${dec.firstName ?? ""} ${dec.lastName ?? ""},`,
-    ``,
-    `im Anhang finden Sie ${todo.length === 1 ? "Ihre Bescheinigung" : `Ihre ${todo.length} Bescheinigungen`} zur Schulung "${participant.event.title}":`,
-    ...lines.map((l) => `  - ${l.type} ${l.number} (Validierung: ${l.validate})`),
-    ``,
-    `Beste Grüße aus Leipzig`,
-    `das Team der Flüssigboden Akademie`,
-  ].join("\n");
-
-  const res = await sendMail({
-    to: email,
-    subject: todo.length === 1
-      ? `Ihre Bescheinigung: ${participant.event.title}`
-      : `Ihre ${todo.length} Bescheinigungen: ${participant.event.title}`,
-    text,
-    html: htmlShell(appName, inner),
-    attachments,
+  const res = await sendPortalInvite({
+    email,
+    firstName: dec.firstName ?? "",
+    lastName: dec.lastName ?? "",
+    eventTitle: participant.event.title,
+    certCount: participant.certificates.length,
   });
-  if (!res.ok) {
-    return back({ error: `Versand fehlgeschlagen: ${res.error ?? "unbekannt"}` });
-  }
+  if (!res.ok) return back({ error: `Versand fehlgeschlagen: ${res.error ?? "unbekannt"}` });
 
   await prisma.certificate.updateMany({
-    where: { id: { in: todo.map((c) => c.id) } },
+    where: { id: { in: participant.certificates.map((c) => c.id) } },
     data: { sentAt: new Date(), sentTo: email },
   });
 
-  return back({ ok: `${todo.length} ${todo.length === 1 ? "Zertifikat" : "Zertifikate"} an ${email} versendet.` });
+  return back({ ok: `Portal-Link an ${email} versendet (${participant.certificates.length} Zertifikat${participant.certificates.length === 1 ? "" : "e"}).` });
 }
