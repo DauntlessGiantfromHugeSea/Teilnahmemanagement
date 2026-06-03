@@ -16,7 +16,7 @@ const PUBLIC = [
   /^\/icon[^/]*\.(png|svg)$/,
   /^\/apple-touch-icon\.png$/,
   /^\/favicon-(16|32)\.png$/,
-  /^\/logo\.png$/,
+  /^\/logo(-[a-z0-9-]+)?\.png$/,
   /^\/favicon\.png$/,
   /^\/uploads\/.+/,
 ];
