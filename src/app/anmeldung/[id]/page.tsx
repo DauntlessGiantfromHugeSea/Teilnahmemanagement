@@ -59,13 +59,11 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-          {ev.logoUrl && (
-            <img
-              src={ev.logoUrl}
-              alt="Logo"
-              className="absolute top-4 right-4 sm:top-6 sm:right-6 h-10 sm:h-14 w-auto bg-white/95 rounded-lg p-2 shadow-lg"
-            />
-          )}
+          <img
+            src={ev.logoUrl || "/logo-fba.png"}
+            alt="Logo"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 h-10 sm:h-14 w-auto bg-white/95 rounded-lg p-2 shadow-lg"
+          />
           <div className="absolute left-0 right-0 bottom-0">
             <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-8 sm:pb-12 text-white">
               <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3 sm:mb-4">
@@ -86,13 +84,11 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
         <div className="relative w-full bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
           <div className="relative max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-20">
-            {ev.logoUrl && (
-              <img
-                src={ev.logoUrl}
-                alt="Logo"
-                className="absolute top-6 right-6 h-12 w-auto bg-white/95 rounded-lg p-2"
-              />
-            )}
+            <img
+              src={ev.logoUrl || "/logo-fba.png"}
+              alt="Logo"
+              className="absolute top-6 right-6 h-12 w-auto bg-white/95 rounded-lg p-2"
+            />
             <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3 sm:mb-4">
               {dateBadge}
             </div>
