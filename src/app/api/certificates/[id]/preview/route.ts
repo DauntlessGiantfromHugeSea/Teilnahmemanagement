@@ -7,9 +7,10 @@ import { renderCertificatePdf } from "@/lib/certificatePdf";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
+  const noBackground = new URL(req.url).searchParams.get("bg") === "0";
 
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
@@ -28,6 +29,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     number: cert.number,
     data: parseCertificateData(cert.data),
     validateUrl,
+    noBackground,
   });
 
   const safeName = cert.number.replace(/[\\/?*\[\]:]/g, "-");

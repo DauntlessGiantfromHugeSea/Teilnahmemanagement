@@ -151,24 +151,31 @@ export async function renderCertificatePdf(args: {
   number: string;
   data: CertificateData;
   validateUrl: string;
+  /** Wenn true: nur die Text-Inhalte, kein Logo/Footer/Brandstreifen.
+   *  Fuer Druck auf vorgedrucktes Briefpapier. */
+  noBackground?: boolean;
 }): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
-  const logoBytes = await loadLogo();
-  const logo = await doc.embedPng(logoBytes);
 
   const page = doc.addPage([PAGE_W, PAGE_H]);
-  drawLogo(page, logo);
-  drawBrandFrame(page, font, bold);
+  if (!args.noBackground) {
+    const logoBytes = await loadLogo();
+    const logo = await doc.embedPng(logoBytes);
+    drawLogo(page, logo);
+    drawBrandFrame(page, font, bold);
+  }
 
   const ctx: DrawCtx = { page, font, bold, italic, y: PAGE_H - 200 };
 
   if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number);
   else renderTeilnahme(ctx, args.data, args.number);
 
-  drawIdFooter(page, font, args.number, args.validateUrl);
+  if (!args.noBackground) {
+    drawIdFooter(page, font, args.number, args.validateUrl);
+  }
   return doc.save();
 }
 

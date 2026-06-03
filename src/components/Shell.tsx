@@ -24,6 +24,7 @@ const ADMIN = [
   { id: "audit", href: "/admin/audit", label: "Verlauf" },
   { id: "import", href: "/admin/import", label: "Import (CSV)" },
   { id: "settings", href: "/admin/settings", label: "Einstellungen" },
+  { id: "zertifikate", href: "/admin/zertifikate", label: "Alle Zertifikate" },
   { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
 ];
 

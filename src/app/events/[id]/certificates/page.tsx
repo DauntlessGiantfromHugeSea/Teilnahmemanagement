@@ -95,7 +95,14 @@ export default async function EventCertificatesPage({
               target="_blank"
               className="btn-secondary text-sm"
             >
-              Alle für den Druck (PDF)
+              Alle für den Druck (mit Briefkopf)
+            </a>
+            <a
+              href={`/api/events/${ev.id}/certificates/print?bg=0`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Alle für den Druck (ohne Hintergrund, für Briefpapier)
             </a>
             <span className="text-xs text-slate-500">
               Enthält Entwürfe und freigegebene — zum Ausdrucken, Unterschreiben und Stempeln vor dem Event.
@@ -108,6 +115,13 @@ export default async function EventCertificatesPage({
               className="btn-secondary text-sm"
             >
               Nur freigegebene drucken
+            </a>
+            <a
+              href={`/api/events/${ev.id}/certificates/print?released=1&bg=0`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Nur freigegebene (ohne Hintergrund)
             </a>
             <form method="post" action={`/api/events/${ev.id}/certificates/send-batch`}>
               <button className="btn-primary text-sm">
@@ -241,6 +255,7 @@ function CertRow({
       <span className="font-mono text-slate-500">{cert.number}</span>
       <a href={`/zertifikat/${cert.slug}`} target="_blank" className="text-brand-700 hover:underline">Validierung</a>
       <a href={`/api/certificates/${cert.id}/preview`} target="_blank" className="text-brand-700 hover:underline">PDF</a>
+      <a href={`/api/certificates/${cert.id}/preview?bg=0`} target="_blank" className="text-brand-700 hover:underline">PDF (Briefpapier)</a>
       {cert.sentAt && (
         <span className="text-slate-500">
           versendet {new Date(cert.sentAt).toLocaleDateString("de-DE")}

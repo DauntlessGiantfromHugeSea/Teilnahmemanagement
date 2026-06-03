@@ -19,6 +19,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
   const url = new URL(req.url);
   const onlyReleased = url.searchParams.get("released") === "1";
+  const noBackground = url.searchParams.get("bg") === "0";
 
   const certs = await prisma.certificate.findMany({
     where: {
@@ -42,6 +43,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       number: c.number,
       data: parseCertificateData(c.data),
       validateUrl,
+      noBackground,
     });
     const src = await PDFDocument.load(single);
     const pages = await combined.copyPages(src, src.getPageIndices());
