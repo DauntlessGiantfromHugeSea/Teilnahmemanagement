@@ -53,7 +53,7 @@ function dayLabel(opt: DayOption, ev: Pick<Event, "day1Date" | "day2Date">): str
 //   MAIL_LOGO_URL       absolute URL zum Logo (PNG)
 //   MAIL_BRAND_COLOR    Hex z.B. "#0f766e" (Default: tuerkis)
 //   MAIL_FOOTER_LINE    optionale zusaetzliche Zeile (z.B. Impressum-Link)
-function htmlShell(appName: string, inner: string): string {
+export function htmlShell(appName: string, inner: string): string {
   const logo = getLogoDataUri();
   const brand = (process.env.MAIL_BRAND_COLOR?.trim() || "#0f766e").replace(/[^0-9a-fA-F#]/g, "");
   const replyTo = process.env.MAIL_REPLY_TO?.trim();

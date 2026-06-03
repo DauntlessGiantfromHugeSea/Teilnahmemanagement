@@ -6,6 +6,7 @@ import { isAdmin, isAccounting } from "@/lib/rbac";
 import { decryptParticipant } from "@/lib/participants";
 import { basePriceCents, finalPriceCents } from "@/lib/pricing";
 import { sendMail, isMailingConfigured } from "@/lib/mailer";
+import { htmlShell } from "@/lib/mailTemplates";
 import {
   EXPORT_FIELDS,
   DEFAULT_FIELDS,
@@ -233,11 +234,31 @@ export async function POST(req: Request) {
       `Erzeugt am ${new Date().toLocaleString("de-DE")} von ${s.name} (${s.email}).`,
     ].filter((l) => l !== null).join("\n");
 
+    const escape = (str: string) =>
+      str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    const appName = process.env.APP_NAME ?? "Teilnahmemanagement";
+    const eventListHtml = events
+      .map((e) => `<li>${escape(e.title)}${e.day1Date ? ` <span style="color:#6b7280;">(${escape(fmtDate(e.day1Date))})</span>` : ""}</li>`)
+      .join("");
+    const messageHtml = messageIn
+      ? `<p style="margin:0 0 14px 0;white-space:pre-wrap;">${escape(messageIn)}</p>`
+      : "";
+    const inner = `
+<h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;color:#111827;font-weight:600;">Teilnehmerliste</h1>
+${messageHtml}
+<p style="margin:0 0 8px 0;">Im Anhang die Teilnehmerliste (<strong>${parts.length}</strong> Teilnehmer) für folgende Veranstaltung(en):</p>
+<ul style="margin:0 0 16px 18px;padding:0;color:#374151;font-size:14px;">${eventListHtml}</ul>
+<p style="margin:0 0 12px 0;color:#6b7280;font-size:12px;">Datei: <span style="font-family:monospace;">${escape(fname)}</span></p>
+<p style="margin:18px 0 0 0;color:#6b7280;font-size:12px;">Erzeugt am ${escape(new Date().toLocaleString("de-DE"))} von ${escape(s.name)} (<a href="mailto:${escape(s.email)}" style="color:#0f766e;text-decoration:none;">${escape(s.email)}</a>).</p>`;
+    const html = htmlShell(appName, inner);
+
     const res = await sendMail({
       to: recipients,
       replyTo: s.email,
       subject,
       text,
+      html,
       attachments: [
         {
           filename: fname,
