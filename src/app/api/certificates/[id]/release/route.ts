@@ -12,12 +12,16 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     include: { participant: true },
   });
   if (!cert) return new NextResponse("Not found", { status: 404 });
-  if (!(await canWriteEvent(s, cert.participant.eventId))) {
+  if (cert.participant) {
+    if (!(await canWriteEvent(s, (cert.participant?.eventId ?? "")))) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  } else if (s.role !== "ADMIN") {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
   if (cert.status === "REVOKED") {
-    return redir(cert.participant.eventId, { error: "Widerrufenes Zertifikat kann nicht freigegeben werden." });
+    return redir((cert.participant?.eventId ?? ""), { error: "Widerrufenes Zertifikat kann nicht freigegeben werden." });
   }
 
   await prisma.certificate.update({
@@ -28,13 +32,13 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       issuedAt: cert.issuedAt ?? new Date(),
     },
   });
-  return redir(cert.participant.eventId, { ok: `${cert.number} freigegeben.` });
+  return redir((cert.participant?.eventId ?? ""), { ok: `${cert.number} freigegeben.` });
 }
 
 function redir(eventId: string, params: Record<string, string>) {
   const qs = new URLSearchParams(params).toString();
-  return new NextResponse(null, {
-    status: 303,
-    headers: { Location: `/events/${eventId}/certificates?${qs}` },
-  });
+  const loc = eventId
+    ? `/events/${eventId}/certificates?${qs}`
+    : `/admin/zertifikate?${qs}`;
+  return new NextResponse(null, { status: 303, headers: { Location: loc } });
 }

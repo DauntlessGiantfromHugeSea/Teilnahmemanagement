@@ -12,7 +12,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     include: { participant: true },
   });
   if (!cert) return new NextResponse("Not found", { status: 404 });
-  if (!(await canWriteEvent(s, cert.participant.eventId))) {
+  if (cert.participant) {
+    if (!(await canWriteEvent(s, cert.participant.eventId))) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  } else if (s.role !== "ADMIN") {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
@@ -23,8 +27,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     where: { id: cert.id },
     data: { status: "REVOKED", revokedAt: new Date(), revokeReason: reason || null },
   });
-  return new NextResponse(null, {
-    status: 303,
-    headers: { Location: `/events/${cert.participant.eventId}/certificates?ok=${encodeURIComponent(`${cert.number} widerrufen.`)}` },
-  });
+  const eventId = cert.participant?.eventId;
+  const loc = eventId
+    ? `/events/${eventId}/certificates?ok=${encodeURIComponent(`${cert.number} widerrufen.`)}`
+    : `/admin/zertifikate?ok=${encodeURIComponent(`${cert.number} widerrufen.`)}`;
+  return new NextResponse(null, { status: 303, headers: { Location: loc } });
 }

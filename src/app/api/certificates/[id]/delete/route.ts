@@ -12,27 +12,29 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     include: { participant: true },
   });
   if (!cert) return new NextResponse("Not found", { status: 404 });
-  if (!(await canWriteEvent(s, cert.participant.eventId))) {
+  if (cert.participant) {
+    if (!(await canWriteEvent(s, cert.participant.eventId))) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  } else if (!isAdmin(s)) {
     return new NextResponse("Forbidden", { status: 403 });
   }
+
+  const back = (q: Record<string, string>) => {
+    const eventId = cert.participant?.eventId;
+    const qs = new URLSearchParams(q).toString();
+    const loc = eventId ? `/events/${eventId}/certificates?${qs}` : `/admin/zertifikate?${qs}`;
+    return new NextResponse(null, { status: 303, headers: { Location: loc } });
+  };
 
   // Entwurf: jeder mit Schreibrecht. Widerrufen: nur Admin. Freigegeben: nie loeschen,
   // sondern erst widerrufen.
   if (cert.status === "RELEASED") {
-    return new NextResponse(null, {
-      status: 303,
-      headers: { Location: `/events/${cert.participant.eventId}/certificates?error=${encodeURIComponent("Freigegebene Zertifikate erst widerrufen, dann löschen.")}` },
-    });
+    return back({ error: "Freigegebene Zertifikate erst widerrufen, dann löschen." });
   }
   if (cert.status === "REVOKED" && !isAdmin(s)) {
-    return new NextResponse(null, {
-      status: 303,
-      headers: { Location: `/events/${cert.participant.eventId}/certificates?error=${encodeURIComponent("Widerrufene Zertifikate können nur Admins löschen.")}` },
-    });
+    return back({ error: "Widerrufene Zertifikate können nur Admins löschen." });
   }
   await prisma.certificate.delete({ where: { id: cert.id } });
-  return new NextResponse(null, {
-    status: 303,
-    headers: { Location: `/events/${cert.participant.eventId}/certificates?ok=${encodeURIComponent("Entwurf gelöscht.")}` },
-  });
+  return back({ ok: "Zertifikat gelöscht." });
 }

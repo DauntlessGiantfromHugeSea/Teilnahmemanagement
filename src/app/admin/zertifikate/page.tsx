@@ -5,6 +5,7 @@ import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
+import { parseCertificateData } from "@/lib/certificates";
 
 export const dynamic = "force-dynamic";
 
@@ -42,18 +43,33 @@ export default async function ZertifikateUebersicht({
   const q = (searchParams.q ?? "").trim().toLowerCase();
   const rows = certs
     .map((c) => {
-      const dec = decryptParticipant(c.participant);
-      return { c, dec, ev: c.participant.event };
+      const dec = c.participant ? decryptParticipant(c.participant) : null;
+      const ev = c.participant?.event ?? null;
+      // Fallback: importierte Zertifikate haben Name/Event nur im Snapshot.
+      const snap = (() => {
+        try { return parseCertificateData(c.data); } catch { return null; }
+      })();
+      const firstName = dec?.firstName ?? snap?.firstName ?? "";
+      const lastName = dec?.lastName ?? snap?.lastName ?? "";
+      const email = dec?.email ?? "";
+      const eventTitle = ev?.title ?? snap?.eventTitle ?? "—";
+      const eventId = ev?.id ?? null;
+      return { c, firstName, lastName, email, eventTitle, eventId };
     })
-    .filter(({ c, dec, ev }) => {
+    .filter(({ c, firstName, lastName, email, eventTitle }) => {
       if (!q) return true;
-      const hay = `${c.number} ${dec.firstName ?? ""} ${dec.lastName ?? ""} ${dec.email ?? ""} ${ev.title}`.toLowerCase();
+      const hay = `${c.number} ${firstName} ${lastName} ${email} ${eventTitle}`.toLowerCase();
       return hay.includes(q);
     });
 
   return (
     <Shell session={s} active="zertifikate">
-      <h1 className="text-2xl font-semibold mb-1">Alle Zertifikate</h1>
+      <div className="flex items-baseline justify-between flex-wrap gap-3 mb-1">
+        <h1 className="text-2xl font-semibold">Alle Zertifikate</h1>
+        <Link href="/admin/zertifikate/import" className="btn-secondary text-sm">
+          Excel-Import (historisch)
+        </Link>
+      </div>
       <p className="text-sm text-slate-500 mb-5">
         Globale, fließende Liste aller jemals erzeugten Zertifikate und Teilnahmebescheinigungen,
         absteigend nach Nummer. Max. 500 Treffer.
@@ -105,7 +121,7 @@ export default async function ZertifikateUebersicht({
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ c, dec, ev }) => (
+            {rows.map(({ c, firstName, lastName, email, eventTitle, eventId }) => (
               <tr key={c.id} className="align-top">
                 <td className="font-mono text-xs">{c.number}</td>
                 <td className="text-xs">{c.type === "ZERTIFIKAT" ? "Zertifikat" : "TN"}</td>
@@ -118,13 +134,17 @@ export default async function ZertifikateUebersicht({
                   }>{STATUS_LABEL[c.status]}</span>
                 </td>
                 <td className="text-sm">
-                  <div className="font-medium">{dec.lastName}, {dec.firstName}</div>
-                  <div className="text-xs text-slate-500 font-mono">{dec.email}</div>
+                  <div className="font-medium">{lastName}, {firstName}</div>
+                  {email && <div className="text-xs text-slate-500 font-mono">{email}</div>}
                 </td>
                 <td className="text-xs">
-                  <Link href={`/events/${ev.id}/certificates`} className="text-brand-700 hover:underline">
-                    {ev.title}
-                  </Link>
+                  {eventId ? (
+                    <Link href={`/events/${eventId}/certificates`} className="text-brand-700 hover:underline">
+                      {eventTitle}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-500 italic">{eventTitle}</span>
+                  )}
                 </td>
                 <td className="text-xs text-slate-500">
                   {new Date(c.createdAt).toLocaleDateString("de-DE")}

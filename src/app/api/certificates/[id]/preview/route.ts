@@ -17,7 +17,13 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     include: { participant: true },
   });
   if (!cert) return new NextResponse("Not found", { status: 404 });
-  if (!(await canViewEvent(s, cert.participant.eventId))) {
+  // Importierte historische Zertifikate haben keinen verknüpften Teilnehmer/Event.
+  // Admins dürfen die immer sehen, alle anderen brauchen Event-Zugriff.
+  if (cert.participant) {
+    if (!(await canViewEvent(s, cert.participant.eventId))) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  } else if (s.role !== "ADMIN") {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

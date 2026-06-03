@@ -17,6 +17,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     include: { participant: true },
   });
   if (!cert) return new NextResponse("Not found", { status: 404 });
+  if (!cert.participant) {
+    return new NextResponse("Importierte Zertifikate können nicht per Mail versendet werden (kein verknüpfter Teilnehmer).", { status: 400 });
+  }
   if (!(await canWriteEvent(s, cert.participant.eventId))) {
     return new NextResponse("Forbidden", { status: 403 });
   }

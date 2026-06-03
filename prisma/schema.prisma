@@ -249,8 +249,8 @@ model Certificate {
   // URL-sicherer Slug fuer /zertifikat/<slug> (Nummer mit / -> -)
   slug          String   @unique
 
-  participantId String
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participantId String?
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
 
   type          CertificateType
   status        CertificateStatus @default(DRAFT)

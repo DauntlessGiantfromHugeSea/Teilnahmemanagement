@@ -41,6 +41,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   let failed = 0;
   const invalid: string[] = [];
   for (const cert of certs) {
+    if (!cert.participant) { failed++; continue; }
     const dec = decryptParticipant(cert.participant);
     const rawEmail = (dec.email ?? "").trim();
     const email = rawEmail;
