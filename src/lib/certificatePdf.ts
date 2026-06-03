@@ -140,7 +140,7 @@ export async function renderCertificatePdf(args: {
 
   // Wenn das Briefpapier verwendet wird, ist oben bereits "Zertifikat /
   // Flüssigboden" aufgedruckt - wir starten den Textueberlag darunter.
-  const startY = args.noBackground ? PAGE_H - 120 : PAGE_H - 320;
+  const startY = args.noBackground ? PAGE_H - 120 : PAGE_H - 250;
   const ctx: DrawCtx = { page, font, bold, italic, y: startY };
 
   if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number, !!args.noBackground);
@@ -155,25 +155,21 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, draw
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
   if (drawTitle) {
     // Nur ohne Briefpapier zeichnen - sonst ist es schon aufgedruckt.
-    drawText(ctx, t.title, { font: "bold", size: 30, align: "center", leading: 34, spaceAfter: 0 });
-    drawText(ctx, t.subtitle, { font: "bold", size: 16, align: "center", color: COLOR_TEXT, spaceAfter: 16 });
-  } else {
-    // Auf dem Briefpapier nur den Untertitel "RSS Flüssigboden®" ueber dem Block
-    drawText(ctx, t.subtitle, { font: "bold", size: 14, align: "center", color: COLOR_TEXT, spaceAfter: 16 });
+    drawText(ctx, t.title, { font: "bold", size: 30, align: "center", leading: 34, spaceAfter: 12 });
   }
 
   // Optional Norm-Linie (wenn Kompetenzfeld in normLineForIds)
   if (d.kompetenzfeld && t.normLineForIds.includes(d.kompetenzfeld.id)) {
-    drawText(ctx, t.normLine, { size: 9, align: "center", color: COLOR_MUTED, leading: 12, spaceAfter: 14 });
+    drawText(ctx, t.normLine, { size: 9, align: "center", color: COLOR_MUTED, leading: 12, spaceAfter: 10 });
   }
 
-  // Kompetenzfeld-Label
+  // Kompetenzfeld-Label (kleiner, damit auch lange Bezeichnungen einzeilig passen)
   if (d.kompetenzfeld) {
-    drawText(ctx, d.kompetenzfeld.label, { font: "bold", size: 13, align: "center", color: BRAND, spaceAfter: 10 });
+    drawText(ctx, d.kompetenzfeld.label, { font: "bold", size: 10, align: "center", color: BRAND, leading: 13, spaceAfter: 6 });
   }
 
   // Nummer
-  drawText(ctx, `Nr. ${number}`, { size: 10, align: "center", color: COLOR_MUTED, spaceAfter: 30 });
+  drawText(ctx, `Nr. ${number}`, { size: 10, align: "center", color: COLOR_MUTED, spaceAfter: 22 });
 
   // Anrede-Feld
   drawLabeledField(ctx, t.herrnFrauLabel, `${d.firstName} ${d.lastName}`);
@@ -207,11 +203,7 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, draw
 function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string, drawTitle: boolean) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
   if (drawTitle) {
-    drawText(ctx, t.tnTitle, { font: "bold", size: 26, align: "center", spaceAfter: 4 });
-    drawText(ctx, t.subtitle, { font: "bold", size: 14, align: "center", spaceAfter: 14 });
-  } else {
-    drawText(ctx, t.tnTitle, { font: "bold", size: 18, align: "center", spaceAfter: 4 });
-    drawText(ctx, t.subtitle, { font: "bold", size: 13, align: "center", spaceAfter: 14 });
+    drawText(ctx, t.tnTitle, { font: "bold", size: 26, align: "center", spaceAfter: 14 });
   }
 
   drawText(ctx, `Nr. ${number}`, { size: 10, align: "center", color: COLOR_MUTED, spaceAfter: 26 });
