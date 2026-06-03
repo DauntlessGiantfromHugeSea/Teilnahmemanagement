@@ -1,4 +1,18 @@
-const LOGO = `${(process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "")}/logo-fba.png`;
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+let cachedLogo: string | null = null;
+function logoSrc(): string {
+  if (cachedLogo !== null) return cachedLogo;
+  try {
+    const buf = readFileSync(path.join(process.cwd(), "public", "logo-fba.png"));
+    cachedLogo = `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    cachedLogo = "";
+  }
+  return cachedLogo;
+}
+const LOGO = logoSrc();
 
 export function brandWrap(innerHtml: string, opts?: { unsubscribeUrl?: string }): string {
   const year = new Date().getFullYear();

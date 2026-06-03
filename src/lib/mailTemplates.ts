@@ -1,4 +1,18 @@
 import type { DayOption, Event } from "@prisma/client";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+let cachedLogoDataUri: string | null = null;
+function getLogoDataUri(): string {
+  if (cachedLogoDataUri !== null) return cachedLogoDataUri;
+  try {
+    const buf = readFileSync(path.join(process.cwd(), "public", "logo-fba.png"));
+    cachedLogoDataUri = `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    cachedLogoDataUri = "";
+  }
+  return cachedLogoDataUri;
+}
 
 function fmtDate(d: Date | null | undefined): string {
   if (!d) return "";
@@ -40,8 +54,7 @@ function dayLabel(opt: DayOption, ev: Pick<Event, "day1Date" | "day2Date">): str
 //   MAIL_BRAND_COLOR    Hex z.B. "#0f766e" (Default: tuerkis)
 //   MAIL_FOOTER_LINE    optionale zusaetzliche Zeile (z.B. Impressum-Link)
 function htmlShell(appName: string, inner: string): string {
-  const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
-  const logo = process.env.MAIL_LOGO_URL?.trim() || (appUrl ? `${appUrl}/logo-fba.png` : "");
+  const logo = getLogoDataUri();
   const brand = (process.env.MAIL_BRAND_COLOR?.trim() || "#0f766e").replace(/[^0-9a-fA-F#]/g, "");
   const replyTo = process.env.MAIL_REPLY_TO?.trim();
   const footerExtra = process.env.MAIL_FOOTER_LINE?.trim();
