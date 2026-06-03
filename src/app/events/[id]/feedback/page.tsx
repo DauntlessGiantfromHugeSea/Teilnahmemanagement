@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
@@ -163,28 +164,58 @@ export default async function EventFeedbackPage({
           <tbody>
             {ev.feedbackInvites.map((i) => {
               const dec = decryptParticipant(i.participant);
+              let answers: Record<string, unknown> | null = null;
+              if (i.response) {
+                try { answers = JSON.parse(i.response.answers); } catch { /* ignore */ }
+              }
               return (
-                <tr key={i.id} className="align-top text-sm">
-                  <td>
-                    <div className="font-medium">{dec.lastName}, {dec.firstName}</div>
-                    <div className="text-xs text-slate-500 font-mono">{dec.email}</div>
-                  </td>
-                  <td className="text-xs text-slate-500">
-                    {i.sentAt ? new Date(i.sentAt).toLocaleDateString("de-DE") : "—"}
-                  </td>
-                  <td className="text-xs">
-                    {i.response ? (
-                      <span className="text-emerald-700 font-semibold">
-                        abgegeben {new Date(i.response.submittedAt).toLocaleDateString("de-DE")}
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">offen</span>
-                    )}
-                  </td>
-                  <td className="text-right text-xs">
-                    <a href={`/feedback/${i.token}`} target="_blank" className="text-brand-700 hover:underline font-mono">öffnen</a>
-                  </td>
-                </tr>
+                <Fragment key={i.id}>
+                  <tr className="align-top text-sm">
+                    <td>
+                      <div className="font-medium">{dec.lastName}, {dec.firstName}</div>
+                      <div className="text-xs text-slate-500 font-mono">{dec.email}</div>
+                    </td>
+                    <td className="text-xs text-slate-500">
+                      {i.sentAt ? new Date(i.sentAt).toLocaleDateString("de-DE") : "—"}
+                    </td>
+                    <td className="text-xs">
+                      {i.response ? (
+                        <span className="text-emerald-700 font-semibold">
+                          abgegeben {new Date(i.response.submittedAt).toLocaleDateString("de-DE")}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">offen</span>
+                      )}
+                    </td>
+                    <td className="text-right text-xs">
+                      <a href={`/feedback/${i.token}`} target="_blank" className="text-brand-700 hover:underline font-mono">öffnen</a>
+                    </td>
+                  </tr>
+                  {answers && (
+                    <tr>
+                      <td colSpan={4} className="bg-slate-50 px-4 py-3">
+                        <details>
+                          <summary className="text-xs text-brand-700 cursor-pointer hover:underline">
+                            Antworten anzeigen
+                          </summary>
+                          <div className="mt-3 space-y-2 text-xs">
+                            {questions.map((q, qi) => {
+                              const a = answers![q.id];
+                              const display = Array.isArray(a) ? a.join(", ") : String(a ?? "");
+                              if (!display.trim()) return null;
+                              return (
+                                <div key={q.id}>
+                                  <div className="text-slate-500">{qi + 1}. {q.text}</div>
+                                  <div className="text-slate-900 font-medium">{display}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </details>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
             {ev.feedbackInvites.length === 0 && (

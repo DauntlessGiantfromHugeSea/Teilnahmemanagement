@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { canWriteEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
-import { createCertificateDraft } from "@/lib/certificates";
+import { createCertificateDraft, isTwoDayEvent } from "@/lib/certificates";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
@@ -46,6 +46,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
             : `${created.length} Zertifikate angelegt (je Kompetenzfeld).`,
       });
     } else {
+      // Bei 2-Tages-Schulungen je Teilnehmer zwei TN-Bescheinigungen.
+      const event = await prisma.event.findUnique({ where: { id: params.id } });
+      if (event && isTwoDayEvent(event)) {
+        const r1 = await createCertificateDraft({
+          participantId, type, createdById: s.uid, dayIndex: 1,
+        });
+        const r2 = await createCertificateDraft({
+          participantId, type, createdById: s.uid, dayIndex: 2,
+        });
+        return back(params.id, { ok: `Zwei Teilnahmebescheinigungen angelegt (Tag 1: ${r1.number}, Tag 2: ${r2.number}).` });
+      }
       const res = await createCertificateDraft({
         participantId,
         type,

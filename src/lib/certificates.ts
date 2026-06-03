@@ -25,7 +25,14 @@ function fmtDateLong(d: Date | null | undefined): string {
   });
 }
 
-function fmtEventDateLine(ev: { day1Date: Date | null; day2Date: Date | null; startTime: string | null; endTime: string | null }): string {
+function fmtEventDateLine(ev: { day1Date: Date | null; day2Date: Date | null; startTime: string | null; endTime: string | null }, dayIndex?: 1 | 2): string {
+  if (dayIndex) {
+    const d = dayIndex === 1 ? ev.day1Date : ev.day2Date;
+    if (!d) return "";
+    const datePart = fmtDateLong(d);
+    const timePart = ev.startTime && ev.endTime ? `, von ${ev.startTime} – ${ev.endTime} Uhr` : "";
+    return `${datePart}${timePart}`;
+  }
   const d1 = ev.day1Date ? new Date(ev.day1Date) : null;
   const d2 = ev.day2Date ? new Date(ev.day2Date) : null;
   let datePart = "";
@@ -50,6 +57,8 @@ export interface BuildCertificateDataArgs {
   event: Event & { training: Training };
   type: CertificateType;
   kompetenzfeldId?: string; // EIN Kompetenzfeld pro Zertifikat
+  /** Bei TN-Bescheinigungen fuer 2-Tages-Events: 1 oder 2 - waehlt Datum + Body. */
+  dayIndex?: 1 | 2;
   issuedAt?: Date;
 }
 
@@ -61,8 +70,9 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
   const validUntil = new Date(issued);
   validUntil.setMonth(validUntil.getMonth() + (texts.validityMonths ?? 24));
 
-  const eventDateLine = fmtEventDateLine(args.event);
-  const eventDateShort = fmtDateShort(args.event.day1Date);
+  const eventDateLine = fmtEventDateLine(args.event, args.dayIndex);
+  const dayDate = args.dayIndex === 2 ? args.event.day2Date : args.event.day1Date;
+  const eventDateShort = fmtDateShort(dayDate);
   const location = args.event.format === "WEBINAR"
     ? "Online-Webinar"
     : (args.event.location ?? "Leipzig");
@@ -87,7 +97,14 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
     kompetenzfeld,
     bodyText:
       args.type === "TEILNAHMEBESCHEINIGUNG"
-        ? (args.event.certTnBody?.trim() || defaults.tnBody || texts.tnDefaultBody || undefined)
+        ? (
+            (args.dayIndex === 2
+              ? args.event.certTnBodyDay2?.trim()
+              : args.event.certTnBody?.trim())
+            || defaults.tnBody
+            || texts.tnDefaultBody
+            || undefined
+          )
         : undefined,
   };
 }
@@ -115,6 +132,7 @@ export async function createCertificateDraft(args: {
   type: CertificateType;
   createdById: string;
   kompetenzfeldId?: string;
+  dayIndex?: 1 | 2;
 }): Promise<{ id: string; number: string; slug: string }> {
   const participant = await prisma.participant.findUnique({
     where: { id: args.participantId },
@@ -137,6 +155,7 @@ export async function createCertificateDraft(args: {
     event: participant.event,
     type: args.type,
     kompetenzfeldId: args.kompetenzfeldId,
+    dayIndex: args.dayIndex,
   });
 
   const cert = await prisma.certificate.create({
@@ -151,6 +170,11 @@ export async function createCertificateDraft(args: {
     },
   });
   return { id: cert.id, number, slug };
+}
+
+// True, wenn der Event zwei Tage hat -> dann je Teilnehmer zwei TN-Bescheinigungen.
+export function isTwoDayEvent(event: { day1Date: Date | null; day2Date: Date | null }): boolean {
+  return !!(event.day1Date && event.day2Date);
 }
 
 // Normalisiert das Snapshot-JSON. Aeltere Zertifikate (vor dem Layout-Rewrite)
