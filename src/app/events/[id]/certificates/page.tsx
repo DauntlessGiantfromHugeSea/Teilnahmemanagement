@@ -134,7 +134,7 @@ export default async function EventCertificatesPage({
                     ))}
                   </td>
                   {canWrite && (
-                    <td className="py-3 text-right space-y-1">
+                    <td className="py-3 text-right space-y-2">
                       {!tn && (
                         <form method="post" action={`/api/events/${ev.id}/certificates/create`} className="inline-block">
                           <input type="hidden" name="participantId" value={p.id} />
@@ -145,16 +145,39 @@ export default async function EventCertificatesPage({
                         </form>
                       )}
                       {!z && (
-                        <form method="post" action={`/api/events/${ev.id}/certificates/create`} className="block">
-                          <input type="hidden" name="participantId" value={p.id} />
-                          <input type="hidden" name="type" value="ZERTIFIKAT" />
-                          {KOMPETENZFELDER.filter((k) => defaultK.has(k.id)).map((k) => (
-                            <input key={k.id} type="hidden" name="kompetenz" value={k.id} />
-                          ))}
-                          <button className="text-xs text-brand-700 hover:underline">
-                            + Zertifikat
-                          </button>
-                        </form>
+                        <details className="text-left">
+                          <summary className="text-xs text-brand-700 hover:underline cursor-pointer list-none text-right">
+                            + Zertifikat (Kompetenzfelder wählen)
+                          </summary>
+                          <form
+                            method="post"
+                            action={`/api/events/${ev.id}/certificates/create`}
+                            className="mt-2 p-3 border-2 border-brand-200 rounded-lg bg-brand-50/40 space-y-2"
+                          >
+                            <input type="hidden" name="participantId" value={p.id} />
+                            <input type="hidden" name="type" value="ZERTIFIKAT" />
+                            <div className="text-xs font-semibold text-slate-600">
+                              Welche Kompetenzfelder bestätigen?
+                            </div>
+                            <div className="space-y-1 max-h-72 overflow-auto pr-1">
+                              {KOMPETENZFELDER.map((k) => (
+                                <label key={k.id} className="flex items-start gap-2 text-xs cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    name="kompetenz"
+                                    value={k.id}
+                                    defaultChecked={defaultK.has(k.id)}
+                                    className="mt-0.5 h-3.5 w-3.5 accent-brand-600"
+                                  />
+                                  <span><span className="font-medium">{k.label}</span></span>
+                                </label>
+                              ))}
+                            </div>
+                            <button className="btn-primary text-xs px-3 py-1.5 w-full">
+                              Zertifikat anlegen
+                            </button>
+                          </form>
+                        </details>
                       )}
                     </td>
                   )}
