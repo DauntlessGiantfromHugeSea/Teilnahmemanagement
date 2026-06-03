@@ -37,9 +37,10 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     return back({ error: "Mailversand ist nicht konfiguriert (SMTP fehlt)." });
   }
   const dec = decryptParticipant(cert.participant);
-  const email = dec.email;
-  if (!email) {
-    return back({ error: "Teilnehmer hat keine E-Mail-Adresse." });
+  const email = (dec.email ?? "").trim();
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email || !EMAIL_RE.test(email)) {
+    return back({ error: `Teilnehmer hat keine gültige E-Mail-Adresse: ${JSON.stringify(dec.email ?? "")}` });
   }
 
   const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");

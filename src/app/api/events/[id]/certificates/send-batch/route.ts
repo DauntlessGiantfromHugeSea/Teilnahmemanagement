@@ -36,12 +36,20 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
 
   const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
   const appName = process.env.APP_NAME ?? "Flüssigboden Akademie";
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   let sent = 0;
   let failed = 0;
+  const invalid: string[] = [];
   for (const cert of certs) {
     const dec = decryptParticipant(cert.participant);
-    const email = dec.email;
-    if (!email) { failed++; continue; }
+    const rawEmail = (dec.email ?? "").trim();
+    const email = rawEmail;
+    if (!email || !EMAIL_RE.test(email)) {
+      failed++;
+      invalid.push(`${dec.firstName ?? ""} ${dec.lastName ?? ""} (${cert.number})`.trim());
+      console.warn(`[cert send-batch] Ungültige E-Mail bei ${cert.number}: ${JSON.stringify(rawEmail)}`);
+      continue;
+    }
 
     const validateUrl = `${appUrl}/zertifikat/${cert.slug}`;
     const data = parseCertificateData(cert.data);
@@ -87,6 +95,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     }
   }
 
-  if (failed > 0) return back({ ok: `${sent} versendet, ${failed} fehlgeschlagen.` });
+  if (failed > 0) {
+    const detail = invalid.length > 0 ? ` Ungültige Adressen: ${invalid.slice(0, 5).join(", ")}${invalid.length > 5 ? " …" : ""}` : "";
+    return back({ ok: `${sent} versendet, ${failed} fehlgeschlagen.${detail}` });
+  }
   return back({ ok: `${sent} Mails versendet.` });
 }
