@@ -59,6 +59,16 @@ export default async function KompetenzfelderPage({
             label='Ausstellungszeile (Platzhalter {issuedAt})'
             defaultValue={texts.leipzigDateLabel}
           />
+          <Textarea
+            name="tnDefaultBody"
+            label="Teilnahmebescheinigung – Standard-Beschreibungstext"
+            defaultValue={texts.tnDefaultBody}
+            rows={6}
+          />
+          <p className="text-xs text-slate-500 -mt-2">
+            Wird auf Teilnahmebescheinigungen verwendet, wenn pro Veranstaltung kein eigener
+            Text gesetzt ist. Absätze durch Leerzeile trennen.
+          </p>
         </div>
         <button className="btn-primary">Allgemeine Texte speichern</button>
       </form>

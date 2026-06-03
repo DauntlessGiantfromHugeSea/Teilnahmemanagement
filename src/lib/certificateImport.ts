@@ -165,7 +165,13 @@ export async function importFromCsv(args: {
         const firstName = cell(row, h.get("vorname"));
         if (!lastName && !firstName) continue;
         const ausgestellt = parseDate(cell(row, h.get("ausgestellt_am")));
-        const gueltig = parseDate(cell(row, h.get("gueltig_bis")));
+        let gueltig = parseDate(cell(row, h.get("gueltig_bis")));
+        // Alle Zertifikate laufen standardmaessig nach 24 Monaten ab.
+        if (!gueltig && ausgestellt) {
+          const months = texts.validityMonths ?? 24;
+          gueltig = new Date(ausgestellt);
+          gueltig.setMonth(gueltig.getMonth() + months);
+        }
         const datumSchulung = parseDate(cell(row, h.get("datum_schulung")));
         const schulungsort = cell(row, h.get("schulungsort"));
         const kompetenzfeld = cell(row, h.get("kompetenzfeld"));

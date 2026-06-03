@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     bewertungLine: str("bewertungLine"),
     validityLine: str("validityLine"),
     leipzigDateLabel: str("leipzigDateLabel"),
+    tnDefaultBody: str("tnDefaultBody"),
   });
   return new NextResponse(null, {
     status: 303,

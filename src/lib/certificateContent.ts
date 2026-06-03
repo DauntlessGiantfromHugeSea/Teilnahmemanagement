@@ -85,6 +85,7 @@ export interface CertTexts {
   normLineForIds: string[];
   // TN-Bescheinigung
   tnTitle: string;                // "Teilnahmebescheinigung"
+  tnDefaultBody: string;          // globaler Standardtext, wenn pro Event nichts gesetzt
 }
 
 export const DEFAULT_CERT_TEXTS: CertTexts = {
@@ -102,6 +103,7 @@ export const DEFAULT_CERT_TEXTS: CertTexts = {
   geschaeftsfuehrerRole: "Geschäftsführer",
   normLineForIds: ["VIII"],
   tnTitle: "Teilnahmebescheinigung",
+  tnDefaultBody: "",
 };
 
 // Default-Inhalt fuer Teilnahmebescheinigungen. Pro Training via certDefaults

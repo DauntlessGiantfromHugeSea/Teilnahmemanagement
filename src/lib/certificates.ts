@@ -87,7 +87,7 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
     kompetenzfeld,
     bodyText:
       args.type === "TEILNAHMEBESCHEINIGUNG"
-        ? (args.event.certTnBody?.trim() || defaults.tnBody)
+        ? (args.event.certTnBody?.trim() || defaults.tnBody || texts.tnDefaultBody || undefined)
         : undefined,
   };
 }

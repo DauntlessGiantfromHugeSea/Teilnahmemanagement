@@ -67,6 +67,15 @@ export default async function ZertifikateImportPage({
           30–60 Sekunden dauern.
         </p>
       </form>
+
+      <form method="post" action="/api/admin/zertifikate/backfill-validity" className="mt-6 max-w-2xl">
+        <h2 className="font-semibold mb-1">Gültigkeit nachtragen</h2>
+        <p className="text-xs text-slate-500 mb-2">
+          Trägt für alle Zertifikate (Typ ZERTIFIKAT) ohne „gültig bis"-Datum automatisch
+          Ausstellungsdatum + 24 Monate nach. Bereits gesetzte Daten bleiben unverändert.
+        </p>
+        <button className="btn-secondary text-sm">24-Monats-Gültigkeit nachtragen</button>
+      </form>
     </Shell>
   );
 }
