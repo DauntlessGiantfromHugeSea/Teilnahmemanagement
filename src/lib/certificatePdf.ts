@@ -1,12 +1,12 @@
 // Rendert Zertifikat / Teilnahmebescheinigung als PDF.
 //
-// Die PDF wird komplett von Grund auf gezeichnet (pdf-lib), damit das Layout
-// pixelgenau der bestehenden Word-Vorlage entspricht. Hintergrund, Logo,
-// Footer-Adressblock und der rechte Markenstreifen werden hier erzeugt.
+// Hintergrund ist das offizielle FBA-Briefpapier in
+// public/cert-templates/fba-blank.pdf - Logo, Markenstreifen und
+// Adressblock kommen aus diesem PDF. Der Text wird drueber gelegt.
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFDocument, StandardFonts, rgb, degrees, type PDFFont, type PDFPage, type PDFImage } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { DEFAULT_CERT_TEXTS, type CertificateData, type CertificateType, type CertTexts } from "./certificateContent";
 
 const PAGE_W = 595;
@@ -16,17 +16,17 @@ const TEXT_LEFT = 70;
 const TEXT_RIGHT = 525;          // Platz fuer Markenstreifen rechts
 const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
 
-const BRAND = rgb(0.06, 0.46, 0.43); // teal #0f766e (FBA-Brand)
+const BRAND = rgb(0.06, 0.46, 0.43);     // teal #0f766e (FBA-Brand) - fuer Akzente
 const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
 
-let cachedLogo: ArrayBuffer | null = null;
-async function loadLogo(): Promise<ArrayBuffer> {
-  if (cachedLogo) return cachedLogo;
-  const p = path.join(process.cwd(), "public", "logo-fba.png");
+let cachedBlank: ArrayBuffer | null = null;
+async function loadBlank(): Promise<ArrayBuffer> {
+  if (cachedBlank) return cachedBlank;
+  const p = path.join(process.cwd(), "public", "cert-templates", "fba-blank.pdf");
   const buf = await readFile(p);
-  cachedLogo = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  return cachedLogo;
+  cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+  return cachedBlank;
 }
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
@@ -94,38 +94,6 @@ function drawText(ctx: DrawCtx, text: string, opts: DrawOpts = {}): void {
   if (opts.spaceAfter) ctx.y -= opts.spaceAfter;
 }
 
-function drawBrandFrame(page: PDFPage, font: PDFFont, bold: PDFFont) {
-  // Brandstreifen rechts
-  page.drawRectangle({
-    x: PAGE_W - 14, y: 0, width: 14, height: PAGE_H,
-    color: BRAND,
-  });
-  // Rotierter Brand-Text auf dem Streifen
-  page.drawText("Zertifikat Flüssigboden", {
-    x: PAGE_W - 8, y: 70,
-    size: 9, font, color: rgb(1, 1, 1), rotate: degrees(90),
-  });
-
-  // Footer-Adressblock (links)
-  page.drawText("Flüssigboden Akademie UG", { x: TEXT_LEFT, y: 70, size: 8, font: bold, color: COLOR_TEXT });
-  page.drawText("Merseburger Str. 189", { x: TEXT_LEFT, y: 58, size: 8, font, color: COLOR_MUTED });
-  page.drawText("04179 Leipzig", { x: TEXT_LEFT, y: 46, size: 8, font, color: COLOR_MUTED });
-  page.drawText("info@fb-akademie.de", { x: TEXT_LEFT, y: 34, size: 8, font, color: COLOR_MUTED });
-
-  // Footer-Adressblock (Mitte)
-  const midX = 260;
-  page.drawText("Geschäftsführer:", { x: midX, y: 58, size: 8, font, color: COLOR_MUTED });
-  page.drawText("M.Sc. Wolf-Hagen Stolzenburg", { x: midX, y: 46, size: 8, font, color: COLOR_TEXT });
-  page.drawText("www.fb-akademie.de", { x: midX, y: 34, size: 8, font, color: COLOR_MUTED });
-}
-
-function drawLogo(page: PDFPage, logo: PDFImage) {
-  // Logo oben links, ca. 130pt breit
-  const w = 130;
-  const h = (logo.height / logo.width) * w;
-  page.drawImage(logo, { x: TEXT_LEFT, y: PAGE_H - 30 - h, width: w, height: h });
-}
-
 function drawIdFooter(page: PDFPage, font: PDFFont, number: string, validateUrl: string) {
   // Validierung als kleine 2-Zeilen ueber dem Adress-Footer.
   page.drawText(`Nr. ${number}`, { x: TEXT_LEFT, y: 100, size: 7, font, color: COLOR_MUTED });
@@ -151,39 +119,48 @@ export async function renderCertificatePdf(args: {
   number: string;
   data: CertificateData;
   validateUrl: string;
-  /** Wenn true: nur die Text-Inhalte, kein Logo/Footer/Brandstreifen.
-   *  Fuer Druck auf vorgedrucktes Briefpapier. */
+  /** Wenn true: nur die Text-Inhalte ohne FBA-Briefpapier-Hintergrund.
+   *  Fuer Druck auf bereits vorgedrucktes Briefpapier. */
   noBackground?: boolean;
 }): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
+  let doc: PDFDocument;
+  let page: PDFPage;
+  if (args.noBackground) {
+    doc = await PDFDocument.create();
+    page = doc.addPage([PAGE_W, PAGE_H]);
+  } else {
+    // Briefpapier-PDF als Basis laden, dann auf der vorhandenen Seite ueberlagern
+    const blank = await loadBlank();
+    doc = await PDFDocument.load(blank);
+    page = doc.getPage(0);
+  }
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
 
-  const page = doc.addPage([PAGE_W, PAGE_H]);
-  if (!args.noBackground) {
-    const logoBytes = await loadLogo();
-    const logo = await doc.embedPng(logoBytes);
-    drawLogo(page, logo);
-    drawBrandFrame(page, font, bold);
-  }
+  // Wenn das Briefpapier verwendet wird, ist oben bereits "Zertifikat /
+  // Flüssigboden" aufgedruckt - wir starten den Textueberlag darunter.
+  const startY = args.noBackground ? PAGE_H - 120 : PAGE_H - 320;
+  const ctx: DrawCtx = { page, font, bold, italic, y: startY };
 
-  const ctx: DrawCtx = { page, font, bold, italic, y: PAGE_H - 200 };
+  if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number, !!args.noBackground);
+  else renderTeilnahme(ctx, args.data, args.number, !!args.noBackground);
 
-  if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number);
-  else renderTeilnahme(ctx, args.data, args.number);
-
-  if (!args.noBackground) {
-    drawIdFooter(page, font, args.number, args.validateUrl);
-  }
+  // Validierungs-Fuesschen wird IMMER gezeichnet (auch bei Briefpapier-Druck)
+  drawIdFooter(page, font, args.number, args.validateUrl);
   return doc.save();
 }
 
-function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
+function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, drawTitle: boolean) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
-  // Titel + Untertitel zentriert
-  drawText(ctx, t.title, { font: "bold", size: 30, align: "center", leading: 34, spaceAfter: 0 });
-  drawText(ctx, t.subtitle, { font: "bold", size: 16, align: "center", color: COLOR_TEXT, spaceAfter: 16 });
+  if (drawTitle) {
+    // Nur ohne Briefpapier zeichnen - sonst ist es schon aufgedruckt.
+    drawText(ctx, t.title, { font: "bold", size: 30, align: "center", leading: 34, spaceAfter: 0 });
+    drawText(ctx, t.subtitle, { font: "bold", size: 16, align: "center", color: COLOR_TEXT, spaceAfter: 16 });
+  } else {
+    // Auf dem Briefpapier nur den Untertitel "RSS Flüssigboden®" ueber dem Block
+    drawText(ctx, t.subtitle, { font: "bold", size: 14, align: "center", color: COLOR_TEXT, spaceAfter: 16 });
+  }
 
   // Optional Norm-Linie (wenn Kompetenzfeld in normLineForIds)
   if (d.kompetenzfeld && t.normLineForIds.includes(d.kompetenzfeld.id)) {
@@ -219,23 +196,23 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
 
   // Leipzig, den ...
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
-    size: 10, spaceAfter: 48,
+    size: 10, spaceAfter: 56,
   });
 
-  // Unterschriftslinie
-  ctx.page.drawLine({
-    start: { x: TEXT_LEFT, y: ctx.y + 4 },
-    end: { x: TEXT_LEFT + 220, y: ctx.y + 4 },
-    thickness: 0.4, color: COLOR_MUTED,
-  });
+  // Geschaeftsfuehrer (ohne Unterschriftslinie - Originalvorlage hat keine)
   drawText(ctx, t.geschaeftsfuehrer, { size: 10, font: "bold" });
   drawText(ctx, t.geschaeftsfuehrerRole, { size: 9, color: COLOR_MUTED });
 }
 
-function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
+function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string, drawTitle: boolean) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
-  drawText(ctx, t.tnTitle, { font: "bold", size: 26, align: "center", spaceAfter: 4 });
-  drawText(ctx, t.subtitle, { font: "bold", size: 14, align: "center", spaceAfter: 14 });
+  if (drawTitle) {
+    drawText(ctx, t.tnTitle, { font: "bold", size: 26, align: "center", spaceAfter: 4 });
+    drawText(ctx, t.subtitle, { font: "bold", size: 14, align: "center", spaceAfter: 14 });
+  } else {
+    drawText(ctx, t.tnTitle, { font: "bold", size: 18, align: "center", spaceAfter: 4 });
+    drawText(ctx, t.subtitle, { font: "bold", size: 13, align: "center", spaceAfter: 14 });
+  }
 
   drawText(ctx, `Nr. ${number}`, { size: 10, align: "center", color: COLOR_MUTED, spaceAfter: 26 });
 
@@ -255,14 +232,9 @@ function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
   }
 
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
-    size: 10, spaceAfter: 48,
+    size: 10, spaceAfter: 56,
   });
 
-  ctx.page.drawLine({
-    start: { x: TEXT_LEFT, y: ctx.y + 4 },
-    end: { x: TEXT_LEFT + 220, y: ctx.y + 4 },
-    thickness: 0.4, color: COLOR_MUTED,
-  });
   drawText(ctx, t.geschaeftsfuehrer, { size: 10, font: "bold" });
   drawText(ctx, t.geschaeftsfuehrerRole, { size: 9, color: COLOR_MUTED });
 }
