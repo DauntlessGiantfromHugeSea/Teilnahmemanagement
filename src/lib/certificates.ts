@@ -150,6 +150,47 @@ export async function createCertificateDraft(args: {
   return { id: cert.id, number, slug };
 }
 
+// Normalisiert das Snapshot-JSON. Aeltere Zertifikate (vor dem Layout-Rewrite)
+// hatten andere Felder (kompetenzfelder-Array statt kompetenzfeld, issuedDateLine
+// statt issuedDateShort, kein texts-Objekt). Fuer den Renderer hier abfangen.
 export function parseCertificateData(raw: string): CertificateData {
-  return JSON.parse(raw) as CertificateData;
+  const j = JSON.parse(raw) as any;
+
+  // Plural -> Singular
+  let kompetenzfeld = j.kompetenzfeld;
+  if (!kompetenzfeld && Array.isArray(j.kompetenzfelder) && j.kompetenzfelder.length > 0) {
+    kompetenzfeld = j.kompetenzfelder[0];
+  }
+
+  // Ausstellungs-Datum: aus issuedDateLine "Leipzig, am 18. März 2026" extrahieren,
+  // wenn keine issuedDateShort vorhanden ist.
+  let issuedDateShort = j.issuedDateShort;
+  if (!issuedDateShort && typeof j.issuedDateLine === "string") {
+    const m = j.issuedDateLine.match(/(\d{1,2})\.\s*([A-Za-zÄÖÜäöüß]+)\s+(\d{4})/);
+    if (m) {
+      const month = MONTHS.indexOf(m[2]);
+      if (month >= 0) {
+        const d = new Date(parseInt(m[3], 10), month, parseInt(m[1], 10));
+        issuedDateShort = d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+      }
+    }
+  }
+  if (!issuedDateShort) issuedDateShort = new Date().toLocaleDateString("de-DE");
+
+  return {
+    firstName: j.firstName ?? "",
+    lastName: j.lastName ?? "",
+    eventTitle: j.eventTitle ?? "",
+    trainingTitle: j.trainingTitle ?? j.eventTitle ?? "",
+    eventDateLine: j.eventDateLine ?? "",
+    eventDateShort: j.eventDateShort ?? "",
+    location: j.location ?? "",
+    texts: j.texts,
+    issuedDateShort,
+    validUntilShort: j.validUntilShort ?? "",
+    kompetenzfeld,
+    bodyText: j.bodyText,
+  };
 }
+
+const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];

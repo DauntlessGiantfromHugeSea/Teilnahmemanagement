@@ -51,6 +51,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       continue;
     }
 
+    try {
     const validateUrl = `${appUrl}/zertifikat/${cert.slug}`;
     const data = parseCertificateData(cert.data);
     const pdf = await renderCertificatePdf({
@@ -91,6 +92,10 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
         data: { sentAt: new Date(), sentTo: email },
       });
     } else {
+      failed++;
+    }
+    } catch (e: any) {
+      console.error(`[cert send-batch] Fehler bei ${cert.number}:`, e);
       failed++;
     }
   }

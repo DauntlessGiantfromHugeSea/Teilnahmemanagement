@@ -7,7 +7,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, degrees, type PDFFont, type PDFPage, type PDFImage } from "pdf-lib";
-import type { CertificateData, CertificateType, CertTexts } from "./certificateContent";
+import { DEFAULT_CERT_TEXTS, type CertificateData, type CertificateType, type CertTexts } from "./certificateContent";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -173,7 +173,7 @@ export async function renderCertificatePdf(args: {
 }
 
 function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
-  const t = d.texts;
+  const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
   // Titel + Untertitel zentriert
   drawText(ctx, t.title, { font: "bold", size: 30, align: "center", leading: 34, spaceAfter: 0 });
   drawText(ctx, t.subtitle, { font: "bold", size: 16, align: "center", color: COLOR_TEXT, spaceAfter: 16 });
@@ -203,10 +203,12 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
   // Bewertung
   drawText(ctx, t.bewertungLine, { size: 10, leading: 14, color: COLOR_TEXT, spaceAfter: 22 });
 
-  // Gueltig bis
-  drawText(ctx, tpl(t.validityLine, { validUntil: d.validUntilShort }), {
-    size: 11, font: "bold", spaceAfter: 18,
-  });
+  // Gueltig bis (nur wenn ein Datum gesetzt ist)
+  if (d.validUntilShort) {
+    drawText(ctx, tpl(t.validityLine, { validUntil: d.validUntilShort }), {
+      size: 11, font: "bold", spaceAfter: 18,
+    });
+  }
 
   // Leipzig, den ...
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
@@ -224,7 +226,7 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
 }
 
 function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
-  const t = d.texts;
+  const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
   drawText(ctx, t.tnTitle, { font: "bold", size: 26, align: "center", spaceAfter: 4 });
   drawText(ctx, t.subtitle, { font: "bold", size: 14, align: "center", spaceAfter: 14 });
 
