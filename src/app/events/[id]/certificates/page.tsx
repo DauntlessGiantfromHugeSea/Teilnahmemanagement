@@ -166,6 +166,28 @@ export default async function EventCertificatesPage({
                   </td>
                   {canWrite && (
                     <td className="py-3 text-right space-y-2">
+                      {(() => {
+                        const released = p.certificates.filter((c) => c.status === "RELEASED");
+                        const unsent = released.filter((c) => !c.sentAt);
+                        if (released.length === 0) return null;
+                        return (
+                          <form method="post" action={`/api/events/${ev.id}/certificates/send-participant`}>
+                            <input type="hidden" name="participantId" value={p.id} />
+                            <button
+                              className={
+                                "text-xs " +
+                                (unsent.length > 0
+                                  ? "text-brand-700 hover:underline"
+                                  : "text-slate-400 cursor-not-allowed")
+                              }
+                              disabled={unsent.length === 0}
+                              title={unsent.length === 0 ? "Alle bereits versendet" : ""}
+                            >
+                              📧 Alle freigegebenen senden ({unsent.length}/{released.length})
+                            </button>
+                          </form>
+                        );
+                      })()}
                       {!tn && (
                         <form method="post" action={`/api/events/${ev.id}/certificates/create`} className="inline-block">
                           <input type="hidden" name="participantId" value={p.id} />
