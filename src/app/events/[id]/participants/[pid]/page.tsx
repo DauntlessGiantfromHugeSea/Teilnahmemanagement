@@ -173,7 +173,22 @@ export default async function ParticipantDetail({
                     sichtbar (durchgestrichen) - taucht aber nicht mehr in
                     Anwesenheitslisten oder der Buchhaltung auf.
                   </p>
-                  <form method="post" action={`/api/participants/${p.id}/cancel`}>
+                  <form method="post" action={`/api/participants/${p.id}/cancel`} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Begründung (optional, erscheint in der Mail)
+                      </label>
+                      <textarea
+                        name="reason"
+                        rows={2}
+                        placeholder="z. B. Veranstaltung verschoben, anderer Termin angeboten …"
+                        className="input text-sm"
+                      />
+                    </div>
+                    <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                      <input type="checkbox" name="notify" defaultChecked className="mt-0.5 h-4 w-4 accent-brand-600" />
+                      <span>Teilnehmer per Mail über die Stornierung informieren</span>
+                    </label>
                     <button className="btn-danger text-sm w-full">Stornieren</button>
                   </form>
                 </>
