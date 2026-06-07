@@ -16,7 +16,9 @@ export function isEventManager(s: SessionPayload | null) {
 }
 
 export async function listAccessibleEventIds(s: SessionPayload): Promise<string[] | "ALL"> {
-  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING || s.role === Role.EVENTMANAGER) return "ALL";
+  // Admins und Buchhaltung sehen alles. EVENTMANAGER und EDITOR brauchen
+  // explizite Freigabe pro Veranstaltung (EventAccess).
+  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return "ALL";
   const grants = await prisma.eventAccess.findMany({
     where: { userId: s.uid },
     select: { eventId: true },
@@ -25,7 +27,7 @@ export async function listAccessibleEventIds(s: SessionPayload): Promise<string[
 }
 
 export async function canViewEvent(s: SessionPayload, eventId: string): Promise<boolean> {
-  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING || s.role === Role.EVENTMANAGER) return true;
+  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return true;
   const g = await prisma.eventAccess.findUnique({
     where: { eventId_userId: { eventId, userId: s.uid } },
   });
@@ -33,12 +35,17 @@ export async function canViewEvent(s: SessionPayload, eventId: string): Promise<
 }
 
 export async function canWriteEvent(s: SessionPayload, eventId: string): Promise<boolean> {
-  if (s.role === Role.ADMIN || s.role === Role.EVENTMANAGER) return true;
+  if (s.role === Role.ADMIN) return true;
   if (s.role === Role.EDITOR) {
+    // Bestehendes Verhalten: Editoren duerfen alles schreiben.
+    return true;
+  }
+  if (s.role === Role.EVENTMANAGER) {
+    // Nur Veranstaltungen, die der Admin explizit freigegeben hat.
     const g = await prisma.eventAccess.findUnique({
       where: { eventId_userId: { eventId, userId: s.uid } },
     });
-    return !!g?.canWrite || true; // Editors dürfen grundsätzlich schreiben
+    return !!g?.canWrite;
   }
   return false;
 }

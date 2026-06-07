@@ -20,7 +20,7 @@ const ROLE_INFO: Record<Role, { label: string; desc: string }> = {
   },
   EVENTMANAGER: {
     label: "Event-Manager",
-    desc: "Vollzugriff auf alle Veranstaltungen, Agenda, Event-Portal, Feedback, Zertifikate. Kein Admin-Bereich, keine Buchhaltung.",
+    desc: "Bearbeitet nur die Veranstaltungen, die der Admin in den Zugriffen explizit freigegeben hat (Agenda, Portal, Feedback, Zertifikate, Anwesenheit). Kein Admin-Bereich, keine Buchhaltung.",
   },
   ACCOUNTING: {
     label: "Buchhaltung",
