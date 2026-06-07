@@ -25,6 +25,7 @@ const ADMIN = [
   { id: "import", href: "/admin/import", label: "Import (CSV)" },
   { id: "settings", href: "/admin/settings", label: "Einstellungen" },
   { id: "zertifikate", href: "/admin/zertifikate", label: "Alle Zertifikate" },
+  { id: "staff-badges", href: "/admin/staff-badges", label: "Mitarbeiter-Badges" },
   { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
   { id: "feedback-fragen", href: "/admin/feedback-fragen", label: "Feedback-Fragen" },
 ];
