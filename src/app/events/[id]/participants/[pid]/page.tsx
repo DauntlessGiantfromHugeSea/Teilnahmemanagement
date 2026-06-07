@@ -32,11 +32,21 @@ export default async function ParticipantDetail({
   const base = basePriceCents(p.event.training, p.dayOption);
   const final = finalPriceCents(base, p.discountBps);
 
-  // Andere Veranstaltungen für Umbuchung (nur die, auf die der User schreiben darf)
+  // Andere Veranstaltungen für Umbuchung — nur aktive (nicht abgesagt,
+  // Datum heute oder in der Zukunft).
+  const today0 = new Date();
+  today0.setHours(0, 0, 0, 0);
   const otherEvents = canWrite
     ? await prisma.event.findMany({
-        where: { id: { not: p.eventId } },
-        orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
+        where: {
+          id: { not: p.eventId },
+          cancelled: false,
+          OR: [
+            { day1Date: { gte: today0 } },
+            { day1Date: null },
+          ],
+        },
+        orderBy: [{ day1Date: "asc" }, { createdAt: "asc" }],
         include: { training: true },
         take: 200,
       })
