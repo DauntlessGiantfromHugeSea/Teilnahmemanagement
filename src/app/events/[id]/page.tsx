@@ -178,6 +178,10 @@ export default async function EventDetail({ params }: { params: { id: string } }
           {canWrite && (
             <Link href={`/events/${ev.id}/mailing`} className="btn-secondary">Rundmail</Link>
           )}
+          {canWrite && (
+            <Link href={`/events/${ev.id}/agenda`} className="btn-secondary">Agenda</Link>
+          )}
+          <a href={`/portal/${ev.id}`} target="_blank" className="btn-secondary">Portal ↗</a>
           {isAdmin(s) && (
             <Link href={`/events/${ev.id}/access`} className="btn-secondary">Zugriffe</Link>
           )}
