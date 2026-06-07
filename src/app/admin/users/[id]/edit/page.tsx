@@ -18,6 +18,10 @@ const ROLE_INFO: Record<Role, { label: string; desc: string }> = {
     label: "Bearbeiter",
     desc: "Veranstaltungen und Teilnehmer anlegen/bearbeiten. Kein Admin-Bereich.",
   },
+  EVENTMANAGER: {
+    label: "Event-Manager",
+    desc: "Vollzugriff auf alle Veranstaltungen, Agenda, Event-Portal, Feedback, Zertifikate. Kein Admin-Bereich, keine Buchhaltung.",
+  },
   ACCOUNTING: {
     label: "Buchhaltung",
     desc: "Buchhaltungs-Ansicht und Rechnungsstatus. Kann alle Veranstaltungen sehen.",

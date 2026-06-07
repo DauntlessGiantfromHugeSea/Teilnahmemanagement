@@ -17,6 +17,7 @@ datasource db {
 enum Role {
   ADMIN
   EDITOR
+  EVENTMANAGER   // darf Veranstaltungen + Agenda + Event-Portal bearbeiten, keine Buchhaltung
   ACCOUNTING
   VIEWER
 }
@@ -163,6 +164,44 @@ model Event {
   participants Participant[]
   grants       EventAccess[]
   feedbackInvites FeedbackInvite[]
+  agendaItems EventAgendaItem[]
+  portalBlocks EventPortalBlock[]
+}
+
+// Agenda-Eintrag fuer eine Schulung. Sortierung ueber 'position'; aktuell
+// laufender Eintrag wird im Portal hervorgehoben.
+model EventAgendaItem {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  day         Int      @default(1)        // 1 oder 2
+  startTime   String                       // "09:00"
+  endTime     String?                      // "10:30"
+  title       String
+  description String?                      // Mehrzeilig moeglich
+  speaker     String?
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([eventId])
+}
+
+// Freie Inhalts-Blocks fuer das oeffentliche Event-Portal (WLAN, Abendveranstaltung,
+// Hinweise, ...). Der Admin entscheidet pro Event welche Blocks angelegt sind.
+model EventPortalBlock {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  icon      String?                       // optionaler Icon-Key (wifi, food, info, contact, ...)
+  title     String
+  body      String                         // Plaintext, Absaetze durch Leerzeilen
+  position  Int      @default(0)
+  visible   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([eventId])
 }
 
 // Pro-Event-Zugriff fuer User (zusaetzlich zur Rolle)

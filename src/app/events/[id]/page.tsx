@@ -182,18 +182,41 @@ export default async function EventDetail({ params }: { params: { id: string } }
             <Link href={`/events/${ev.id}/access`} className="btn-secondary">Zugriffe</Link>
           )}
           {canWrite && (
-            <form method="post" action={`/api/events/${ev.id}/cancel`} className="inline">
-              <input type="hidden" name="mode" value={ev.cancelled ? "reactivate" : "cancel"} />
-              <button
+            <details className="inline-block">
+              <summary
                 className={
                   ev.cancelled
-                    ? "btn-secondary"
-                    : "btn-secondary text-amber-700 border-amber-200 hover:bg-amber-50"
+                    ? "btn-secondary cursor-pointer list-none"
+                    : "btn-secondary text-amber-700 border-amber-200 hover:bg-amber-50 cursor-pointer list-none"
                 }
               >
                 {ev.cancelled ? "Absage zurücknehmen" : "Veranstaltung absagen"}
-              </button>
-            </form>
+              </summary>
+              <form
+                method="post"
+                action={`/api/events/${ev.id}/cancel`}
+                className="mt-2 p-3 border border-amber-200 bg-amber-50 rounded-lg space-y-2 w-[320px]"
+              >
+                <input type="hidden" name="mode" value={ev.cancelled ? "reactivate" : "cancel"} />
+                {!ev.cancelled && (
+                  <>
+                    <textarea
+                      name="reason"
+                      rows={2}
+                      placeholder="Grund (optional, erscheint in der Mail)"
+                      className="input text-sm"
+                    />
+                    <label className="flex items-start gap-2 text-xs text-slate-700">
+                      <input type="checkbox" name="notify" defaultChecked className="mt-0.5 h-4 w-4 accent-brand-600" />
+                      <span>Alle Teilnehmer per Mail informieren</span>
+                    </label>
+                  </>
+                )}
+                <button className="btn-primary text-sm w-full">
+                  {ev.cancelled ? "Absage zurücknehmen" : "Jetzt absagen"}
+                </button>
+              </form>
+            </details>
           )}
           {canWrite && ev.cancelled && (
             <DeleteEventButton eventId={ev.id} title={ev.title} />

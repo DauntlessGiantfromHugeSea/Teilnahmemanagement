@@ -6,14 +6,17 @@ export function isAdmin(s: SessionPayload | null) {
   return s?.role === Role.ADMIN;
 }
 export function canWriteGlobal(s: SessionPayload | null) {
-  return s?.role === Role.ADMIN || s?.role === Role.EDITOR;
+  return s?.role === Role.ADMIN || s?.role === Role.EDITOR || s?.role === Role.EVENTMANAGER;
 }
 export function isAccounting(s: SessionPayload | null) {
   return s?.role === Role.ADMIN || s?.role === Role.ACCOUNTING;
 }
+export function isEventManager(s: SessionPayload | null) {
+  return s?.role === Role.ADMIN || s?.role === Role.EVENTMANAGER;
+}
 
 export async function listAccessibleEventIds(s: SessionPayload): Promise<string[] | "ALL"> {
-  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return "ALL";
+  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING || s.role === Role.EVENTMANAGER) return "ALL";
   const grants = await prisma.eventAccess.findMany({
     where: { userId: s.uid },
     select: { eventId: true },
@@ -22,7 +25,7 @@ export async function listAccessibleEventIds(s: SessionPayload): Promise<string[
 }
 
 export async function canViewEvent(s: SessionPayload, eventId: string): Promise<boolean> {
-  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return true;
+  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING || s.role === Role.EVENTMANAGER) return true;
   const g = await prisma.eventAccess.findUnique({
     where: { eventId_userId: { eventId, userId: s.uid } },
   });
@@ -30,7 +33,7 @@ export async function canViewEvent(s: SessionPayload, eventId: string): Promise<
 }
 
 export async function canWriteEvent(s: SessionPayload, eventId: string): Promise<boolean> {
-  if (s.role === Role.ADMIN) return true;
+  if (s.role === Role.ADMIN || s.role === Role.EVENTMANAGER) return true;
   if (s.role === Role.EDITOR) {
     const g = await prisma.eventAccess.findUnique({
       where: { eventId_userId: { eventId, userId: s.uid } },

@@ -22,6 +22,7 @@ interface Props {
 const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "Administrator",
   EDITOR: "Schreibrechte",
+  EVENTMANAGER: "Event-Manager",
   ACCOUNTING: "Buchhaltung",
   VIEWER: "Leserechte",
 };
