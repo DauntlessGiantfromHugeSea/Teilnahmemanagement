@@ -42,11 +42,19 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const logoUrl = process.env.BADGE_LOGO_URL || process.env.MAIL_LOGO_URL || "";
   const logo = await loadLogoBuffer(logoUrl);
 
+  // QR-Rueckseite zum Schulungs-Portal (optional per ?qr=0 ausschalten)
+  const wantQr = url.searchParams.get("qr") !== "0";
+  const flip = url.searchParams.get("flip") === "short" ? "short" : "long";
+  const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
+  const portalUrl = wantQr && appUrl ? `${appUrl}/portal/${ev.id}` : undefined;
+
   const pdf = await renderBadgePdf({
     template: tpl,
     items,
     logoBuffer: logo,
     eventTitle: ev.title,
+    portalUrl,
+    duplexFlip: flip,
   });
 
   const safeTitle = ev.title.replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 60);

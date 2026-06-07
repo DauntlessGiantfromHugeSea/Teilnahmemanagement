@@ -158,6 +158,9 @@ export default async function EventDetail({ params }: { params: { id: string } }
                   </div>
                 </a>
               ))}
+              <div className="px-3 py-2 text-[11px] text-slate-400 border-t border-slate-100 mt-1">
+                Jede Vorderseite bekommt eine Rückseite mit QR-Code zum Schulungs-Portal — duplex drucken (Bindung lange Seite).
+              </div>
             </div>
           </details>
           {canWrite && (

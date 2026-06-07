@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import QRCode from "qrcode";
 import type { BadgeTemplate } from "./badgeTemplates";
 
 const MM_TO_PT = 2.834645669;
@@ -14,6 +15,11 @@ interface BadgePdfOptions {
   logoBuffer?: Buffer | null;   // optional, oben links
   brandColor?: [number, number, number]; // Default tuerkis
   eventTitle?: string;          // fuer Logging/Header optional
+  /** Wenn gesetzt: nach jeder Vorderseite eine Rueckseite mit QR-Code zum Portal.
+   *  Empfehlenswert um die Bogen duplex zu drucken. */
+  portalUrl?: string;
+  /** Duplex-Flip-Achse - 'long' (Standard, mirror Spalten) oder 'short' (mirror Reihen). */
+  duplexFlip?: "long" | "short";
 }
 
 // Logo wird einmalig per HTTP geladen und im Speicher gecached.
@@ -64,6 +70,25 @@ function findUniformFontSize(
 export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
   const { template: t, items, logoBuffer } = opts;
   const brand = opts.brandColor ?? [0, 126, 128];
+  const portalUrl = opts.portalUrl?.trim() || "";
+  const duplexFlip = opts.duplexFlip ?? "long";
+
+  // QR-Code einmal vorab als PNG-Buffer rendern. Format: hohe Aufloesung
+  // (margin=1, errorCorrectionLevel=M) - reicht fuer ~3cm-Druckgroesse.
+  let qrPng: Buffer | null = null;
+  if (portalUrl) {
+    try {
+      qrPng = await QRCode.toBuffer(portalUrl, {
+        type: "png",
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: 600,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      });
+    } catch {
+      qrPng = null;
+    }
+  }
 
   const pageW = t.page.w * MM_TO_PT;
   const pageH = t.page.h * MM_TO_PT;
@@ -136,12 +161,47 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
     }
   }
 
+  // QR-Rueckseite: rendert in jede Zelle einen QR-Code. Spalten oder Reihen
+  // werden je nach Duplex-Flip-Achse gespiegelt, damit der QR-Code physisch
+  // hinter dem zugehoerigen Namensschild landet.
+  function drawQrCell(x: number, y: number, hasItem: boolean) {
+    if (!qrPng || !hasItem) return;
+    const padX = 6 * MM_TO_PT;
+    const padY = 5 * MM_TO_PT;
+    const maxW = labelW - 2 * padX;
+    const maxH = labelH - 2 * padY - 7 * MM_TO_PT; // Platz fuer Untertext
+    const size = Math.min(maxW, maxH);
+    const qrX = x + (labelW - size) / 2;
+    const qrY = y + padY;
+    try {
+      doc.image(qrPng, qrX, qrY, { fit: [size, size] });
+    } catch {
+      // ignore
+    }
+    // Untertitel
+    doc.save();
+    doc.font("Helvetica-Bold").fontSize(7).fillColor("#0f172a");
+    doc.text("Schulungs-Portal", x + 4 * MM_TO_PT, qrY + size + 1.5 * MM_TO_PT, {
+      width: labelW - 2 * (4 * MM_TO_PT),
+      align: "center",
+      lineBreak: false,
+    });
+    doc.font("Helvetica").fontSize(6).fillColor("#64748b");
+    doc.text("QR scannen für Agenda & Infos", x + 4 * MM_TO_PT, qrY + size + 4.5 * MM_TO_PT, {
+      width: labelW - 2 * (4 * MM_TO_PT),
+      align: "center",
+      lineBreak: false,
+    });
+    doc.restore();
+  }
+
   // Suppress unused var lint
   void innerPad;
   void brand;
 
   for (let i = 0; i < Math.max(1, items.length); i += perPage) {
     if (i > 0) doc.addPage({ size: [pageW, pageH], margins: { top: 0, left: 0, right: 0, bottom: 0 } });
+    // Vorderseite
     for (let cell = 0; cell < perPage; cell++) {
       const idx = i + cell;
       const col = cell % t.cols;
@@ -149,6 +209,20 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
       const x = marginL + col * (labelW + colGap);
       const y = marginT + row * (labelH + rowGap);
       drawBadge(x, y, items[idx] ?? null);
+    }
+    // Rueckseite (nur wenn QR-Code aktiviert)
+    if (qrPng) {
+      doc.addPage({ size: [pageW, pageH], margins: { top: 0, left: 0, right: 0, bottom: 0 } });
+      for (let cell = 0; cell < perPage; cell++) {
+        const idx = i + cell;
+        const col = cell % t.cols;
+        const row = Math.floor(cell / t.cols);
+        const mirroredCol = duplexFlip === "long" ? (t.cols - 1 - col) : col;
+        const mirroredRow = duplexFlip === "short" ? (t.rows - 1 - row) : row;
+        const x = marginL + mirroredCol * (labelW + colGap);
+        const y = marginT + mirroredRow * (labelH + rowGap);
+        drawQrCell(x, y, !!items[idx]);
+      }
     }
   }
 
