@@ -77,6 +77,9 @@ model User {
   totpSecret    String?   // verschluesselt
   totpEnabled   Boolean   @default(false)
   totpRequired  Boolean   @default(true)  // false = Login auch ohne 2FA erlaubt
+  // Microsoft / Entra ID Single-Sign-On
+  msOid         String?   @unique  // stabile MS Object-ID nach erstem Login
+  msTenantId    String?   // MS Tenant-ID (Whitelist via MS_TENANT_ID)
   recoveryCodes String?   // verschluesselt, JSON-Array
   // 2FA per E-Mail (Code)
   emailCodeEnabled  Boolean   @default(false)

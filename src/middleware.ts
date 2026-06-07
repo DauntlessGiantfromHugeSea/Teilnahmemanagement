@@ -7,6 +7,7 @@ const PUBLIC = [
   /^\/api\/auth\/.*/,
   /^\/api\/public\/.*/,
   /^\/anmeldung(\/.*)?$/,
+  /^\/api\/auth\/microsoft\/.+$/,
   /^\/zertifikat(\/.+)?$/,
   /^\/api\/zertifikat\/.+$/,
   /^\/meine-zertifikate(\/.*)?$/,

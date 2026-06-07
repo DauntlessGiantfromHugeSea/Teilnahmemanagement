@@ -46,6 +46,27 @@ export default async function LoginPage({
           </div>
           <button className="btn-primary w-full">Weiter</button>
         </form>
+        {process.env.MS_CLIENT_ID && (
+          <>
+            <div className="flex items-center my-5">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="px-3 text-xs uppercase tracking-wider text-slate-400">oder</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+            <a
+              href="/api/auth/microsoft/start"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800"
+            >
+              <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden>
+                <rect width="10" height="10" x="1" y="1" fill="#f25022" />
+                <rect width="10" height="10" x="12" y="1" fill="#7fba00" />
+                <rect width="10" height="10" x="1" y="12" fill="#00a4ef" />
+                <rect width="10" height="10" x="12" y="12" fill="#ffb900" />
+              </svg>
+              Mit Microsoft anmelden
+            </a>
+          </>
+        )}
         <p className="mt-6 text-xs text-slate-400 text-center">
           Bei Problemen wende dich an deinen Administrator.
         </p>
