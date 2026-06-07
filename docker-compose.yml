@@ -57,6 +57,13 @@ services:
       MAIL_LOGO_URL: ${MAIL_LOGO_URL:-}
       MAIL_BRAND_COLOR: ${MAIL_BRAND_COLOR:-#0f766e}
       MAIL_FOOTER_LINE: ${MAIL_FOOTER_LINE:-}
+      # Microsoft / Entra ID Single-Sign-On (optional). Wenn alle drei leer
+      # sind, ist der Login-Button "Mit Microsoft anmelden" deaktiviert.
+      # Redirect-URI in der Entra App-Registrierung muss exakt
+      # APP_URL + "/api/auth/microsoft/callback" sein.
+      MS_TENANT_ID: ${MS_TENANT_ID:-}
+      MS_CLIENT_ID: ${MS_CLIENT_ID:-}
+      MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
       # Iframe-Embedding der oeffentlichen Anmeldeseiten
       IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de}
       NODE_ENV: production
