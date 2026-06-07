@@ -50,13 +50,22 @@ export default async function AgendaAdminPage({
       </div>
       <div className="flex items-baseline flex-wrap justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Agenda</h1>
-        <a
-          href={`/portal/${ev.id}`}
-          target="_blank"
-          className="text-sm text-brand-700 hover:underline"
-        >
-          Live-Ansicht öffnen ↗
-        </a>
+        <div className="flex items-center gap-4">
+          <a
+            href={`/api/events/${ev.id}/agenda/pdf`}
+            target="_blank"
+            className="text-sm text-brand-700 hover:underline"
+          >
+            A3-Plakat (PDF) ↓
+          </a>
+          <a
+            href={`/portal/${ev.id}`}
+            target="_blank"
+            className="text-sm text-brand-700 hover:underline"
+          >
+            Live-Ansicht öffnen ↗
+          </a>
+        </div>
       </div>
       <p className="text-sm text-slate-500 mb-5 max-w-3xl">
         Pro Tag <strong>Startzeit des ersten Eintrags</strong> setzen, dann nur noch
