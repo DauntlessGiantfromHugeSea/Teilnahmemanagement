@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
+import { prisma } from "@/lib/db";
 import { getBadgeTemplate, BADGE_TEMPLATES } from "@/lib/badgeTemplates";
 import { renderBadgePdf, loadLogoBuffer, type BadgeItem } from "@/lib/badgePdf";
 import { getOrCreateStaffPortalToken } from "@/lib/staffPortalToken";
@@ -12,36 +13,36 @@ export async function POST(req: Request) {
   if (!s || !isAdmin(s)) return new NextResponse("Forbidden", { status: 403 });
 
   const f = await req.formData();
-  const raw = String(f.get("names") ?? "").trim();
-  const defaultCompany = String(f.get("company") ?? "").trim();
   const templateId = String(f.get("template") ?? BADGE_TEMPLATES[0].id);
   const tpl = getBadgeTemplate(templateId);
   if (!tpl) return new NextResponse("Unbekannte Vorlage", { status: 400 });
 
-  // Format pro Zeile: "Vorname Nachname" oder "Vorname Nachname | Untertitel".
-  // Wenn kein Untertitel angegeben ist, wird die im Dropdown gewaehlte Firma
-  // verwendet.
-  const items: BadgeItem[] = raw
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const [name, ...rest] = line.split("|");
-      const subtitle = rest.join("|").trim();
-      return {
-        name: name.trim(),
-        company: subtitle || defaultCompany || undefined,
-      };
-    });
+  const staffId = String(f.get("staffId") ?? "").trim();
+  const scope = String(f.get("scope") ?? "active");
 
-  if (items.length === 0) return new NextResponse("Keine Namen angegeben", { status: 400 });
+  // Auswahl: einzelner Mitarbeiter (Reprint-Knopf in der Liste) oder Liste.
+  let staff;
+  if (staffId) {
+    staff = await prisma.staff.findMany({ where: { id: staffId } });
+  } else {
+    staff = await prisma.staff.findMany({
+      where: scope === "all" ? {} : { active: true },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    });
+  }
+  if (staff.length === 0) {
+    return new NextResponse("Keine Mitarbeiter zum Drucken vorhanden.", { status: 400 });
+  }
+
+  const items: BadgeItem[] = staff.map((m) => ({
+    name: `${m.firstName} ${m.lastName}`.trim(),
+    company: m.subtitle?.trim() || m.company,
+  }));
 
   const logoUrl = process.env.BADGE_LOGO_URL || process.env.MAIL_LOGO_URL || "";
   const logo = await loadLogoBuffer(logoUrl);
   const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
   const token = await getOrCreateStaffPortalToken();
-  // QR zeigt auf den Token-geschuetzten Portal-Picker. Damit kommt nicht jeder
-  // zufaellig drauf, der die Basis-URL kennt.
   const portalUrl = appUrl ? `${appUrl}/portal/staff/${token}` : undefined;
 
   const pdf = await renderBadgePdf({
