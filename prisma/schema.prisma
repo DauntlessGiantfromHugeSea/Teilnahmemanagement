@@ -152,6 +152,8 @@ model Event {
   certTnBody      String?   // Plaintext, Absaetze durch Leerzeile (Tag 1 bzw. Eintagesseminar)
   // Bei 2-Tages-Schulungen ein separater Body fuer die zweite Bescheinigung.
   certTnBodyDay2  String?
+  // Wurde die 24h-Erinnerungsmail (mit Portal-Link) verschickt?
+  reminder24hSentAt DateTime?
   // Pro-Event-Override fuer den Feedback-Fragebogen (JSON-Array). Wenn leer,
   // gilt der globale Standard aus AppSetting 'feedbackQuestions'.
   feedbackQuestions String?

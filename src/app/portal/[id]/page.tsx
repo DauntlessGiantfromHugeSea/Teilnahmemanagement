@@ -74,32 +74,36 @@ export default async function EventPortalPage({ params }: { params: { id: string
       <header className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900" />
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
-        <div className="relative max-w-2xl mx-auto px-4 pt-10 pb-16 text-white">
+        <div className="relative max-w-2xl mx-auto px-4 pt-8 pb-8 sm:pt-10 sm:pb-10 text-white">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-fba.png" alt="FB-Akademie" className="h-9 w-auto mb-6 bg-white/95 rounded-lg p-1.5 shadow inline-block" />
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-xs font-semibold uppercase tracking-wide mb-3">
+          <img
+            src="https://fluessigbodenakademie.de/wp-content/uploads/2024/12/fba.png"
+            alt="Flüssigboden Akademie"
+            className="h-10 sm:h-11 w-auto mb-5"
+          />
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider mb-3">
             Schulungs-Portal
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold leading-tight drop-shadow-sm">{ev.title}</h1>
-          <div className="mt-4 space-y-1.5 text-sm text-white/90">
-            <div className="flex items-center gap-2">
-              <CalendarSvg />
-              <span>
+          <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{ev.title}</h1>
+          <div className="mt-3 space-y-1.5 text-sm text-white/90">
+            <div className="flex items-start gap-2">
+              <span className="mt-0.5"><CalendarSvg /></span>
+              <span className="leading-snug">
                 {isTwoDay ? <>{fmtDateLong(d1)} <span className="opacity-70">und</span> {fmtDateLong(d2)}</> : fmtDateLong(d1)}
                 {ev.startTime && ev.endTime && <> · {ev.startTime}–{ev.endTime} Uhr</>}
               </span>
             </div>
             {ev.location && (
-              <div className="flex items-center gap-2">
-                <PortalIcon icon="location" className="text-white" />
-                <span>{ev.location}</span>
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5"><PortalIcon icon="location" className="text-white" /></span>
+                <span className="leading-snug">{ev.location}</span>
               </div>
             )}
           </div>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4 -mt-10 pb-12 space-y-6">
+      <div className="max-w-2xl mx-auto px-3 sm:px-4 py-6 space-y-5">
         {/* JETZT-Karte */}
         {liveItem && (
           <section className="relative rounded-2xl border border-brand-200 bg-white p-5 shadow-lg shadow-brand-900/5">
@@ -151,16 +155,16 @@ export default async function EventPortalPage({ params }: { params: { id: string
 
         {/* Programm */}
         {ev.agendaItems.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900">Programm</h2>
-              <span className="text-xs text-slate-400">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900">Programm</h2>
+              <span className="text-[11px] uppercase tracking-wider text-slate-400">
                 {nowState === "before" ? "vor Beginn" : nowState === "after" ? "abgeschlossen" : "läuft"}
               </span>
             </div>
             <AgendaList items={day1Items} title={isTwoDay ? "Tag 1" : undefined} liveId={liveItem?.id ?? null} />
             {isTwoDay && (
-              <div className="mt-6 pt-6 border-t border-slate-200">
+              <div className="mt-5 pt-5 border-t border-slate-200">
                 <AgendaList items={day2Items} title="Tag 2" liveId={liveItem?.id ?? null} />
               </div>
             )}
@@ -215,30 +219,31 @@ function AgendaList({
       {title && (
         <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{title}</h3>
       )}
-      <ol className="relative space-y-1">
-        <div className="absolute left-[40px] top-2 bottom-2 w-px bg-slate-200" aria-hidden />
+      <ol className="relative">
+        {/* Timeline-Linie - laeuft durch die Mitte der Dots */}
+        <div className="absolute left-[7px] top-3 bottom-3 w-px bg-slate-200" aria-hidden />
         {items.map((it) => {
           const isLive = liveId === it.id;
           return (
-            <li key={it.id} className="relative pl-12">
+            <li key={it.id} className="relative pl-6 py-1.5 first:pt-0 last:pb-0">
               <div
                 className={
-                  "absolute left-[34px] top-3 w-3.5 h-3.5 rounded-full border-2 " +
+                  "absolute left-0 top-3 w-3.5 h-3.5 rounded-full border-2 " +
                   (isLive ? "border-brand-600 bg-brand-500 ring-4 ring-brand-100" : "border-slate-300 bg-white")
                 }
                 aria-hidden
               />
               <div
                 className={
-                  "rounded-xl px-3 py-2 " +
-                  (isLive ? "bg-brand-50 border border-brand-200" : "hover:bg-slate-50")
+                  "rounded-lg px-3 py-2 " +
+                  (isLive ? "bg-brand-50 border border-brand-200" : "")
                 }
               >
-                <div className="flex items-baseline gap-2">
-                  <span className={"font-mono text-sm shrink-0 " + (isLive ? "text-brand-700 font-semibold" : "text-slate-500")}>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className={"font-mono text-xs sm:text-sm shrink-0 tabular-nums " + (isLive ? "text-brand-700 font-semibold" : "text-slate-500")}>
                     {it.startTime}{it.endTime ? `–${it.endTime}` : ""}
                   </span>
-                  <span className={"font-medium " + (isLive ? "text-slate-900" : "text-slate-800")}>{it.title}</span>
+                  <span className={"font-medium text-sm sm:text-base " + (isLive ? "text-slate-900" : "text-slate-800")}>{it.title}</span>
                 </div>
                 {it.speaker && <div className="text-xs text-slate-500 mt-0.5">{it.speaker}</div>}
                 {it.description && (

@@ -24,7 +24,13 @@ function dayLabel(d: DayOption) {
   return d === "DAY_1" ? "Tag 1" : d === "DAY_2" ? "Tag 2" : "Beide Tage";
 }
 
-export default async function EventDetail({ params }: { params: { id: string } }) {
+export default async function EventDetail({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { ok?: string; error?: string };
+}) {
   const s = await getSession();
   if (!s) redirect("/login");
   if (!(await canViewEvent(s, params.id))) redirect("/events");
@@ -49,6 +55,12 @@ export default async function EventDetail({ params }: { params: { id: string } }
 
   return (
     <Shell session={s} active="events">
+      {searchParams.ok && (
+        <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>
+      )}
+      {searchParams.error && (
+        <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>
+      )}
       <div className="mb-4">
         <Link href="/events" className="text-sm text-slate-500 hover:text-slate-800 hover:underline">
           ← Zurück zur Übersicht
@@ -188,6 +200,13 @@ export default async function EventDetail({ params }: { params: { id: string } }
             <Link href={`/events/${ev.id}/portal`} className="btn-secondary">Portal-Inhalte</Link>
           )}
           <a href={`/portal/${ev.id}`} target="_blank" className="btn-secondary">Portal ↗</a>
+          {canWrite && (
+            <form method="post" action={`/api/events/${ev.id}/reminder/test`} className="inline">
+              <button className="btn-secondary text-sm" title="Schickt die 24h-Erinnerungsmail testweise an deine Adresse">
+                Test-Erinnerung an mich
+              </button>
+            </form>
+          )}
           {isAdmin(s) && (
             <Link href={`/events/${ev.id}/access`} className="btn-secondary">Zugriffe</Link>
           )}
@@ -408,7 +427,47 @@ export default async function EventDetail({ params }: { params: { id: string } }
                   </td>
                   <td className="py-3 text-right font-semibold">{formatEUR(final)}</td>
                   <td className="py-3">
-                    <span className="badge bg-slate-100 text-slate-700">{STATUS_LABELS[p.status]}</span>
+                    {canWrite && !isCancelled ? (
+                      <form method="post" action={`/api/participants/${p.id}/attendance`} className="flex items-center gap-1">
+                        <button
+                          name="status"
+                          value="ATTENDED"
+                          title="Anwesend"
+                          className={
+                            "px-2 py-1 rounded text-xs font-semibold " +
+                            (p.status === "ATTENDED" ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-emerald-50 hover:text-emerald-700")
+                          }
+                        >
+                          ✓ da
+                        </button>
+                        <button
+                          name="status"
+                          value="NO_SHOW"
+                          title="Nicht erschienen"
+                          className={
+                            "px-2 py-1 rounded text-xs font-semibold " +
+                            (p.status === "NO_SHOW" ? "bg-rose-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-700")
+                          }
+                        >
+                          ✗
+                        </button>
+                        <button
+                          name="status"
+                          value="REGISTERED"
+                          title="Status zurücksetzen"
+                          className={
+                            "px-2 py-1 rounded text-xs " +
+                            (p.status === "REGISTERED" || p.status === "CONFIRMED"
+                              ? "bg-brand-100 text-brand-700"
+                              : "bg-slate-100 text-slate-400 hover:bg-slate-200")
+                          }
+                        >
+                          –
+                        </button>
+                      </form>
+                    ) : (
+                      <span className="badge bg-slate-100 text-slate-700">{STATUS_LABELS[p.status]}</span>
+                    )}
                   </td>
                   <td className="py-3">
                     <span className={"badge " + invoiceTone(p.invoiceStatus)}>

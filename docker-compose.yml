@@ -64,6 +64,9 @@ services:
       MS_TENANT_ID: ${MS_TENANT_ID:-}
       MS_CLIENT_ID: ${MS_CLIENT_ID:-}
       MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
+      # Cron-Token fuer /api/cron/reminders (24h-Erinnerungsmail). Beliebige
+      # lange Zeichenkette, wird vom Cron-Container als Bearer-Token gesendet.
+      CRON_TOKEN: ${CRON_TOKEN:-}
       # Iframe-Embedding der oeffentlichen Anmeldeseiten
       IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de}
       NODE_ENV: production
@@ -78,6 +81,33 @@ services:
     volumes:
       # Persistenter Storage fuer hochgeladene Bilder (ueberlebt Rebuilds)
       - uploads_data:/app/public/uploads
+
+  # Stuendlicher Cron, der die 24h-Erinnerungsmail ausloest. Laeuft als
+  # eigener Container und ruft den Cron-Endpoint per HTTP gegen den App-Service auf.
+  cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      CRON_TOKEN: ${CRON_TOKEN:-}
+    command:
+      - sh
+      - -c
+      - |
+        apk add --no-cache curl > /dev/null
+        echo "[cron] gestartet"
+        while true; do
+          # alle 15 Minuten
+          sleep 900
+          if [ -n "$$CRON_TOKEN" ]; then
+            curl -s -m 60 -H "Authorization: Bearer $$CRON_TOKEN" \
+              "http://app:3000/api/cron/reminders" > /tmp/cron.out 2>&1 || true
+            echo "[cron] reminders: $$(cat /tmp/cron.out)"
+          fi
+        done
+    networks:
+      - internal
 
 networks:
   internal:
