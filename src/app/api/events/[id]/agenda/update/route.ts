@@ -18,6 +18,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const speaker = String(f.get("speaker") ?? "").trim();
   const description = String(f.get("description") ?? "").trim();
   const durationMin = Math.max(0, Number(f.get("durationMin") ?? 0));
+  // "auto" Flag: wenn gesetzt, wird die manuelle Startzeit zurueckgenommen.
+  const resetToAuto = f.get("resetAuto") === "1";
 
   const back = (q: Record<string, string>) => new NextResponse(null, {
     status: 303,
@@ -28,24 +30,29 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!item || item.eventId !== params.id) return back({ error: "Eintrag nicht gefunden." });
   if (!title) return back({ error: "Titel ist Pflicht." });
 
-  // Nur der erste Eintrag (kleinste Position pro Tag) traegt die Anker-Zeit.
-  // Wir akzeptieren startTime nur dann; alle anderen werden vom recompute ueberschrieben.
+  const first = await prisma.eventAgendaItem.findFirst({
+    where: { eventId: params.id, day: item.day },
+    orderBy: { position: "asc" },
+  });
+  const isFirst = first?.id === item.id;
+
   const data: any = {
     title,
     speaker: speaker || null,
     description: description || null,
     durationMin: Number.isFinite(durationMin) ? durationMin : item.durationMin,
   };
-  const first = await prisma.eventAgendaItem.findFirst({
-    where: { eventId: params.id, day: item.day },
-    orderBy: { position: "asc" },
-  });
-  if (first?.id === item.id && startTime) {
+
+  if (resetToAuto && !isFirst) {
+    // Manuellen Anker zuruecksetzen - Cascade uebernimmt wieder.
+    data.startTimeManual = false;
+  } else if (startTime) {
     if (!TIME.test(startTime)) return back({ error: "Startzeit muss HH:MM sein." });
     data.startTime = startTime;
+    if (!isFirst) data.startTimeManual = true;
   }
 
   await prisma.eventAgendaItem.update({ where: { id }, data });
   await recomputeDay(params.id, item.day);
-  return back({ ok: "Gespeichert." });
+  return back({ ok: resetToAuto ? "Auf Auto-Cascade zurückgesetzt." : "Gespeichert." });
 }

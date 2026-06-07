@@ -13,6 +13,7 @@ interface Item {
   startTime: string;
   endTime: string | null;
   durationMin: number;
+  startTimeManual: boolean;
   title: string;
   description: string | null;
   speaker: string | null;
@@ -60,7 +61,10 @@ export default async function AgendaAdminPage({
       <p className="text-sm text-slate-500 mb-5 max-w-3xl">
         Pro Tag <strong>Startzeit des ersten Eintrags</strong> setzen, dann nur noch
         <strong> Dauer in Minuten</strong> je Punkt — alle folgenden Startzeiten verschieben sich
-        automatisch. Reihenfolge per ↑/↓.
+        automatisch. Bei Verzögerungen kannst du die Startzeit eines beliebigen Eintrags
+        nachträglich überschreiben; der Eintrag wird als <span className="font-semibold text-amber-700">Manuell</span> markiert
+        und alle folgenden Punkte richten sich danach. Mit „Auto-Cascade wiederherstellen"
+        wird der Override aufgehoben. Reihenfolge per ↑/↓.
       </p>
 
       {searchParams.ok && <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>}
@@ -103,6 +107,9 @@ function DaySection({
                   {it.startTime}{it.endTime ? `–${it.endTime}` : ""}
                 </span>
                 <span className="text-xs text-slate-500 shrink-0">{it.durationMin} Min.</span>
+                {it.startTimeManual && !isFirst && (
+                  <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold" title="Startzeit wurde manuell überschrieben">Manuell</span>
+                )}
                 <span className="font-medium flex-1">{it.title}</span>
                 {it.speaker && <span className="text-xs text-slate-500">{it.speaker}</span>}
                 <span className="text-xs text-brand-700">bearbeiten</span>
@@ -116,13 +123,17 @@ function DaySection({
                   >
                     <input type="hidden" name="id" value={it.id} />
                     <div>
-                      <label className="label">{isFirst ? "Startzeit" : "Start (auto)"}</label>
+                      <label className="label">
+                        {isFirst ? "Startzeit" : it.startTimeManual ? "Start (manuell)" : "Start (auto)"}
+                      </label>
                       <input
                         name="startTime"
                         defaultValue={it.startTime}
-                        readOnly={!isFirst}
-                        className={"input text-sm" + (isFirst ? "" : " bg-slate-100 text-slate-500")}
+                        className="input text-sm"
                         placeholder="09:00"
+                        title={isFirst
+                          ? "Anker für Tag 1"
+                          : "Manuell setzen verschiebt alle folgenden Einträge"}
                       />
                     </div>
                     <div>
@@ -152,7 +163,7 @@ function DaySection({
                       <textarea name="description" defaultValue={it.description ?? ""} rows={2} className="input text-sm" />
                     </div>
                   </form>
-                  <div className="mt-2 flex items-center gap-3">
+                  <div className="mt-2 flex items-center gap-3 flex-wrap">
                     {!isFirst && (
                       <form method="post" action={`/api/events/${eventId}/agenda/move`} className="inline">
                         <input type="hidden" name="id" value={it.id} />
@@ -165,6 +176,19 @@ function DaySection({
                         <input type="hidden" name="id" value={it.id} />
                         <input type="hidden" name="dir" value="down" />
                         <button className="text-xs text-slate-600 hover:text-brand-700">↓ nach unten</button>
+                      </form>
+                    )}
+                    {!isFirst && it.startTimeManual && (
+                      <form method="post" action={`/api/events/${eventId}/agenda/update`} className="inline">
+                        <input type="hidden" name="id" value={it.id} />
+                        <input type="hidden" name="title" value={it.title} />
+                        <input type="hidden" name="durationMin" value={it.durationMin} />
+                        <input type="hidden" name="speaker" value={it.speaker ?? ""} />
+                        <input type="hidden" name="description" value={it.description ?? ""} />
+                        <input type="hidden" name="resetAuto" value="1" />
+                        <button className="text-xs text-amber-700 hover:underline" title="Manuelle Startzeit aufheben - Cascade übernimmt wieder">
+                          Auto-Cascade wiederherstellen
+                        </button>
                       </form>
                     )}
                     <form method="post" action={`/api/events/${eventId}/agenda/delete`} className="ml-auto">

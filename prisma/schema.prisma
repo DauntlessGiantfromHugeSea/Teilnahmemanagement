@@ -180,9 +180,12 @@ model EventAgendaItem {
   eventId     String
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   day         Int      @default(1)        // 1 oder 2
-  startTime   String                       // "09:00" - berechnet aus Anker + Summe der Dauern
+  startTime   String                       // "09:00" - berechnet aus Anker + Summe der Dauern (oder manuell gesetzt)
   endTime     String?                      // "10:30" - berechnet aus startTime + durationMin
   durationMin Int      @default(30)        // Dauer in Minuten (Quelle der Wahrheit)
+  // Wenn true: Startzeit wurde manuell ueberschrieben (z.B. wegen Verzoegerung).
+  // Die Cascade behandelt diesen Eintrag als neuen Anker.
+  startTimeManual Boolean @default(false)
   title       String
   description String?                      // Mehrzeilig moeglich
   speaker     String?

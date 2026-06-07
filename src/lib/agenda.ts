@@ -25,13 +25,33 @@ export async function recomputeDay(eventId: string, day: number): Promise<void> 
   });
   if (items.length === 0) return;
 
-  const anchor = toMin(items[0].startTime);
-  if (anchor === null) return; // erster Eintrag hat keine valide Startzeit -> nichts tun
-  let cursor = anchor;
+  // Anker fuer Item[0] ist seine eigene startTime; ab dann cascade. Wird auf
+  // einem spaeteren Item startTimeManual=true gesetzt, beginnt die Cascade
+  // von diesem Punkt neu (z.B. nach Verzoegerung).
+  let cursor: number | null = null;
   for (let i = 0; i < items.length; i++) {
     const it = items[i];
     const dur = Number.isFinite(it.durationMin) && it.durationMin >= 0 ? it.durationMin : 0;
-    const start = i === 0 ? anchor : cursor;
+    let start: number;
+    if (i === 0 || it.startTimeManual) {
+      const own = toMin(it.startTime);
+      if (own === null) {
+        // Wenn manuell markiert aber kein gueltiger Wert: weiter cascade.
+        if (cursor === null) return;
+        start = cursor;
+      } else {
+        start = own;
+      }
+    } else {
+      if (cursor === null) {
+        // Cascade ohne Anker - sollte nicht passieren, aber sicherheitshalber:
+        const own = toMin(it.startTime);
+        if (own === null) return;
+        start = own;
+      } else {
+        start = cursor;
+      }
+    }
     const end = start + dur;
     const startStr = toHHMM(start);
     const endStr = toHHMM(end);
