@@ -29,6 +29,20 @@ export default async function StaffBadgesPage({
   const staff = await prisma.staff.findMany({
     orderBy: [{ active: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
   });
+  // Events fuers Mitarbeiter-Portal: zukuenftige + heute laufende
+  const now = new Date();
+  const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const events = await prisma.event.findMany({
+    where: {
+      cancelled: false,
+      OR: [
+        { day1Date: { gte: today0 } },
+        { day2Date: { gte: today0 } },
+        { day1Date: null },
+      ],
+    },
+    orderBy: { day1Date: "asc" },
+  });
 
   return (
     <Shell session={s} active="staff-badges">
@@ -54,6 +68,43 @@ export default async function StaffBadgesPage({
             Token erneuern (alle bereits gedruckten Badges werden ungültig)
           </button>
         </form>
+      </div>
+
+      {/* Veranstaltungs-Auswahl fuer Mitarbeiter-Portal */}
+      <div className="card p-4 mb-6">
+        <h2 className="font-semibold mb-1">Veranstaltungen im Mitarbeiter-Portal</h2>
+        <p className="text-xs text-slate-500 mb-3">
+          Markiere die Schulungen, die deine Kollegen sehen sollen, wenn sie den
+          QR-Code auf ihrem Badge scannen. Nur diese erscheinen in der Picker-Liste.
+        </p>
+        {events.length === 0 ? (
+          <p className="text-xs text-slate-500 italic">Keine anstehenden Schulungen.</p>
+        ) : (
+          <form method="post" action="/api/admin/staff-badges/portal-events" className="space-y-2">
+            <div className="space-y-1 max-h-80 overflow-auto pr-1">
+              {events.map((ev) => (
+                <label key={ev.id} className="flex items-start gap-2 text-sm cursor-pointer hover:bg-slate-50 rounded px-2 py-1.5">
+                  <input
+                    type="checkbox"
+                    name="eventIds"
+                    value={ev.id}
+                    defaultChecked={ev.showInStaffPortal}
+                    className="mt-1 h-4 w-4 accent-brand-600"
+                  />
+                  <span className="flex-1">
+                    <span className="font-medium">{ev.title}</span>
+                    <span className="block text-xs text-slate-500 font-mono">
+                      {ev.day1Date ? new Date(ev.day1Date).toLocaleDateString("de-DE") : "—"}
+                      {ev.day2Date ? ` – ${new Date(ev.day2Date).toLocaleDateString("de-DE")}` : ""}
+                      {ev.location ? ` · ${ev.location}` : ""}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+            <button className="btn-primary text-sm">Auswahl speichern</button>
+          </form>
+        )}
       </div>
 
       {/* Drucken */}

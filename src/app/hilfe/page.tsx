@@ -14,37 +14,56 @@ export default async function HilfePage() {
   const isAccounting = s.role === Role.ACCOUNTING || isAdmin;
   const canWrite = isAdmin || s.role === Role.EDITOR;
 
+  const toc: { id: string; label: string; show: boolean }[] = [
+    { id: "login", label: "Login & 2FA", show: true },
+    { id: "dashboard", label: "Dashboard", show: true },
+    { id: "events", label: "Veranstaltungen verwalten", show: true },
+    { id: "teilnehmer", label: "Teilnehmer pflegen, umbuchen, exportieren", show: true },
+    { id: "anwesenheit", label: "Anwesenheitsliste als PDF", show: true },
+    { id: "anmeldung", label: "Öffentliche Anmeldeseite", show: true },
+    { id: "buchhaltung", label: "Buchhaltung", show: isAccounting },
+    { id: "admin", label: "Administration", show: isAdmin },
+    { id: "csv", label: "CSV-Import", show: isAdmin },
+    { id: "webhook", label: "WordPress-Webhook", show: isAdmin },
+    { id: "webhook-newsletter", label: "Newsletter-Webhook", show: isAdmin },
+    { id: "embed", label: "Anmeldeseite einbetten", show: isAdmin },
+    { id: "pwa", label: "App installieren", show: true },
+    { id: "sicherheit", label: "Sicherheit & Datenschutz", show: true },
+  ];
+
   return (
     <Shell session={s} active="">
-      <div className="max-w-3xl">
-        <h1 className="text-2xl font-semibold mb-2">Hilfe &amp; Dokumentation</h1>
-        <p className="text-sm text-slate-500 mb-8">
-          Kurzanleitung zu den wichtigsten Funktionen. Bei Fragen wende dich an
-          deinen Administrator.
-        </p>
+      <div className="flex gap-8">
+        {/* Sticky Sidebar links */}
+        <aside className="hidden lg:block w-64 shrink-0 sticky top-4 self-start max-h-[calc(100vh-2rem)] overflow-auto pr-2">
+          <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-3">Inhalt</div>
+          <nav className="space-y-1 text-sm">
+            {toc.filter((t) => t.show).map((t) => (
+              <a
+                key={t.id}
+                href={`#${t.id}`}
+                className="block py-1 text-slate-700 hover:text-brand-700 transition"
+              >
+                {t.label}
+              </a>
+            ))}
+            {isAdmin && (
+              <a
+                href="/admin/help"
+                className="block py-1 mt-3 text-brand-700 hover:underline font-medium border-t border-slate-200 pt-3"
+              >
+                → Komplettes Admin-Handbuch
+              </a>
+            )}
+          </nav>
+        </aside>
 
-        {/* Inhalts-Verzeichnis */}
-        <nav className="card p-4 mb-6">
-          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-            Inhalt
-          </div>
-          <ul className="text-sm space-y-1">
-            <li><a href="#login" className="text-brand-700 hover:underline">Login &amp; Zwei-Faktor-Authentifizierung</a></li>
-            <li><a href="#dashboard" className="text-brand-700 hover:underline">Dashboard</a></li>
-            <li><a href="#events" className="text-brand-700 hover:underline">Veranstaltungen verwalten</a></li>
-            <li><a href="#teilnehmer" className="text-brand-700 hover:underline">Teilnehmer pflegen, umbuchen, exportieren</a></li>
-            <li><a href="#anwesenheit" className="text-brand-700 hover:underline">Anwesenheitsliste als PDF</a></li>
-            <li><a href="#anmeldung" className="text-brand-700 hover:underline">Öffentliche Anmeldeseite (WordPress / Direktlink)</a></li>
-            {isAccounting && <li><a href="#buchhaltung" className="text-brand-700 hover:underline">Buchhaltung</a></li>}
-            {isAdmin && <li><a href="#admin" className="text-brand-700 hover:underline">Administration</a></li>}
-            {isAdmin && <li><a href="#csv" className="text-brand-700 hover:underline">CSV-Import</a></li>}
-            {isAdmin && <li><a href="#webhook" className="text-brand-700 hover:underline">WordPress-Webhook</a></li>}
-            {isAdmin && <li><a href="#webhook-newsletter" className="text-brand-700 hover:underline">Newsletter-Webhook (Kontaktformulare)</a></li>}
-            {isAdmin && <li><a href="#embed" className="text-brand-700 hover:underline">Anmeldeseite einbetten &amp; stylen</a></li>}
-            <li><a href="#pwa" className="text-brand-700 hover:underline">App auf Handy / Desktop installieren</a></li>
-            <li><a href="#sicherheit" className="text-brand-700 hover:underline">Sicherheit &amp; Datenschutz</a></li>
-          </ul>
-        </nav>
+        <div className="flex-1 min-w-0 max-w-3xl">
+          <h1 className="text-2xl font-semibold mb-2">Hilfe &amp; Dokumentation</h1>
+          <p className="text-sm text-slate-500 mb-8">
+            Kurzanleitung zu den wichtigsten Funktionen. Bei Fragen wende dich an
+            deinen Administrator.
+          </p>
 
         <Section id="login" title="Login &amp; Zwei-Faktor-Authentifizierung">
           <p>
@@ -613,6 +632,7 @@ Content-Type:  application/json`}
             mit Zeitstempel, Aktor und Diff protokolliert.
           </p>
         </Section>
+        </div>
       </div>
     </Shell>
   );

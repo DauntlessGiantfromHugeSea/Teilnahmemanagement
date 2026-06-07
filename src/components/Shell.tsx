@@ -74,6 +74,37 @@ export function Shell({ session, active, children }: Props) {
                 {n.label}
               </Link>
             ))}
+            {isAdmin && (
+              <details className="relative">
+                <summary
+                  className={
+                    "list-none cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap flex items-center gap-1 " +
+                    (ADMIN.some((a) => a.id === active)
+                      ? "bg-white/80 text-brand-700 border border-white/60"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
+                  }
+                >
+                  Administration
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </summary>
+                <div className="absolute left-0 mt-2 w-60 rounded-2xl glass-strong py-1 z-40">
+                  {ADMIN.map((n) => (
+                    <Link
+                      key={n.id}
+                      href={n.href}
+                      className={
+                        "block px-3 py-2 text-sm hover:bg-slate-50 " +
+                        (active === n.id ? "text-brand-700 font-medium" : "text-slate-700")
+                      }
+                    >
+                      {n.label}
+                    </Link>
+                  ))}
+                </div>
+              </details>
+            )}
           </nav>
           <div className="flex-1 md:hidden" />
 

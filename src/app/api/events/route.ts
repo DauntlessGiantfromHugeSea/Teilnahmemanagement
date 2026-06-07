@@ -110,7 +110,6 @@ export async function POST(req: Request) {
       agenda: strOrNull(f.get("agenda")),
       heroImageUrl,
       logoUrl,
-      showInStaffPortal: f.get("showInStaffPortal") !== null ? f.get("showInStaffPortal") === "on" : true,
       notes: notesPlain ? encryptField(notesPlain) : null,
       createdById: s.uid,
     },

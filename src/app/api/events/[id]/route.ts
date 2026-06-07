@@ -111,7 +111,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       heroImageUrl: await resolveUpload(f, "heroImageFile", strOrNull(f.get("heroImageUrl"))),
       logoUrl: await resolveUpload(f, "logoFile", strOrNull(f.get("logoUrl"))),
       certTnBody: strOrNull(f.get("certTnBody")),
-      showInStaffPortal: f.get("showInStaffPortal") === "on",
       notes: notesPlain ? encryptField(notesPlain) : null,
     },
   });
