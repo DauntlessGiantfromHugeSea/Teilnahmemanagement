@@ -178,8 +178,9 @@ model EventAgendaItem {
   eventId     String
   event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   day         Int      @default(1)        // 1 oder 2
-  startTime   String                       // "09:00"
-  endTime     String?                      // "10:30"
+  startTime   String                       // "09:00" - berechnet aus Anker + Summe der Dauern
+  endTime     String?                      // "10:30" - berechnet aus startTime + durationMin
+  durationMin Int      @default(30)        // Dauer in Minuten (Quelle der Wahrheit)
   title       String
   description String?                      // Mehrzeilig moeglich
   speaker     String?
