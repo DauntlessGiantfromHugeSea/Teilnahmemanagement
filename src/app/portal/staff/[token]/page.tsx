@@ -32,8 +32,8 @@ export default async function StaffPortalLanding({
 
   const events = await prisma.event.findMany({
     where: showAll
-      ? { cancelled: false }
-      : { cancelled: false, day1Date: { gte: new Date(today0) } },
+      ? { cancelled: false, showInStaffPortal: true }
+      : { cancelled: false, showInStaffPortal: true, day1Date: { gte: new Date(today0) } },
     orderBy: { day1Date: "asc" },
     take: 50,
   });

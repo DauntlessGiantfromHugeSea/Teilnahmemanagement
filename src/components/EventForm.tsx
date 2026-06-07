@@ -445,6 +445,30 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
         </div>
       </section>
 
+      {/* Mitarbeiter-Portal */}
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-semibold text-slate-800">Mitarbeiter-Portal</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Steuert, ob diese Veranstaltung auf dem Mitarbeiter-Portal (QR-Code auf den Kollegen-Badges) zur Auswahl steht.
+          </p>
+        </div>
+        <label className="flex items-start gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            name="showInStaffPortal"
+            defaultChecked={event?.showInStaffPortal ?? true}
+            className="mt-1 h-4 w-4 accent-brand-600"
+          />
+          <span>
+            Im Mitarbeiter-Portal sichtbar
+            <span className="block text-xs text-slate-500">
+              Wenn deaktiviert, erscheint diese Schulung nicht in der Liste, die Kollegen über den Badge-QR sehen.
+            </span>
+          </span>
+        </label>
+      </section>
+
       {/* 6. Kapazität & Notizen */}
       <section className="space-y-4">
         <div>

@@ -154,6 +154,8 @@ model Event {
   certTnBodyDay2  String?
   // Wurde die 24h-Erinnerungsmail (mit Portal-Link) verschickt?
   reminder24hSentAt DateTime?
+  // Im Mitarbeiter-Portal (/portal/staff/<token>) sichtbar?
+  showInStaffPortal Boolean @default(true)
   // Pro-Event-Override fuer den Feedback-Fragebogen (JSON-Array). Wenn leer,
   // gilt der globale Standard aus AppSetting 'feedbackQuestions'.
   feedbackQuestions String?
