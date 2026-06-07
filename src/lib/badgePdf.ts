@@ -1,5 +1,7 @@
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import type { BadgeTemplate } from "./badgeTemplates";
 
 const MM_TO_PT = 2.834645669;
@@ -26,14 +28,37 @@ interface BadgePdfOptions {
 let cachedLogo: { url: string; buf: Buffer } | null = null;
 
 export async function loadLogoBuffer(url?: string): Promise<Buffer | null> {
-  if (!url) return null;
-  if (cachedLogo && cachedLogo.url === url) return cachedLogo.buf;
+  if (cachedLogo && cachedLogo.url === (url ?? "__local__")) return cachedLogo.buf;
+
+  // 1) Externe URL versuchen
+  if (url) {
+    try {
+      const r = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
+        headers: { Accept: "image/png,image/jpeg,image/*" },
+      });
+      if (r.ok) {
+        const ct = r.headers.get("content-type") ?? "";
+        const ab = await r.arrayBuffer();
+        const buf = Buffer.from(ab);
+        // Magic-Number-Check, damit kein HTML-Errorbody als "Bild" landet
+        const isPng = buf.length > 8 && buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+        const isJpg = buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+        if ((isPng || isJpg) && ct.startsWith("image/")) {
+          cachedLogo = { url, buf };
+          return buf;
+        }
+      }
+    } catch {
+      /* Fallthrough auf lokale Datei */
+    }
+  }
+
+  // 2) Fallback: lokales PNG aus public/
   try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!r.ok) return null;
-    const ab = await r.arrayBuffer();
-    const buf = Buffer.from(ab);
-    cachedLogo = { url, buf };
+    const p = path.join(process.cwd(), "public", "logo-fba.png");
+    const buf = await readFile(p);
+    cachedLogo = { url: url ?? "__local__", buf };
     return buf;
   } catch {
     return null;
