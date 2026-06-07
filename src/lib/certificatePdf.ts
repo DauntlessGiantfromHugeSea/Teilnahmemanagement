@@ -138,25 +138,24 @@ export async function renderCertificatePdf(args: {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
 
-  // Wenn das Briefpapier verwendet wird, ist oben bereits "Zertifikat /
-  // Flüssigboden" aufgedruckt - wir starten den Textueberlag darunter.
-  const startY = args.noBackground ? PAGE_H - 120 : PAGE_H - 250;
+  // Der Titel ("Zertifikat / Flüssigboden") sitzt entweder auf der Vorlage
+  // ODER auf dem Vor-Druck-Briefpapier - in keiner Variante drucken wir ihn
+  // also nochmal. Beide Varianten starten an derselben Y-Position, damit der
+  // Inhalt auf dem Vor-Druck-Briefpapier genauso ausgerichtet ist wie bei der
+  // Variante mit eingebettetem Hintergrund.
+  const startY = PAGE_H - 250;
   const ctx: DrawCtx = { page, font, bold, italic, y: startY };
 
-  if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number, !!args.noBackground);
-  else renderTeilnahme(ctx, args.data, args.number, !!args.noBackground);
+  if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number);
+  else renderTeilnahme(ctx, args.data, args.number);
 
   // Validierungs-Fuesschen wird IMMER gezeichnet (auch bei Briefpapier-Druck)
   drawIdFooter(page, font, args.number, args.validateUrl);
   return doc.save();
 }
 
-function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, drawTitle: boolean) {
+function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
-  if (drawTitle) {
-    // Nur ohne Briefpapier zeichnen - sonst ist es schon aufgedruckt.
-    drawText(ctx, t.title, { font: "bold", size: 30, align: "center", leading: 34, spaceAfter: 12 });
-  }
 
   // Optional Norm-Linie (wenn Kompetenzfeld in normLineForIds)
   if (d.kompetenzfeld && t.normLineForIds.includes(d.kompetenzfeld.id)) {
@@ -198,11 +197,8 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string, draw
   drawText(ctx, t.geschaeftsfuehrerRole, { size: 10 });
 }
 
-function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string, drawTitle: boolean) {
+function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
-  if (drawTitle) {
-    drawText(ctx, t.tnTitle, { font: "bold", size: 26, align: "center", spaceAfter: 14 });
-  }
 
   drawText(ctx, `Nr. ${number}`, { size: 10, align: "center", color: COLOR_MUTED, spaceAfter: 26 });
 
