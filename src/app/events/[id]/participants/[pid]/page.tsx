@@ -217,6 +217,14 @@ export default async function ParticipantDetail({
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="label">Begründung (optional, erscheint in der Mail)</label>
+                  <textarea name="reason" rows={2} placeholder="z. B. neuer Termin auf Wunsch des Teilnehmers" className="input text-sm" />
+                </div>
+                <label className="flex items-start gap-2 text-xs text-slate-700 cursor-pointer">
+                  <input type="checkbox" name="notify" defaultChecked className="mt-0.5 h-4 w-4 accent-brand-600" />
+                  <span>Teilnehmer per Mail über die Umbuchung informieren</span>
+                </label>
                 <button className="btn-primary text-sm w-full">Umbuchen</button>
               </form>
             </section>

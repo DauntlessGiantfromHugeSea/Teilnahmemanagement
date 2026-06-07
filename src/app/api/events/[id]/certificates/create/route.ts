@@ -39,12 +39,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   let skipped = 0;
   const errors: string[] = [];
 
+  const uid = s.uid;
   async function make(args: { participantId: string; kompetenzfeldId?: string; dayIndex?: 1 | 2 }) {
     try {
       const res = await createCertificateDraft({
         participantId: args.participantId,
         type,
-        createdById: s.uid,
+        createdById: uid,
         kompetenzfeldId: args.kompetenzfeldId,
         dayIndex: args.dayIndex,
       });

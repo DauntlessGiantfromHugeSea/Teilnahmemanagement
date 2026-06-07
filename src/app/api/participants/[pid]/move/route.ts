@@ -3,6 +3,19 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { canWriteEvent } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
+import { decryptParticipant } from "@/lib/participants";
+import { sendMail, isMailingConfigured } from "@/lib/mailer";
+import { htmlShell } from "@/lib/mailTemplates";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function fmtDate(d: Date | null): string {
+  if (!d) return "";
+  return new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" });
+}
 
 export async function POST(
   req: Request,
@@ -10,7 +23,10 @@ export async function POST(
 ) {
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
-  const p = await prisma.participant.findUnique({ where: { id: params.pid } });
+  const p = await prisma.participant.findUnique({
+    where: { id: params.pid },
+    include: { event: true },
+  });
   if (!p) return new NextResponse("Not found", { status: 404 });
   if (!(await canWriteEvent(s, p.eventId))) {
     return new NextResponse("Forbidden (Quell-Event)", { status: 403 });
@@ -18,6 +34,8 @@ export async function POST(
 
   const f = await req.formData();
   const targetEventId = String(f.get("targetEventId") ?? "");
+  const notify = f.get("notify") === "on";
+  const reason = String(f.get("reason") ?? "").trim();
   if (!targetEventId) return new NextResponse("Ziel-Event fehlt", { status: 400 });
   if (targetEventId === p.eventId) {
     return new NextResponse(null, {
@@ -32,7 +50,6 @@ export async function POST(
     return new NextResponse("Forbidden (Ziel-Event)", { status: 403 });
   }
 
-  // dayOption ggf. anpassen: wenn Ziel keinen Tag 2 hat, DAY_2/BOTH auf DAY_1 zurückfallen
   const targetHasTwoDays = !!target.day2Date;
   let nextDayOption = p.dayOption;
   if (!targetHasTwoDays && (p.dayOption === "DAY_2" || p.dayOption === "BOTH")) {
@@ -53,9 +70,60 @@ export async function POST(
     diff: {
       fromEventId: p.eventId,
       toEventId: target.id,
+      fromEventTitle: p.event.title,
+      toEventTitle: target.title,
       dayOption: { from: p.dayOption, to: nextDayOption },
+      notified: notify,
+      reason: reason || undefined,
     },
   });
+
+  // Optionaler Mail-Versand
+  if (notify && isMailingConfigured()) {
+    const dec = decryptParticipant(p);
+    const email = (dec.email ?? "").trim();
+    if (email && EMAIL_RE.test(email)) {
+      const appName = process.env.APP_NAME ?? "Flüssigboden Akademie";
+      const fromDate = fmtDate(p.event.day1Date);
+      const toDate = fmtDate(target.day1Date);
+      const toDate2 = target.day2Date ? ` – ${fmtDate(target.day2Date)}` : "";
+      const reasonHtml = reason
+        ? `<p style="margin:0 0 12px 0;padding:10px 14px;background:#fef3c7;border-left:3px solid #d97706;border-radius:6px;">${esc(reason).replace(/\n/g, "<br>")}</p>`
+        : "";
+      const inner = `
+<h1 style="margin:0 0 16px 0;font-size:20px;color:#111827;font-weight:600;">Ihre Anmeldung wurde umgebucht</h1>
+<p style="margin:0 0 12px 0;">Hallo ${esc(dec.firstName ?? "")} ${esc(dec.lastName ?? "")},</p>
+<p style="margin:0 0 12px 0;">
+  Ihre Anmeldung wurde von <strong>${esc(p.event.title)}</strong> (${esc(fromDate)})
+  auf <strong>${esc(target.title)}</strong> (${esc(toDate)}${esc(toDate2)}) umgebucht.
+</p>
+${reasonHtml}
+<p style="margin:0 0 12px 0;">
+  Bei Fragen melden Sie sich gerne unter
+  <a href="mailto:info@fb-akademie.de" style="color:#0f766e;">info@fb-akademie.de</a>.
+</p>
+<p style="margin:18px 0 0 0;">Beste Grüße aus Leipzig<br>das Team der Flüssigboden Akademie</p>`;
+      const text = [
+        `Hallo ${dec.firstName ?? ""} ${dec.lastName ?? ""},`,
+        ``,
+        `Ihre Anmeldung wurde von "${p.event.title}" (${fromDate}) auf "${target.title}" (${toDate}${toDate2}) umgebucht.`,
+        ...(reason ? [``, reason] : []),
+        ``,
+        `Bei Fragen: info@fb-akademie.de`,
+        ``,
+        `Beste Grüße aus Leipzig`,
+        `das Team der Flüssigboden Akademie`,
+      ].join("\n");
+      void sendMail({
+        to: email,
+        subject: `Umbuchung: ${target.title}`,
+        text,
+        html: htmlShell(appName, inner),
+      }).then((r) => {
+        if (!r.ok) console.warn(`[move] Mail an ${email} fehlgeschlagen:`, r.error);
+      });
+    }
+  }
 
   return new NextResponse(null, {
     status: 303,
