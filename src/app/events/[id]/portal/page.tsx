@@ -4,18 +4,19 @@ import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
 import { canViewEvent, canWriteEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
+import { PortalIcon } from "@/components/PortalIcon";
 
 export const dynamic = "force-dynamic";
 
 const ICON_CHOICES = [
-  { key: "announcement", label: "📣 Ankündigung" },
-  { key: "wifi", label: "📶 WLAN" },
-  { key: "food", label: "🍽 Essen/Pause" },
-  { key: "evening", label: "🌙 Abendveranstaltung" },
-  { key: "location", label: "📍 Ort" },
-  { key: "contact", label: "☎ Kontakt" },
-  { key: "info", label: "ℹ Info" },
-  { key: "warning", label: "⚠ Hinweis" },
+  { key: "announcement", label: "Ankündigung" },
+  { key: "wifi", label: "WLAN" },
+  { key: "food", label: "Essen/Pause" },
+  { key: "evening", label: "Abendveranstaltung" },
+  { key: "location", label: "Ort" },
+  { key: "contact", label: "Kontakt" },
+  { key: "info", label: "Info" },
+  { key: "warning", label: "Hinweis" },
 ];
 
 export default async function EventPortalAdminPage({
@@ -60,8 +61,8 @@ export default async function EventPortalAdminPage({
       <div className="space-y-3 mb-6">
         {ev.portalBlocks.map((b) => (
           <details key={b.id} className="card p-4">
-            <summary className="cursor-pointer list-none flex items-baseline gap-3 flex-wrap">
-              <span className="text-lg">{iconOf(b.icon)}</span>
+            <summary className="cursor-pointer list-none flex items-center gap-3 flex-wrap">
+              <span className="text-brand-700"><PortalIcon icon={b.icon} /></span>
               <span className="font-medium flex-1">{b.title}</span>
               {!b.visible && <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">versteckt</span>}
               <span className="text-xs text-brand-700">bearbeiten</span>
@@ -151,16 +152,3 @@ export default async function EventPortalAdminPage({
   );
 }
 
-function iconOf(key: string | null): string {
-  const m: Record<string, string> = {
-    announcement: "📣",
-    wifi: "📶",
-    food: "🍽",
-    evening: "🌙",
-    location: "📍",
-    contact: "☎",
-    info: "ℹ",
-    warning: "⚠",
-  };
-  return m[key ?? ""] ?? "•";
-}

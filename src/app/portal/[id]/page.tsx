@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { PortalIcon } from "@/components/PortalIcon";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,17 +16,6 @@ function timeToMinutes(t: string | null | undefined): number | null {
   if (!m) return null;
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
 }
-
-const ICONS: Record<string, string> = {
-  announcement: "📣",
-  wifi: "📶",
-  food: "🍽",
-  evening: "🌙",
-  location: "📍",
-  contact: "☎",
-  info: "ℹ️",
-  warning: "⚠️",
-};
 
 export default async function EventPortalPage({ params }: { params: { id: string } }) {
   const ev = await prisma.event.findUnique({
@@ -91,9 +81,9 @@ export default async function EventPortalPage({ params }: { params: { id: string
             Schulungs-Portal
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight drop-shadow-sm">{ev.title}</h1>
-          <div className="mt-4 space-y-1 text-sm text-white/90">
+          <div className="mt-4 space-y-1.5 text-sm text-white/90">
             <div className="flex items-center gap-2">
-              <span aria-hidden>📅</span>
+              <CalendarSvg />
               <span>
                 {isTwoDay ? <>{fmtDateLong(d1)} <span className="opacity-70">und</span> {fmtDateLong(d2)}</> : fmtDateLong(d1)}
                 {ev.startTime && ev.endTime && <> · {ev.startTime}–{ev.endTime} Uhr</>}
@@ -101,7 +91,7 @@ export default async function EventPortalPage({ params }: { params: { id: string
             </div>
             {ev.location && (
               <div className="flex items-center gap-2">
-                <span aria-hidden>📍</span>
+                <PortalIcon icon="location" className="text-white" />
                 <span>{ev.location}</span>
               </div>
             )}
@@ -148,9 +138,9 @@ export default async function EventPortalPage({ params }: { params: { id: string
           <section className="space-y-3">
             {announcements.map((b) => (
               <div key={b.id} className="rounded-2xl border-l-4 border-amber-400 bg-amber-50 p-4 shadow-sm">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-xl leading-none">📣</span>
-                  <span className="text-xs uppercase tracking-wider font-semibold text-amber-700">Ankündigung</span>
+                <div className="flex items-center gap-2 mb-1 text-amber-700">
+                  <PortalIcon icon="announcement" />
+                  <span className="text-xs uppercase tracking-wider font-semibold">Ankündigung</span>
                 </div>
                 <div className="font-semibold text-slate-900">{b.title}</div>
                 {b.body && <div className="text-sm text-slate-800 mt-1 whitespace-pre-wrap leading-relaxed">{b.body}</div>}
@@ -182,8 +172,8 @@ export default async function EventPortalPage({ params }: { params: { id: string
           <section className="grid sm:grid-cols-2 gap-3">
             {otherBlocks.map((b) => (
               <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-xl leading-none">{ICONS[b.icon ?? ""] ?? "•"}</span>
+                <div className="flex items-center gap-2 mb-1 text-brand-700">
+                  <PortalIcon icon={b.icon} />
                   <span className="font-semibold text-slate-900">{b.title}</span>
                 </div>
                 {b.body && <div className="text-sm text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed">{b.body}</div>}
@@ -200,6 +190,15 @@ export default async function EventPortalPage({ params }: { params: { id: string
 
       <meta httpEquiv="refresh" content="30" />
     </main>
+  );
+}
+
+function CalendarSvg() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M16 3v4M8 3v4M3 10h18" />
+    </svg>
   );
 }
 
