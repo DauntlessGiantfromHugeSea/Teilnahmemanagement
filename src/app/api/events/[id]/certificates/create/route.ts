@@ -10,69 +10,79 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   const f = await req.formData();
-  const participantId = String(f.get("participantId") ?? "");
   const type = String(f.get("type") ?? "") as "ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG";
   const kompetenz = f.getAll("kompetenz").map((v) => String(v));
+  // Bulk: alle participantIds aus dem Formular ziehen; ansonsten Fallback auf
+  // den einzelnen 'participantId'-Wert.
+  const explicit = f.getAll("participantIds").map((v) => String(v)).filter(Boolean);
+  const single = String(f.get("participantId") ?? "").trim();
+  const participantIds = explicit.length > 0 ? explicit : single ? [single] : [];
 
-  if (!participantId || (type !== "ZERTIFIKAT" && type !== "TEILNAHMEBESCHEINIGUNG")) {
-    return back(params.id, { error: "Ungültige Eingabe." });
-  }
-  const p = await prisma.participant.findUnique({ where: { id: participantId } });
-  if (!p || p.eventId !== params.id) {
-    return back(params.id, { error: "Teilnehmer nicht gefunden." });
-  }
+  const back = (q: Record<string, string>) => new NextResponse(null, {
+    status: 303,
+    headers: { Location: `/events/${params.id}/certificates?${new URLSearchParams(q).toString()}` },
+  });
 
-  try {
-    if (type === "ZERTIFIKAT") {
-      const ids = kompetenz.filter(Boolean);
-      if (ids.length === 0) {
-        return back(params.id, { error: "Bitte mindestens ein Kompetenzfeld auswählen." });
-      }
-      // Pro Kompetenzfeld ein eigenes Zertifikat anlegen.
-      const created: string[] = [];
-      for (const k of ids) {
-        const res = await createCertificateDraft({
-          participantId,
-          type,
-          createdById: s.uid,
-          kompetenzfeldId: k,
-        });
-        created.push(res.number);
-      }
-      return back(params.id, {
-        ok:
-          created.length === 1
-            ? `Zertifikat ${created[0]} angelegt.`
-            : `${created.length} Zertifikate angelegt (je Kompetenzfeld).`,
-      });
-    } else {
-      // Bei 2-Tages-Schulungen je Teilnehmer zwei TN-Bescheinigungen.
-      const event = await prisma.event.findUnique({ where: { id: params.id } });
-      if (event && isTwoDayEvent(event)) {
-        const r1 = await createCertificateDraft({
-          participantId, type, createdById: s.uid, dayIndex: 1,
-        });
-        const r2 = await createCertificateDraft({
-          participantId, type, createdById: s.uid, dayIndex: 2,
-        });
-        return back(params.id, { ok: `Zwei Teilnahmebescheinigungen angelegt (Tag 1: ${r1.number}, Tag 2: ${r2.number}).` });
-      }
+  if (participantIds.length === 0) return back({ error: "Bitte mindestens einen Teilnehmer auswählen." });
+  if (type !== "ZERTIFIKAT" && type !== "TEILNAHMEBESCHEINIGUNG") return back({ error: "Ungültiger Typ." });
+
+  // Event laden (fuer Tag-Logik) + Teilnehmer holen
+  const event = await prisma.event.findUnique({ where: { id: params.id } });
+  if (!event) return back({ error: "Veranstaltung nicht gefunden." });
+  const participants = await prisma.participant.findMany({
+    where: { id: { in: participantIds }, eventId: params.id },
+  });
+  if (participants.length === 0) return back({ error: "Keine passenden Teilnehmer gefunden." });
+
+  const twoDay = isTwoDayEvent(event);
+  let created = 0;
+  let skipped = 0;
+  const errors: string[] = [];
+
+  async function make(args: { participantId: string; kompetenzfeldId?: string; dayIndex?: 1 | 2 }) {
+    try {
       const res = await createCertificateDraft({
-        participantId,
+        participantId: args.participantId,
         type,
         createdById: s.uid,
+        kompetenzfeldId: args.kompetenzfeldId,
+        dayIndex: args.dayIndex,
       });
-      return back(params.id, { ok: `Teilnahmebescheinigung ${res.number} angelegt.` });
+      if (res.skipped) skipped++;
+      else created++;
+    } catch (e: any) {
+      errors.push(`${args.participantId}: ${e?.message ?? e}`);
     }
-  } catch (e: any) {
-    return back(params.id, { error: e?.message ?? "Fehler beim Anlegen." });
   }
-}
 
-function back(eventId: string, params: Record<string, string>) {
-  const qs = new URLSearchParams(params).toString();
-  return new NextResponse(null, {
-    status: 303,
-    headers: { Location: `/events/${eventId}/certificates${qs ? `?${qs}` : ""}` },
-  });
+  if (type === "ZERTIFIKAT") {
+    const ids = kompetenz.filter(Boolean);
+    if (ids.length === 0) return back({ error: "Bitte mindestens ein Kompetenzfeld auswählen." });
+    for (const p of participants) {
+      for (const k of ids) {
+        await make({ participantId: p.id, kompetenzfeldId: k });
+      }
+    }
+  } else {
+    // Teilnahmebescheinigung: respektiert dayOption (DAY_1 / DAY_2 / BOTH)
+    for (const p of participants) {
+      if (!twoDay) {
+        await make({ participantId: p.id });
+      } else {
+        if (p.dayOption === "DAY_1" || p.dayOption === "BOTH") {
+          await make({ participantId: p.id, dayIndex: 1 });
+        }
+        if (p.dayOption === "DAY_2" || p.dayOption === "BOTH") {
+          await make({ participantId: p.id, dayIndex: 2 });
+        }
+      }
+    }
+  }
+
+  const parts = [
+    `${created} neu`,
+    skipped > 0 ? `${skipped} bereits vorhanden` : "",
+    errors.length > 0 ? `${errors.length} Fehler` : "",
+  ].filter(Boolean).join(", ");
+  return back({ ok: `${type === "ZERTIFIKAT" ? "Zertifikate" : "Teilnahmebescheinigungen"} – ${parts}.` });
 }

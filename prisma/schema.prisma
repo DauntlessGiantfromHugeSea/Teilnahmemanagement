@@ -321,6 +321,12 @@ model Certificate {
   // Wenn vom Tool generiert: NULL. Wenn importiert: Pfad zum hochgeladenen Original.
   importedPath  String?
 
+  // Bei TN-Bescheinigungen: 1 oder 2 fuer den Schulungstag (bzw. NULL bei
+  // Eintages-Event/Zertifikaten). Wird fuer den Duplikats-Check benutzt.
+  day           Int?
+  // Bei Zertifikaten: ID des Kompetenzfelds (fuer Duplikats-Check).
+  kompetenzfeldId String?
+
   issuedAt      DateTime?
   releasedAt    DateTime?
   revokedAt     DateTime?

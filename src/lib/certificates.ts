@@ -126,19 +126,35 @@ export async function nextCertificateNumber(args: {
   });
 }
 
-// Legt einen DRAFT-Datensatz fuer einen Teilnehmer an.
+// Legt einen DRAFT-Datensatz fuer einen Teilnehmer an. Wenn fuer denselben
+// Teilnehmer schon ein Zertifikat mit gleicher Day-/Kompetenzfeld-Signatur
+// existiert (egal in welchem Status), wird kein neues angelegt und der
+// bestehende Datensatz zurueckgegeben.
 export async function createCertificateDraft(args: {
   participantId: string;
   type: CertificateType;
   createdById: string;
   kompetenzfeldId?: string;
   dayIndex?: 1 | 2;
-}): Promise<{ id: string; number: string; slug: string }> {
+}): Promise<{ id: string; number: string; slug: string; skipped?: boolean }> {
   const participant = await prisma.participant.findUnique({
     where: { id: args.participantId },
     include: { event: { include: { training: true } } },
   });
   if (!participant) throw new Error("Teilnehmer nicht gefunden.");
+
+  // Duplikats-Check
+  const existing = await prisma.certificate.findFirst({
+    where: {
+      participantId: participant.id,
+      type: args.type,
+      day: args.dayIndex ?? null,
+      kompetenzfeldId: args.kompetenzfeldId ?? null,
+    },
+  });
+  if (existing) {
+    return { id: existing.id, number: existing.number, slug: existing.slug, skipped: true };
+  }
 
   const dec = decryptParticipant(participant);
   const year = new Date().getFullYear();
@@ -167,6 +183,8 @@ export async function createCertificateDraft(args: {
       status: "DRAFT",
       data: JSON.stringify(data),
       createdById: args.createdById,
+      day: args.dayIndex ?? null,
+      kompetenzfeldId: args.kompetenzfeldId ?? null,
     },
   });
   return { id: cert.id, number, slug };
