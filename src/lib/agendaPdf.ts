@@ -76,11 +76,25 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
     doc.rect(PAGE_W - STRIPE_W, 0, STRIPE_W, PAGE_H).fill(brandRgb);
     doc.restore();
 
-    // Logo oben links (etwas groesser fuer Wirkung)
+    // Logo oben links - prominent platziert
     if (opts.logoBuffer) {
       try {
-        doc.image(opts.logoBuffer, MARGIN_L, 52, { fit: [180, 78] });
-      } catch { /* ignore */ }
+        doc.image(opts.logoBuffer, MARGIN_L, 60, { fit: [220, 90] });
+      } catch (e) {
+        console.warn("[agenda-pdf] logo render failed:", e);
+      }
+    } else {
+      // Fallback: Textmarke wenn kein Logo geladen werden konnte
+      doc
+        .fillColor(brandRgb)
+        .font("Helvetica-Bold")
+        .fontSize(28)
+        .text("FBA", MARGIN_L, 70, { lineBreak: false });
+      doc
+        .fillColor(TEXT_DARK)
+        .font("Helvetica")
+        .fontSize(11)
+        .text("Flüssigboden Akademie", MARGIN_L, 105, { lineBreak: false });
     }
 
     // Adress-Footer mit kurzer Brand-Linie darueber

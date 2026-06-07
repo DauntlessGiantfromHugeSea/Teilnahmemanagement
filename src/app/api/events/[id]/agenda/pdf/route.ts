@@ -20,9 +20,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   });
   if (!ev) return new NextResponse("Not found", { status: 404 });
 
-  // Bevorzugt das echte FBA-Logo (nicht das interne /logo-fba.png mit Hintergrund)
-  const logoUrl = "https://fluessigbodenakademie.de/wp-content/uploads/2024/12/fba.png";
-  const logo = await loadLogoBuffer(logoUrl);
+  // Lokales Logo (keine externe URL noetig, immer verfuegbar)
+  const logo = await loadLogoBuffer();
 
   const pdf = await renderAgendaA3({
     eventTitle: ev.title,
