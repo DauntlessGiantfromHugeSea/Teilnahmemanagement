@@ -31,10 +31,13 @@ const PAGE_W = 842;
 const PAGE_H = 1191;
 const MARGIN_L = 70;
 const MARGIN_R = 70;
-const STRIPE_W = 16;   // schmaler Brand-Streifen rechts (wie bei Zertifikat)
+const STRIPE_W = 26;     // markanter Brand-Streifen rechts
+const TOP_BAR_H = 8;     // schmaler Brand-Strich am oberen Rand
 
 // FBA-Brand
 const BRAND: [number, number, number] = [15, 118, 110];   // #0f766e teal
+const BRAND_DARK: [number, number, number] = [11, 92, 86]; // dunkleres teal
+const BRAND_SOFT = "#ecfdf5";   // sehr helles Brand-Tint fuer Day-Header
 const TEXT_DARK = "#0f172a";
 const TEXT_MUTED = "#475569";
 const TEXT_LIGHT = "#64748b";
@@ -65,21 +68,37 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
   const contentRight = PAGE_W - MARGIN_R - STRIPE_W;
   const contentWidth = contentRight - contentLeft;
   const brandRgb = `rgb(${BRAND.join(",")})`;
+  const brandDarkRgb = `rgb(${BRAND_DARK.join(",")})`;
 
   function drawChrome() {
-    // Brand-Streifen rechts (wie Zertifikat)
+    // Schmaler Brand-Strich ganz oben (Akzent quer ueber die Seite)
     doc.save();
-    doc.rect(PAGE_W - STRIPE_W, 0, STRIPE_W, PAGE_H).fill(brandRgb);
+    doc.rect(0, 0, PAGE_W, TOP_BAR_H).fill(brandDarkRgb);
     doc.restore();
 
-    // Logo oben links
+    // Brand-Streifen rechts - zwei Toene fuer mehr Tiefe
+    doc.save();
+    doc.rect(PAGE_W - STRIPE_W, 0, STRIPE_W, PAGE_H).fill(brandRgb);
+    doc.rect(PAGE_W - 4, 0, 4, PAGE_H).fill(brandDarkRgb);
+    doc.restore();
+
+    // Logo oben links (etwas groesser fuer Wirkung)
     if (opts.logoBuffer) {
       try {
-        doc.image(opts.logoBuffer, MARGIN_L, 50, { fit: [150, 70] });
+        doc.image(opts.logoBuffer, MARGIN_L, 52, { fit: [180, 78] });
       } catch { /* ignore */ }
     }
 
-    // Adress-Footer
+    // Adress-Footer mit kurzer Brand-Linie darueber
+    doc
+      .save()
+      .strokeColor(brandRgb)
+      .lineWidth(1.2)
+      .moveTo(MARGIN_L, PAGE_H - 80)
+      .lineTo(MARGIN_L + 50, PAGE_H - 80)
+      .stroke()
+      .restore();
+
     doc
       .fillColor(TEXT_DARK)
       .font("Helvetica-Bold")
@@ -105,22 +124,25 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
       .fontSize(8.5)
       .text("M.Sc. Wolf-Hagen Stolzenburg", midX, PAGE_H - 46, { lineBreak: false });
     doc
-      .fillColor(TEXT_LIGHT)
-      .font("Helvetica")
+      .fillColor(brandRgb)
+      .font("Helvetica-Bold")
       .fontSize(8.5)
       .text("www.fb-akademie.de", midX, PAGE_H - 34, { lineBreak: false });
   }
 
   drawChrome();
 
-  // Titel-Block
-  let y = 170;
+  // Titel-Block mit Brand-"PROGRAMM"-Eyebrow
+  let y = 180;
+  doc.save();
   doc
-    .fillColor(TEXT_LIGHT)
-    .font("Helvetica")
-    .fontSize(10)
-    .text("PROGRAMM", contentLeft, y, { lineBreak: false, characterSpacing: 2 });
-  y += 14;
+    .roundedRect(contentLeft, y - 4, 110, 22, 11)
+    .fillAndStroke(brandRgb, brandRgb);
+  doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10).text("PROGRAMM", contentLeft + 18, y + 2, {
+    lineBreak: false, characterSpacing: 1.5,
+  });
+  doc.restore();
+  y += 32;
   doc
     .fillColor(TEXT_DARK)
     .font("Helvetica-Bold")
@@ -168,29 +190,27 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
   }
 
   function drawDayHeader(label: string, date: Date | null) {
-    ensurePageSpace(60);
+    ensurePageSpace(70);
     y += 6;
+    // Volle Pill in Brand-Soft mit Brand-Kante links
+    const pillH = 32;
+    doc.save();
+    doc
+      .roundedRect(contentLeft, y, contentRight - contentLeft, pillH, 8)
+      .fillAndStroke(BRAND_SOFT, BRAND_SOFT);
+    doc.rect(contentLeft, y, 5, pillH).fill(brandRgb);
+    doc.restore();
     doc
       .fillColor(brandRgb)
       .font("Helvetica-Bold")
-      .fontSize(13)
-      .text(label, contentLeft, y, { lineBreak: false, characterSpacing: 1 });
+      .fontSize(14)
+      .text(label, contentLeft + 16, y + 9, { lineBreak: false, characterSpacing: 1 });
     doc
-      .fillColor(TEXT_LIGHT)
+      .fillColor(TEXT_MUTED)
       .font("Helvetica")
       .fontSize(11)
-      .text(fmtDate(date), contentLeft + 80, y + 2, { lineBreak: false });
-    y += 22;
-    // Linie unter Tagesheader
-    doc
-      .save()
-      .strokeColor(RULE)
-      .lineWidth(0.5)
-      .moveTo(contentLeft, y)
-      .lineTo(contentRight, y)
-      .stroke()
-      .restore();
-    y += 14;
+      .text(fmtDate(date), contentLeft + 86, y + 11, { lineBreak: false });
+    y += pillH + 16;
   }
 
   function drawItem(it: AgendaPdfItem, isLast: boolean) {
