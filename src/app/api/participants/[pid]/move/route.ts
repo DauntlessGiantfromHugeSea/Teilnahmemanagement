@@ -87,6 +87,13 @@ export async function POST(
       const fromDate = fmtDate(p.event.day1Date);
       const toDate = fmtDate(target.day1Date);
       const toDate2 = target.day2Date ? ` – ${fmtDate(target.day2Date)}` : "";
+      const dayLabel = nextDayOption === "DAY_1"
+        ? "Buchung nur für Tag 1"
+        : nextDayOption === "DAY_2"
+        ? "Buchung nur für Tag 2"
+        : target.day2Date
+        ? "Buchung für beide Tage"
+        : "Buchung";
       const reasonHtml = reason
         ? `<p style="margin:0 0 12px 0;padding:10px 14px;background:#fef3c7;border-left:3px solid #d97706;border-radius:6px;">${esc(reason).replace(/\n/g, "<br>")}</p>`
         : "";
@@ -97,6 +104,9 @@ export async function POST(
   Ihre Anmeldung wurde von <strong>${esc(p.event.title)}</strong> (${esc(fromDate)})
   auf <strong>${esc(target.title)}</strong> (${esc(toDate)}${esc(toDate2)}) umgebucht.
 </p>
+<div style="margin:0 0 12px 0;padding:10px 14px;background:#f0fdfa;border-left:3px solid #0f766e;border-radius:6px;font-size:13px;">
+  <strong>${esc(dayLabel)}</strong>
+</div>
 ${reasonHtml}
 <p style="margin:0 0 12px 0;">
   Bei Fragen melden Sie sich gerne unter
@@ -107,6 +117,8 @@ ${reasonHtml}
         `Hallo ${dec.firstName ?? ""} ${dec.lastName ?? ""},`,
         ``,
         `Ihre Anmeldung wurde von "${p.event.title}" (${fromDate}) auf "${target.title}" (${toDate}${toDate2}) umgebucht.`,
+        ``,
+        dayLabel,
         ...(reason ? [``, reason] : []),
         ``,
         `Bei Fragen: info@fb-akademie.de`,
