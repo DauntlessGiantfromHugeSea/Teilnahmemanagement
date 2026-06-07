@@ -71,11 +71,6 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
   const brandDarkRgb = `rgb(${BRAND_DARK.join(",")})`;
 
   function drawChrome() {
-    // Schmaler Brand-Strich ganz oben (Akzent quer ueber die Seite)
-    doc.save();
-    doc.rect(0, 0, PAGE_W, TOP_BAR_H).fill(brandDarkRgb);
-    doc.restore();
-
     // Brand-Streifen rechts - zwei Toene fuer mehr Tiefe
     doc.save();
     doc.rect(PAGE_W - STRIPE_W, 0, STRIPE_W, PAGE_H).fill(brandRgb);
