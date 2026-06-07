@@ -55,17 +55,27 @@ export default async function StaffBadgesPage({
 
       <form method="post" action="/api/admin/staff-badges/pdf" className="card p-4 space-y-3">
         <div>
+          <label className="label">Firma (für alle Schilder dieses Drucks)</label>
+          <select name="company" className="input text-sm">
+            <option value="Flüssigboden Engineering GmbH">Flüssigboden Engineering GmbH</option>
+            <option value="Forschungsinstitut für Flüssigboden GmbH">Forschungsinstitut für Flüssigboden GmbH</option>
+            <option value="Flüssigboden Akademie UG">Flüssigboden Akademie UG</option>
+          </select>
+        </div>
+        <div>
           <label className="label">Namen (eine Zeile pro Person)</label>
           <textarea
             name="names"
             rows={10}
             required
-            placeholder={"Max Mustermann | Schulungsleiter\nAnna Beispiel | Referentin\nClaudio Tanner"}
+            placeholder={"Max Mustermann\nAnna Beispiel\nClaudio Tanner | Geschäftsführer"}
             className="input font-mono text-sm"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Format: <code>Vorname Nachname | Position</code> (Position ist optional, mit
-            Pipe-Zeichen <code>|</code> getrennt).
+            Format: <code>Vorname Nachname</code> — auf dem Schild erscheint die oben
+            gewählte Firma. Optional kann pro Zeile mit Pipe-Zeichen <code>|</code> ein
+            <strong> abweichender Untertitel</strong> (z. B. „Geschäftsführer") angegeben werden,
+            der die Firma für diese Person ersetzt.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 items-end">

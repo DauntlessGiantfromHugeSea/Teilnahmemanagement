@@ -13,20 +13,24 @@ export async function POST(req: Request) {
 
   const f = await req.formData();
   const raw = String(f.get("names") ?? "").trim();
+  const defaultCompany = String(f.get("company") ?? "").trim();
   const templateId = String(f.get("template") ?? BADGE_TEMPLATES[0].id);
   const tpl = getBadgeTemplate(templateId);
   if (!tpl) return new NextResponse("Unbekannte Vorlage", { status: 400 });
 
-  // Format pro Zeile: "Vorname Nachname | Position" (Position optional)
+  // Format pro Zeile: "Vorname Nachname" oder "Vorname Nachname | Untertitel".
+  // Wenn kein Untertitel angegeben ist, wird die im Dropdown gewaehlte Firma
+  // verwendet.
   const items: BadgeItem[] = raw
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
       const [name, ...rest] = line.split("|");
+      const subtitle = rest.join("|").trim();
       return {
         name: name.trim(),
-        company: rest.join("|").trim() || undefined,
+        company: subtitle || defaultCompany || undefined,
       };
     });
 
