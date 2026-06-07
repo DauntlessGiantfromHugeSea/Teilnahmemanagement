@@ -86,8 +86,16 @@ export default async function EventMailingPage({
               <code>{"{eventDate}"}</code>.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="btn-primary text-sm">An {withEmail.length} Teilnehmer senden</button>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              name="mode"
+              value="test"
+              formAction={`/api/events/${ev.id}/mailing/send`}
+              className="btn-secondary text-sm"
+            >
+              Testmail an mich
+            </button>
+            <button name="mode" value="send" className="btn-primary text-sm">An {withEmail.length} Teilnehmer senden</button>
             <label className="flex items-center gap-2 text-xs text-slate-600">
               <input type="checkbox" name="bccAdmin" defaultChecked className="h-4 w-4 accent-brand-600" />
               Kopie an Admin (BCC)

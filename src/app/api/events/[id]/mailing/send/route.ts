@@ -48,6 +48,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const subject = String(f.get("subject") ?? "").trim();
   const body = String(f.get("body") ?? "").trim();
   const bccAdmin = f.get("bccAdmin") === "on";
+  const mode = String(f.get("mode") ?? "send");
   if (!subject || !body) return back({ error: "Betreff und Nachricht sind Pflicht." });
 
   const event = await prisma.event.findUnique({
@@ -59,6 +60,28 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const eventDate = fmtDate(event.day1Date);
   const appName = process.env.APP_NAME ?? "Flüssigboden Akademie";
   const adminMail = process.env.MAIL_ADMIN || undefined;
+
+  // Testmail: nur an die eigene Adresse, Platzhalter werden mit dem Login-Namen
+  // ersetzt - damit du das Mail-Layout pruefen kannst bevor du es an alle schickst.
+  if (mode === "test") {
+    const [firstName, ...rest] = s.name.split(" ");
+    const vars = {
+      firstName: firstName ?? s.name,
+      lastName: rest.join(" "),
+      eventTitle: event.title,
+      eventDate,
+    };
+    const subj = tpl(subject, vars);
+    const bod = tpl(body, vars);
+    const res = await sendMail({
+      to: s.email,
+      subject: `[TEST] ${subj}`,
+      text: bod,
+      html: htmlShell(appName, bodyToHtml(bod)),
+    });
+    if (!res.ok) return back({ error: `Testmail fehlgeschlagen: ${res.error ?? "?"}` });
+    return back({ ok: `Testmail an ${s.email} versendet.` });
+  }
 
   let sent = 0;
   let failed = 0;

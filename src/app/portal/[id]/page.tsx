@@ -153,6 +153,21 @@ export default async function EventPortalPage({ params }: { params: { id: string
           </section>
         )}
 
+        {/* Info-Karten (WLAN, Abendveranstaltung, ...) - ueber dem Programm */}
+        {otherBlocks.length > 0 && (
+          <section className="grid sm:grid-cols-2 gap-3">
+            {otherBlocks.map((b) => (
+              <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <div className="flex items-center gap-2 mb-1 text-brand-700">
+                  <PortalIcon icon={b.icon} />
+                  <span className="font-semibold text-slate-900">{b.title}</span>
+                </div>
+                {b.body && <div className="text-sm text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed">{b.body}</div>}
+              </div>
+            ))}
+          </section>
+        )}
+
         {/* Programm */}
         {ev.agendaItems.length > 0 && (
           <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
@@ -168,21 +183,6 @@ export default async function EventPortalPage({ params }: { params: { id: string
                 <AgendaList items={day2Items} title="Tag 2" liveId={liveItem?.id ?? null} />
               </div>
             )}
-          </section>
-        )}
-
-        {/* Info-Karten (WLAN, Abendveranstaltung, ...) */}
-        {otherBlocks.length > 0 && (
-          <section className="grid sm:grid-cols-2 gap-3">
-            {otherBlocks.map((b) => (
-              <div key={b.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition">
-                <div className="flex items-center gap-2 mb-1 text-brand-700">
-                  <PortalIcon icon={b.icon} />
-                  <span className="font-semibold text-slate-900">{b.title}</span>
-                </div>
-                {b.body && <div className="text-sm text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed">{b.body}</div>}
-              </div>
-            ))}
           </section>
         )}
 
