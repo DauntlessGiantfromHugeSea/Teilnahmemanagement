@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 export default async function ZertifikateUebersicht({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; type?: string };
+  searchParams: { q?: string; status?: string; type?: string; ok?: string; error?: string };
 }) {
   const s = await getSession();
   if (!s) redirect("/login");
@@ -74,6 +74,9 @@ export default async function ZertifikateUebersicht({
         Globale, fließende Liste aller jemals erzeugten Zertifikate und Teilnahmebescheinigungen,
         absteigend nach Nummer. Max. 500 Treffer.
       </p>
+
+      {searchParams.ok && <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>}
+      {searchParams.error && <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>}
 
       <form method="get" className="flex flex-wrap items-end gap-3 mb-4">
         <div className="flex-1 min-w-[200px]">
@@ -152,6 +155,16 @@ export default async function ZertifikateUebersicht({
                 <td className="text-right text-xs space-x-2 whitespace-nowrap">
                   <a href={`/zertifikat/${c.slug}`} target="_blank" className="text-brand-700 hover:underline">Validierung</a>
                   <a href={`/api/certificates/${c.id}/preview`} target="_blank" className="text-brand-700 hover:underline">PDF</a>
+                  {c.status === "RELEASED" && (
+                    <form method="post" action={`/api/certificates/${c.id}/revoke`} className="inline">
+                      <button className="text-rose-700 hover:underline" title="Validierung widerrufen">widerrufen</button>
+                    </form>
+                  )}
+                  {c.status === "REVOKED" && (
+                    <form method="post" action={`/api/certificates/${c.id}/delete`} className="inline">
+                      <button className="text-rose-700 hover:underline" title="Endgültig aus der Datenbank löschen">löschen</button>
+                    </form>
+                  )}
                 </td>
               </tr>
             ))}

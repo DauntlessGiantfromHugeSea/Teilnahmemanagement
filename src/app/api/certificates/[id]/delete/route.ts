@@ -3,7 +3,7 @@ import { getSession } from "@/lib/session";
 import { canWriteEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
 
@@ -20,10 +20,14 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     return new NextResponse("Forbidden", { status: 403 });
   }
 
+  const referer = req.headers.get("referer") ?? "";
   const back = (q: Record<string, string>) => {
     const eventId = cert.participant?.eventId;
     const qs = new URLSearchParams(q).toString();
-    const loc = eventId ? `/events/${eventId}/certificates?${qs}` : `/admin/zertifikate?${qs}`;
+    let loc: string;
+    if (referer.includes("/admin/zertifikate")) loc = `/admin/zertifikate?${qs}`;
+    else if (eventId) loc = `/events/${eventId}/certificates?${qs}`;
+    else loc = `/admin/zertifikate?${qs}`;
     return new NextResponse(null, { status: 303, headers: { Location: loc } });
   };
 

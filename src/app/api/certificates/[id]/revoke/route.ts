@@ -27,9 +27,17 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     where: { id: cert.id },
     data: { status: "REVOKED", revokedAt: new Date(), revokeReason: reason || null },
   });
-  const eventId = cert.participant?.eventId;
-  const loc = eventId
-    ? `/events/${eventId}/certificates?ok=${encodeURIComponent(`${cert.number} widerrufen.`)}`
-    : `/admin/zertifikate?ok=${encodeURIComponent(`${cert.number} widerrufen.`)}`;
+  const msg = encodeURIComponent(`${cert.number} widerrufen.`);
+  // Wenn der Klick aus der globalen Uebersicht kam, dorthin zurueckkehren -
+  // sonst zur Event-Zertifikatsseite (bzw. zur Uebersicht fuer importierte).
+  const referer = req.headers.get("referer") ?? "";
+  let loc: string;
+  if (referer.includes("/admin/zertifikate")) {
+    loc = `/admin/zertifikate?ok=${msg}`;
+  } else if (cert.participant?.eventId) {
+    loc = `/events/${cert.participant.eventId}/certificates?ok=${msg}`;
+  } else {
+    loc = `/admin/zertifikate?ok=${msg}`;
+  }
   return new NextResponse(null, { status: 303, headers: { Location: loc } });
 }
