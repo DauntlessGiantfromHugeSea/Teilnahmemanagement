@@ -67,8 +67,8 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
   const contentLeft = MARGIN_L;
   const contentRight = PAGE_W - MARGIN_R - STRIPE_W;
   const contentWidth = contentRight - contentLeft;
-  const brandRgb = `rgb(${BRAND.join(",")})`;
-  const brandDarkRgb = `rgb(${BRAND_DARK.join(",")})`;
+  const brandRgb = "#0f766e";          // pdfkit erwartet Hex / Named / Array - kein "rgb(...)"
+  const brandDarkRgb = "#0b5c56";
 
   function drawChrome() {
     // Brand-Streifen rechts - durchgehend in der Firmen-Türkis-Farbe.
