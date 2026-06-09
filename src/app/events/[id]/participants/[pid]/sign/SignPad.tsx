@@ -77,6 +77,22 @@ export function SignPad({ participantId }: { participantId: string }) {
     form.submit();
   }
 
+  function send() {
+    const c = canvasRef.current;
+    if (!c || !hasInk) return;
+    const dataUrl = c.toDataURL("image/png");
+    const f = document.createElement("form");
+    f.method = "post";
+    f.action = `/api/participants/${participantId}/anmeldebestaetigung/send`;
+    const sig = document.createElement("input");
+    sig.type = "hidden"; sig.name = "signatureDataUrl"; sig.value = dataUrl;
+    const mode = document.createElement("input");
+    mode.type = "hidden"; mode.name = "mode"; mode.value = "auto";
+    f.appendChild(sig); f.appendChild(mode);
+    document.body.appendChild(f);
+    f.submit();
+  }
+
   return (
     <div className="max-w-2xl">
       <div className="card p-4">
@@ -116,9 +132,18 @@ export function SignPad({ participantId }: { participantId: string }) {
               disabled={!hasInk}
               className={"btn-primary text-sm " + (hasInk ? "" : "opacity-50 cursor-not-allowed")}
             >
-              PDF mit Unterschrift erzeugen
+              PDF erzeugen
             </button>
           </form>
+          <button
+            type="button"
+            onClick={send}
+            disabled={!hasInk}
+            className={"btn-secondary text-sm " + (hasInk ? "" : "opacity-50 cursor-not-allowed")}
+            title="Schickt die unterschriebene Anmeldebestätigung per Mail an den Teilnehmer"
+          >
+            📧 Per Mail senden
+          </button>
         </div>
         <p className="text-xs text-slate-500 mt-3">
           Die Unterschrift wird nur in dieses eine PDF eingefügt — sie wird nicht gespeichert.

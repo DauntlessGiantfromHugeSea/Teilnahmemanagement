@@ -11,8 +11,10 @@ import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pri
 
 export default async function ParticipantDetail({
   params,
+  searchParams,
 }: {
   params: { id: string; pid: string };
+  searchParams: { ok?: string; error?: string };
 }) {
   const s = await getSession();
   if (!s) redirect("/login");
@@ -54,6 +56,12 @@ export default async function ParticipantDetail({
 
   return (
     <Shell session={s} active="events">
+      {searchParams.ok && (
+        <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>
+      )}
+      {searchParams.error && (
+        <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>
+      )}
       <div className="mb-4">
         <a
           href={`/events/${p.eventId}`}
@@ -115,6 +123,21 @@ export default async function ParticipantDetail({
             >
               … für Briefpapier
             </a>
+            {canWrite && (
+              <div className="mt-2 pt-2 border-t border-slate-200 w-full">
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-1 text-right">
+                  Per Mail an Teilnehmer
+                </div>
+                <form method="post" action={`/api/participants/${p.id}/anmeldebestaetigung/send`} className="flex flex-col gap-1 items-end">
+                  <button name="mode" value="auto" className="text-xs text-brand-700 hover:underline">
+                    📧 mit Unterschrift senden
+                  </button>
+                  <button name="mode" value="digital" className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
+                    📧 ohne Unterschrift senden
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
         </div>
       </div>
