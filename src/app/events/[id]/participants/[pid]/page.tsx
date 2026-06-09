@@ -88,9 +88,25 @@ export default async function ParticipantDetail({
               href={`/api/participants/${p.id}/anmeldebestaetigung`}
               target="_blank"
               className="text-xs text-brand-700 hover:underline"
-              title="Anmeldebestätigung als PDF mit FBA-Briefkopf"
+              title="Wenn du eine Unterschrift im Konto hinterlegt hast, wird sie gestempelt — sonst Hinweis 'ohne Unterschrift gültig'"
             >
               Anmeldebestätigung (PDF)
+            </a>
+            <a
+              href={`/api/participants/${p.id}/anmeldebestaetigung?mode=blank`}
+              target="_blank"
+              className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
+              title="Mit leerer Unterschriftslinie zum Drucken und manuellen Unterschreiben"
+            >
+              … zum Unterschreiben
+            </a>
+            <a
+              href={`/api/participants/${p.id}/anmeldebestaetigung?mode=digital`}
+              target="_blank"
+              className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
+              title="Ohne Unterschrift, mit Hinweis 'ohne Unterschrift gültig'"
+            >
+              … ohne Unterschrift
             </a>
             <a
               href={`/api/participants/${p.id}/anmeldebestaetigung?bg=0`}

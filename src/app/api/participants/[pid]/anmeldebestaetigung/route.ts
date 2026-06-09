@@ -25,6 +25,9 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
 
   const url = new URL(req.url);
   const noBackground = url.searchParams.get("bg") === "0";
+  const modeParam = url.searchParams.get("mode");
+  const signatureMode: "auto" | "blank" | "digital" =
+    modeParam === "blank" ? "blank" : modeParam === "digital" ? "digital" : "auto";
 
   // Signatur des ausstellenden Users laden
   const me = await prisma.user.findUnique({ where: { id: s.uid }, select: { signatureUrl: true } });
@@ -70,6 +73,7 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
     bookedAt: p.createdAt,
     issuedBy: s.name,
     signatureUrl: me?.signatureUrl ?? null,
+    signatureMode,
     noBackground,
   });
 

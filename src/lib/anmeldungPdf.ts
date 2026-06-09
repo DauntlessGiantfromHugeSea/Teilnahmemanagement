@@ -101,6 +101,11 @@ export interface AnmeldebestaetigungArgs {
   signatureUrl?: string | null;
   /** true: kein Hintergrund/Logo/Footer drucken (fuer Druck auf Briefpapier) */
   noBackground?: boolean;
+  /** Modus fuer die Unterschriftszeile:
+   *  - "auto": wenn signatureUrl vorhanden, Bild stempeln; sonst Hinweis "ohne Unterschrift"
+   *  - "blank": leere Unterschriftslinie (zum Drucken + manuell unterschreiben)
+   *  - "digital": IMMER Hinweis "ohne Unterschrift gueltig" - auch wenn Bild vorhanden */
+  signatureMode?: "auto" | "blank" | "digital";
 }
 
 function fmtDateLong(d: Date | null): string {
@@ -205,8 +210,11 @@ export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs
     size: 11, spaceAfter: 16,
   });
 
-  // Digitale Unterschrift (falls hinterlegt)
-  if (args.signatureUrl) {
+  const mode = args.signatureMode ?? "auto";
+  let stampedSignature = false;
+
+  // Digitale Unterschrift stempeln (nur im Modus 'auto' und wenn ein Bild hinterlegt ist)
+  if (mode === "auto" && args.signatureUrl) {
     const localPath = args.signatureUrl.startsWith("/uploads/")
       ? path.join(process.cwd(), "public", args.signatureUrl)
       : null;
@@ -220,16 +228,36 @@ export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs
           else img = await doc.embedJpg(bytes);
           const sw = 160;
           const sh = (img.height / img.width) * sw;
-          // Unterschrift ueber dem Namen
           page.drawImage(img, { x: TEXT_LEFT, y: ctx.y - sh + 10, width: sw, height: sh });
           ctx.y -= sh - 10;
+          stampedSignature = true;
         } catch { /* ignore */ }
       }
     }
   }
 
+  // Leere Unterschriftslinie (manueller Druck)
+  if (mode === "blank") {
+    ctx.y -= 30;
+    page.drawLine({
+      start: { x: TEXT_LEFT, y: ctx.y + 4 },
+      end: { x: TEXT_LEFT + 220, y: ctx.y + 4 },
+      thickness: 0.5, color: COLOR_MUTED,
+    });
+  }
+
   drawText(ctx, args.issuedBy, { size: 10, bold: true });
   drawText(ctx, "Flüssigboden Akademie", { size: 9, color: COLOR_MUTED });
+
+  // Hinweis "Diese Bestaetigung ist ohne Unterschrift gueltig" -
+  // Modus 'digital' immer; Modus 'auto' nur als Fallback wenn kein Bild gestempelt.
+  if (mode === "digital" || (mode === "auto" && !stampedSignature)) {
+    ctx.y -= 8;
+    drawText(ctx,
+      "Diese Bestätigung ist ohne Unterschrift gültig, weil sie digital ausgestellt wurde.",
+      { size: 9, color: BRAND, leading: 12 }
+    );
+  }
 
   return doc.save();
 }
