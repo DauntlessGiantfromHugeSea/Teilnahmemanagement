@@ -22,14 +22,14 @@ const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
 const BRAND = rgb(0.06, 0.46, 0.43);
 
-let cachedLogo: ArrayBuffer | null = null;
-async function loadLogo(): Promise<ArrayBuffer | null> {
-  if (cachedLogo) return cachedLogo;
+let cachedBlank: ArrayBuffer | null = null;
+async function loadBriefpapier(): Promise<ArrayBuffer | null> {
+  if (cachedBlank) return cachedBlank;
   try {
-    const p = path.join(process.cwd(), "public", "logo-fba.png");
+    const p = path.join(process.cwd(), "public", "cert-templates", "briefpapier-blank.pdf");
     const buf = await readFile(p);
-    cachedLogo = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    return cachedLogo;
+    cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    return cachedBlank;
   } catch { return null; }
 }
 
@@ -123,37 +123,23 @@ const INVOICE_LABEL: Record<string, string> = {
 };
 
 export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  const page = doc.addPage([PAGE_W, PAGE_H]);
+  let doc: PDFDocument;
+  let page: PDFPage;
+  if (args.noBackground) {
+    doc = await PDFDocument.create();
+    page = doc.addPage([PAGE_W, PAGE_H]);
+  } else {
+    const blank = await loadBriefpapier();
+    if (blank) {
+      doc = await PDFDocument.load(blank);
+      page = doc.getPage(0);
+    } else {
+      doc = await PDFDocument.create();
+      page = doc.addPage([PAGE_W, PAGE_H]);
+    }
+  }
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-
-  // Briefkopf (nur wenn nicht "noBackground")
-  if (!args.noBackground) {
-    // Brand-Streifen rechts
-    page.drawRectangle({
-      x: PAGE_W - STRIPE_W, y: 0, width: STRIPE_W, height: PAGE_H, color: BRAND,
-    });
-    // Logo oben links
-    const logoBytes = await loadLogo();
-    if (logoBytes) {
-      try {
-        const logo = await doc.embedPng(logoBytes);
-        const lw = 130;
-        const lh = (logo.height / logo.width) * lw;
-        page.drawImage(logo, { x: TEXT_LEFT, y: PAGE_H - 40 - lh, width: lw, height: lh });
-      } catch { /* ignore */ }
-    }
-    // Adress-Footer
-    page.drawText("Flüssigboden Akademie UG", { x: TEXT_LEFT, y: 70, size: 8, font: bold, color: COLOR_TEXT });
-    page.drawText("Merseburger Str. 189", { x: TEXT_LEFT, y: 58, size: 8, font, color: COLOR_MUTED });
-    page.drawText("04179 Leipzig", { x: TEXT_LEFT, y: 46, size: 8, font, color: COLOR_MUTED });
-    page.drawText("info@fb-akademie.de", { x: TEXT_LEFT, y: 34, size: 8, font, color: COLOR_MUTED });
-    const midX = 260;
-    page.drawText("Geschäftsführer:", { x: midX, y: 58, size: 8, font, color: COLOR_MUTED });
-    page.drawText("M.Sc. Wolf-Hagen Stolzenburg", { x: midX, y: 46, size: 8, font, color: COLOR_TEXT });
-    page.drawText("www.fb-akademie.de", { x: midX, y: 34, size: 8, font: bold, color: BRAND });
-  }
 
   const ctx: Ctx = { page, font, bold, y: PAGE_H - 200 };
 

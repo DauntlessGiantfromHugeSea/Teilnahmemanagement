@@ -1,9 +1,12 @@
-// A3-Plakat der Agenda im FBA-Briefpapier-Design (gleich wie die Zertifikate):
-// Logo oben links, Brand-Streifen rechts, Adress-Footer unten. Kein Timeline-
-// Strang, sondern eine ruhige, zweispaltige Liste mit der Brand-Farbe als
-// einzigem Akzent.
+// A3-Plakat der Agenda im FBA-Design.
+//
+// Hintergrund ist das offizielle FBA-Briefpapier (public/cert-templates/
+// briefpapier-blank.pdf, A4-Format). Wir embedden die A4-Seite als FormXObject
+// und skalieren sie auf A3 hoch (A4 → A3 = sqrt(2)).
 
-import PDFDocument from "pdfkit";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 
 export interface AgendaPdfItem {
   startTime: string;
@@ -23,141 +26,116 @@ export interface AgendaPdfOptions {
   startTime: string | null;
   endTime: string | null;
   items: AgendaPdfItem[];
+  /** Wird ignoriert - Hintergrund kommt aus dem Briefpapier-PDF. */
   logoBuffer?: Buffer | null;
 }
 
 // A3 portrait
 const PAGE_W = 842;
 const PAGE_H = 1191;
-const MARGIN_L = 70;
-const MARGIN_R = 70;
-const STRIPE_W = 26;     // markanter Brand-Streifen rechts
-const TOP_BAR_H = 8;     // schmaler Brand-Strich am oberen Rand
+const MARGIN_L = 90;
+const MARGIN_R = 60;
+const STRIPE_W = 26;     // Hintergrund-PDF hat eigenen Streifen; wir respektieren ihn beim Inhalt
 
-// FBA-Brand
-const BRAND: [number, number, number] = [15, 118, 110];   // #0f766e teal
-const BRAND_DARK: [number, number, number] = [11, 92, 86]; // dunkleres teal
-const BRAND_SOFT = "#ecfdf5";   // sehr helles Brand-Tint fuer Day-Header
-const TEXT_DARK = "#0f172a";
-const TEXT_MUTED = "#475569";
-const TEXT_LIGHT = "#64748b";
-const RULE = "#e2e8f0";
+const TEXT_LEFT = MARGIN_L;
+const TEXT_RIGHT = PAGE_W - MARGIN_R - STRIPE_W;
+const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
+
+const BRAND = rgb(0.06, 0.46, 0.43);
+const BRAND_SOFT = rgb(0.92, 0.99, 0.96);
+const COLOR_TEXT = rgb(0.06, 0.09, 0.16);
+const COLOR_MUTED = rgb(0.28, 0.33, 0.40);
+const COLOR_LIGHT = rgb(0.40, 0.45, 0.51);
 
 function fmtDate(d: Date | null): string {
   if (!d) return "";
-  return new Date(d).toLocaleDateString("de-DE", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  return new Date(d).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+}
+
+let cachedBlank: ArrayBuffer | null = null;
+async function loadBriefpapier(): Promise<ArrayBuffer | null> {
+  if (cachedBlank) return cachedBlank;
+  try {
+    const p = path.join(process.cwd(), "public", "cert-templates", "briefpapier-blank.pdf");
+    const buf = await readFile(p);
+    cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    return cachedBlank;
+  } catch { return null; }
+}
+
+function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let line = "";
+  for (const w of words) {
+    const probe = line ? `${line} ${w}` : w;
+    if (font.widthOfTextAtSize(probe, size) <= maxW) line = probe;
+    else { if (line) lines.push(line); line = w; }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+interface Ctx { page: PDFPage; font: PDFFont; bold: PDFFont; y: number }
+
+function drawText(ctx: Ctx, text: string, opts: {
+  size?: number; bold?: boolean; color?: ReturnType<typeof rgb>;
+  leading?: number; spaceAfter?: number; maxWidth?: number; x?: number;
+} = {}) {
+  const size = opts.size ?? 11;
+  const font = opts.bold ? ctx.bold : ctx.font;
+  const color = opts.color ?? COLOR_TEXT;
+  const leading = opts.leading ?? size * 1.35;
+  const maxWidth = opts.maxWidth ?? TEXT_WIDTH;
+  const x = opts.x ?? TEXT_LEFT;
+  for (const line of wrap(text, font, size, maxWidth)) {
+    ctx.page.drawText(line, { x, y: ctx.y, size, font, color });
+    ctx.y -= leading;
+  }
+  if (opts.spaceAfter) ctx.y -= opts.spaceAfter;
 }
 
 export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
-  const doc = new PDFDocument({
-    size: [PAGE_W, PAGE_H],
-    margins: { top: 0, left: 0, right: 0, bottom: 0 },
-    info: { Title: `Agenda – ${opts.eventTitle}` },
-    bufferPages: true,
-  });
-  const chunks: Buffer[] = [];
-  doc.on("data", (c) => chunks.push(c));
-  const done = new Promise<void>((res) => doc.on("end", () => res()));
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([PAGE_W, PAGE_H]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
-  const contentLeft = MARGIN_L;
-  const contentRight = PAGE_W - MARGIN_R - STRIPE_W;
-  const contentWidth = contentRight - contentLeft;
-  const brandRgb = "#0f766e";          // pdfkit erwartet Hex / Named / Array - kein "rgb(...)"
-  const brandDarkRgb = "#0b5c56";
-
-  function drawChrome() {
-    // Brand-Streifen rechts - durchgehend in der Firmen-Türkis-Farbe.
-    doc.save();
-    doc.rect(PAGE_W - STRIPE_W, 0, STRIPE_W, PAGE_H).fill(brandRgb);
-    doc.restore();
-
-    // Logo oben links - prominent platziert
-    if (opts.logoBuffer) {
-      try {
-        doc.image(opts.logoBuffer, MARGIN_L, 60, { fit: [220, 90] });
-      } catch (e) {
-        console.warn("[agenda-pdf] logo render failed:", e);
-      }
-    } else {
-      // Fallback: Textmarke wenn kein Logo geladen werden konnte
-      doc
-        .fillColor(brandRgb)
-        .font("Helvetica-Bold")
-        .fontSize(28)
-        .text("FBA", MARGIN_L, 70, { lineBreak: false });
-      doc
-        .fillColor(TEXT_DARK)
-        .font("Helvetica")
-        .fontSize(11)
-        .text("Flüssigboden Akademie", MARGIN_L, 105, { lineBreak: false });
-    }
-
-    // Adress-Footer mit kurzer Brand-Linie darueber
-    doc
-      .save()
-      .strokeColor(brandRgb)
-      .lineWidth(1.2)
-      .moveTo(MARGIN_L, PAGE_H - 80)
-      .lineTo(MARGIN_L + 50, PAGE_H - 80)
-      .stroke()
-      .restore();
-
-    doc
-      .fillColor(TEXT_DARK)
-      .font("Helvetica-Bold")
-      .fontSize(8.5)
-      .text("Flüssigboden Akademie UG", MARGIN_L, PAGE_H - 70, { lineBreak: false });
-    doc
-      .fillColor(TEXT_LIGHT)
-      .font("Helvetica")
-      .fontSize(8.5)
-      .text("Merseburger Str. 189", MARGIN_L, PAGE_H - 58, { lineBreak: false })
-      .text("04179 Leipzig", MARGIN_L, PAGE_H - 46, { lineBreak: false })
-      .text("info@fb-akademie.de", MARGIN_L, PAGE_H - 34, { lineBreak: false });
-
-    const midX = MARGIN_L + 280;
-    doc
-      .fillColor(TEXT_LIGHT)
-      .font("Helvetica")
-      .fontSize(8.5)
-      .text("Geschäftsführer:", midX, PAGE_H - 58, { lineBreak: false });
-    doc
-      .fillColor(TEXT_DARK)
-      .font("Helvetica")
-      .fontSize(8.5)
-      .text("M.Sc. Wolf-Hagen Stolzenburg", midX, PAGE_H - 46, { lineBreak: false });
-    doc
-      .fillColor(brandRgb)
-      .font("Helvetica-Bold")
-      .fontSize(8.5)
-      .text("www.fb-akademie.de", midX, PAGE_H - 34, { lineBreak: false });
+  // Briefpapier (A4) als Hintergrund auf A3 skaliert einbetten
+  const blank = await loadBriefpapier();
+  if (blank) {
+    try {
+      const src = await PDFDocument.load(blank);
+      const [embedded] = await doc.embedPdf(src, [0]);
+      // A4 (595x842) -> A3 (842x1191). Skalierung um sqrt(2).
+      const scale = PAGE_W / embedded.width; // ~1.414
+      page.drawPage(embedded, {
+        x: 0, y: 0,
+        xScale: scale, yScale: scale,
+      });
+    } catch { /* ignore - fallback bleibt weisser Hintergrund */ }
   }
 
-  drawChrome();
+  // === Inhalt ===
+  const ctx: Ctx = { page, font, bold, y: PAGE_H - 220 };
 
-  // Titel-Block mit Brand-"PROGRAMM"-Eyebrow
-  let y = 180;
-  doc.save();
-  doc
-    .roundedRect(contentLeft, y - 4, 110, 22, 11)
-    .fillAndStroke(brandRgb, brandRgb);
-  doc.fillColor("#ffffff").font("Helvetica-Bold").fontSize(10).text("PROGRAMM", contentLeft + 18, y + 2, {
-    lineBreak: false, characterSpacing: 1.5,
+  // "PROGRAMM" Eyebrow als Brand-Pill
+  page.drawRectangle({
+    x: TEXT_LEFT, y: ctx.y - 4, width: 110, height: 24,
+    color: BRAND,
+    borderColor: BRAND,
+    borderWidth: 1,
   });
-  doc.restore();
-  y += 32;
-  doc
-    .fillColor(TEXT_DARK)
-    .font("Helvetica-Bold")
-    .fontSize(28)
-    .text(opts.eventTitle, contentLeft, y, { width: contentWidth, lineBreak: true });
-  y += doc.heightOfString(opts.eventTitle, { width: contentWidth }) + 12;
+  page.drawText("PROGRAMM", {
+    x: TEXT_LEFT + 18, y: ctx.y + 3,
+    size: 10, font: bold, color: rgb(1, 1, 1),
+  });
+  ctx.y -= 40;
 
+  // Titel
+  drawText(ctx, opts.eventTitle, { bold: true, size: 26, spaceAfter: 14 });
+
+  // Meta-Zeile
   const isTwoDay = !!(opts.day1Date && opts.day2Date);
   const dateLine = isTwoDay
     ? `${fmtDate(opts.day1Date)}  ·  ${fmtDate(opts.day2Date)}`
@@ -165,147 +143,130 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
   const metaParts = [dateLine];
   if (opts.startTime && opts.endTime) metaParts.push(`${opts.startTime} – ${opts.endTime} Uhr`);
   if (opts.location) metaParts.push(opts.location);
-  doc
-    .fillColor(TEXT_MUTED)
-    .font("Helvetica")
-    .fontSize(11)
-    .text(metaParts.join("  ·  "), contentLeft, y, { width: contentWidth, lineBreak: true });
-  y += doc.heightOfString(metaParts.join("  ·  "), { width: contentWidth }) + 20;
+  drawText(ctx, metaParts.join("  ·  "), { size: 11, color: COLOR_MUTED, spaceAfter: 18 });
 
-  // Trennlinie unter dem Header
-  doc
-    .save()
-    .strokeColor(brandRgb)
-    .lineWidth(1.2)
-    .moveTo(contentLeft, y)
-    .lineTo(contentLeft + 60, y)
-    .stroke()
-    .restore();
-  y += 28;
+  // Kurzes Brand-Lineal
+  page.drawLine({
+    start: { x: TEXT_LEFT, y: ctx.y + 4 },
+    end: { x: TEXT_LEFT + 60, y: ctx.y + 4 },
+    thickness: 1.5, color: BRAND,
+  });
+  ctx.y -= 24;
 
   // === Agenda-Eintraege ===
-  const TIME_COL = 130;   // Zeit-Spalte links
+  const TIME_COL = 130;
   const GAP = 24;
-  const titleX = contentLeft + TIME_COL + GAP;
-  const titleW = contentRight - titleX;
+  const titleX = TEXT_LEFT + TIME_COL + GAP;
+  const titleW = TEXT_RIGHT - titleX;
 
-  function ensurePageSpace(needed: number) {
-    if (y + needed > PAGE_H - 100) {
-      doc.addPage({ size: [PAGE_W, PAGE_H], margins: { top: 0, left: 0, right: 0, bottom: 0 } });
-      drawChrome();
-      y = 170;
+  function ensureSpace(needed: number) {
+    if (ctx.y - needed < 110) {
+      // Neue Seite mit gleichem Hintergrund
+      const next = doc.addPage([PAGE_W, PAGE_H]);
+      if (blank) {
+        // embeddedPage existiert bereits im PDF - nochmal embedden:
+        // bei pdf-lib genuegt aber das ID der vorherigen Embed nicht teilen,
+        // wir embedden erneut.
+        // Workaround: einfach weisser Hintergrund + minimal Stripe.
+        next.drawRectangle({
+          x: PAGE_W - STRIPE_W, y: 0, width: STRIPE_W, height: PAGE_H, color: BRAND,
+        });
+      }
+      ctx.page = next;
+      ctx.y = PAGE_H - 100;
     }
   }
 
   function drawDayHeader(label: string, date: Date | null) {
-    ensurePageSpace(70);
-    y += 6;
-    // Volle Pill in Brand-Soft mit Brand-Kante links
-    const pillH = 32;
-    doc.save();
-    doc
-      .roundedRect(contentLeft, y, contentRight - contentLeft, pillH, 8)
-      .fillAndStroke(BRAND_SOFT, BRAND_SOFT);
-    doc.rect(contentLeft, y, 5, pillH).fill(brandRgb);
-    doc.restore();
-    doc
-      .fillColor(brandRgb)
-      .font("Helvetica-Bold")
-      .fontSize(14)
-      .text(label, contentLeft + 16, y + 9, { lineBreak: false, characterSpacing: 1 });
-    doc
-      .fillColor(TEXT_MUTED)
-      .font("Helvetica")
-      .fontSize(11)
-      .text(fmtDate(date), contentLeft + 86, y + 11, { lineBreak: false });
-    y += pillH + 16;
+    ensureSpace(80);
+    ctx.y -= 4;
+    // Brand-soft Pill mit Brand-Kante links
+    const pillH = 34;
+    ctx.page.drawRectangle({
+      x: TEXT_LEFT, y: ctx.y - pillH + 24, width: TEXT_RIGHT - TEXT_LEFT, height: pillH,
+      color: BRAND_SOFT,
+    });
+    ctx.page.drawRectangle({
+      x: TEXT_LEFT, y: ctx.y - pillH + 24, width: 5, height: pillH, color: BRAND,
+    });
+    ctx.page.drawText(label, {
+      x: TEXT_LEFT + 16, y: ctx.y + 4,
+      size: 14, font: bold, color: BRAND,
+    });
+    ctx.page.drawText(fmtDate(date), {
+      x: TEXT_LEFT + 90, y: ctx.y + 6,
+      size: 11, font, color: COLOR_MUTED,
+    });
+    ctx.y -= pillH + 14;
   }
 
   function drawItem(it: AgendaPdfItem, isLast: boolean) {
-    // Hoehe vorab grob abschaetzen (Title + Speaker + Description)
-    doc.font("Helvetica-Bold").fontSize(13);
-    const tH = doc.heightOfString(it.title, { width: titleW });
+    // Hoehe vorab
+    let titleSize = 13;
+    const titleLines = wrap(it.title, bold, titleSize, titleW);
+    const tH = titleLines.length * titleSize * 1.25;
     let extra = 0;
-    if (it.speaker) {
-      doc.font("Helvetica-Oblique").fontSize(10);
-      extra += doc.heightOfString(it.speaker, { width: titleW }) + 3;
-    }
+    if (it.speaker) extra += 14;
     if (it.description) {
-      doc.font("Helvetica").fontSize(10);
-      extra += doc.heightOfString(it.description, { width: titleW }) + 6;
+      const dLines = wrap(it.description, font, 10.5, titleW);
+      extra += dLines.length * 10.5 * 1.35 + 4;
     }
-    const blockH = Math.max(34, tH + extra + 12);
-    ensurePageSpace(blockH);
+    const blockH = Math.max(38, tH + extra + 10);
+    ensureSpace(blockH);
 
-    // Zeit links, brand-color
-    doc
-      .fillColor(brandRgb)
-      .font("Helvetica-Bold")
-      .fontSize(15)
-      .text(it.startTime, contentLeft, y, { width: TIME_COL, lineBreak: false });
+    const startY = ctx.y;
+    // Zeit
+    ctx.page.drawText(it.startTime, {
+      x: TEXT_LEFT, y: startY,
+      size: 15, font: bold, color: BRAND,
+    });
     if (it.endTime) {
-      doc
-        .fillColor(TEXT_LIGHT)
-        .font("Helvetica")
-        .fontSize(10)
-        .text(`bis ${it.endTime}`, contentLeft, y + 19, { width: TIME_COL, lineBreak: false });
+      ctx.page.drawText(`bis ${it.endTime}`, {
+        x: TEXT_LEFT, y: startY - 18,
+        size: 10, font, color: COLOR_LIGHT,
+      });
     }
-
-    // Titel + Speaker + Beschreibung rechts
-    let cy = y;
-    doc
-      .fillColor(TEXT_DARK)
-      .font("Helvetica-Bold")
-      .fontSize(13)
-      .text(it.title, titleX, cy, { width: titleW, lineBreak: true });
-    cy += tH + 4;
+    // Titel
+    let cy = startY;
+    for (const line of titleLines) {
+      ctx.page.drawText(line, { x: titleX, y: cy, size: titleSize, font: bold, color: COLOR_TEXT });
+      cy -= titleSize * 1.25;
+    }
+    cy -= 2;
     if (it.speaker) {
-      doc
-        .fillColor(TEXT_MUTED)
-        .font("Helvetica-Oblique")
-        .fontSize(10)
-        .text(it.speaker, titleX, cy, { width: titleW, lineBreak: true });
-      cy += doc.heightOfString(it.speaker, { width: titleW }) + 4;
+      ctx.page.drawText(it.speaker, { x: titleX, y: cy, size: 10, font, color: COLOR_MUTED });
+      cy -= 13;
     }
     if (it.description) {
-      doc
-        .fillColor(TEXT_DARK)
-        .font("Helvetica")
-        .fontSize(10.5)
-        .text(it.description, titleX, cy, { width: titleW, lineBreak: true });
-      cy += doc.heightOfString(it.description, { width: titleW }) + 4;
+      for (const line of wrap(it.description, font, 10.5, titleW)) {
+        ctx.page.drawText(line, { x: titleX, y: cy, size: 10.5, font, color: COLOR_TEXT });
+        cy -= 10.5 * 1.35;
+      }
     }
-
-    const used = Math.max(blockH, cy - y);
-    y += used + 4;
+    ctx.y = Math.min(startY - blockH, cy - 4);
 
     if (!isLast) {
-      doc
-        .save()
-        .strokeColor(RULE)
-        .lineWidth(0.4)
-        .moveTo(contentLeft, y)
-        .lineTo(contentRight, y)
-        .stroke()
-        .restore();
-      y += 14;
+      ctx.page.drawLine({
+        start: { x: TEXT_LEFT, y: ctx.y + 6 },
+        end: { x: TEXT_RIGHT, y: ctx.y + 6 },
+        thickness: 0.4, color: rgb(0.88, 0.91, 0.94),
+      });
+      ctx.y -= 12;
     }
   }
 
   const day1Items = opts.items.filter((i) => i.day === 1);
   const day2Items = opts.items.filter((i) => i.day === 2);
-
   if (day1Items.length > 0) {
     if (isTwoDay) drawDayHeader("Tag 1", opts.day1Date);
     day1Items.forEach((it, i) => drawItem(it, i === day1Items.length - 1));
   }
   if (day2Items.length > 0) {
-    y += 14;
+    ctx.y -= 16;
     drawDayHeader("Tag 2", opts.day2Date);
     day2Items.forEach((it, i) => drawItem(it, i === day2Items.length - 1));
   }
 
-  doc.end();
-  await done;
-  return Buffer.concat(chunks);
+  const bytes = await doc.save();
+  return Buffer.from(bytes);
 }
