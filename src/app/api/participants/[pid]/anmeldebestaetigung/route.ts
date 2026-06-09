@@ -24,8 +24,10 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
   if (!(await canViewEvent(s, p.eventId))) return new NextResponse("Forbidden", { status: 403 });
 
   const url = new URL(req.url);
-  const withSignatureLine = url.searchParams.get("signature") === "1";
   const noBackground = url.searchParams.get("bg") === "0";
+
+  // Signatur des ausstellenden Users laden
+  const me = await prisma.user.findUnique({ where: { id: s.uid }, select: { signatureUrl: true } });
 
   const dec = decryptParticipant(p);
   const ev = p.event;
@@ -67,8 +69,8 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
     invoiceNumber: p.invoiceNumber,
     bookedAt: p.createdAt,
     issuedBy: s.name,
+    signatureUrl: me?.signatureUrl ?? null,
     noBackground,
-    withSignatureLine,
   });
 
   const safeName = `${dec.lastName ?? ""}_${dec.firstName ?? ""}`.replace(/[^A-Za-z0-9_-]+/g, "_");

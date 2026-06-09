@@ -88,23 +88,15 @@ export default async function ParticipantDetail({
               href={`/api/participants/${p.id}/anmeldebestaetigung`}
               target="_blank"
               className="text-xs text-brand-700 hover:underline"
-              title="Anmeldebestätigung als PDF (digital, ohne Unterschrift)"
+              title="Anmeldebestätigung als PDF mit FBA-Briefkopf"
             >
               Anmeldebestätigung (PDF)
-            </a>
-            <a
-              href={`/api/participants/${p.id}/anmeldebestaetigung?signature=1`}
-              target="_blank"
-              className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
-              title="Mit leerer Unterschriftslinie zum Drucken"
-            >
-              … zum Unterschreiben
             </a>
             <a
               href={`/api/participants/${p.id}/anmeldebestaetigung?bg=0`}
               target="_blank"
               className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
-              title="Ohne FBA-Briefpapier (für Druck auf vorgedrucktes Briefpapier)"
+              title="Ohne Briefkopf — für Druck auf vorgedrucktes Briefpapier"
             >
               … für Briefpapier
             </a>

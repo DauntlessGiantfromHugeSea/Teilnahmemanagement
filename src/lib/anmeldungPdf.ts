@@ -1,8 +1,12 @@
-// Anmeldebestaetigung als PDF auf dem FBA-Briefpapier.
+// Anmeldebestaetigung als PDF im FBA-Design - eigener Briefkopf statt
+// Zertifikats-Hintergrund (kein "Zertifikat Flüssigboden"-Titel).
 //
-// Variante:
-//   - Default: 'Diese Bestaetigung ist ohne Unterschrift gueltig, weil digital ausgestellt.'
-//   - ?signature=1: rendert eine leere Unterschriftslinie zum manuellen Unterschreiben.
+// - Logo oben links (aus public/logo-fba.png)
+// - Schmaler Brand-Streifen rechts
+// - Adress-Footer unten
+// - Inhalt: alle Anmelde-Details
+// - Unterschrift: hochgeladenes Signaturbild des ausstellenden Users
+//   (User.signatureUrl); ohne Bild: kein Hinweis-Text, einfach nur Name
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -11,19 +15,29 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 const PAGE_W = 595;
 const PAGE_H = 842;
 const TEXT_LEFT = 70;
-const TEXT_RIGHT = 525;
+const STRIPE_W = 14;
+const TEXT_RIGHT = PAGE_W - 60 - STRIPE_W;
 const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
 const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
 const BRAND = rgb(0.06, 0.46, 0.43);
 
-let cachedBlank: ArrayBuffer | null = null;
-async function loadBlank(): Promise<ArrayBuffer> {
-  if (cachedBlank) return cachedBlank;
-  const p = path.join(process.cwd(), "public", "cert-templates", "fba-blank.pdf");
-  const buf = await readFile(p);
-  cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  return cachedBlank;
+let cachedLogo: ArrayBuffer | null = null;
+async function loadLogo(): Promise<ArrayBuffer | null> {
+  if (cachedLogo) return cachedLogo;
+  try {
+    const p = path.join(process.cwd(), "public", "logo-fba.png");
+    const buf = await readFile(p);
+    cachedLogo = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    return cachedLogo;
+  } catch { return null; }
+}
+
+async function loadFile(p: string): Promise<Uint8Array | null> {
+  try {
+    const buf = await readFile(p);
+    return new Uint8Array(buf);
+  } catch { return null; }
 }
 
 function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
@@ -82,12 +96,11 @@ export interface AnmeldebestaetigungArgs {
   invoiceStatus?: string;
   invoiceNumber?: string | null;
   bookedAt: Date;
-  /** Name der Person, die diese Bestaetigung ausstellt (eingeloggter User) */
   issuedBy: string;
-  /** true: ohne Hintergrund (fuer Druck auf Briefpapier) */
+  /** Pfad/URL zur PNG/JPG-Unterschrift (z.B. /uploads/foo.png) - optional */
+  signatureUrl?: string | null;
+  /** true: kein Hintergrund/Logo/Footer drucken (fuer Druck auf Briefpapier) */
   noBackground?: boolean;
-  /** true: leere Unterschriftslinie statt 'ohne Unterschrift gueltig' */
-  withSignatureLine?: boolean;
 }
 
 function fmtDateLong(d: Date | null): string {
@@ -110,31 +123,51 @@ const INVOICE_LABEL: Record<string, string> = {
 };
 
 export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs): Promise<Uint8Array> {
-  let doc: PDFDocument;
-  let page: PDFPage;
-  if (args.noBackground) {
-    doc = await PDFDocument.create();
-    page = doc.addPage([PAGE_W, PAGE_H]);
-  } else {
-    const blank = await loadBlank();
-    doc = await PDFDocument.load(blank);
-    page = doc.getPage(0);
-  }
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([PAGE_W, PAGE_H]);
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const ctx: Ctx = { page, font, bold, y: PAGE_H - 250 };
 
-  drawText(ctx, "Anmeldebestätigung", { bold: true, size: 18, align: "center", spaceAfter: 18 });
-
-  drawText(ctx, "Hiermit bestätigen wir die Anmeldung von", { size: 11, align: "center", spaceAfter: 6 });
-  drawText(ctx, `${args.firstName} ${args.lastName}`, {
-    bold: true, size: 16, align: "center", spaceAfter: args.company ? 4 : 16,
-  });
-  if (args.company) {
-    drawText(ctx, args.company, { size: 11, align: "center", color: COLOR_MUTED, spaceAfter: 16 });
+  // Briefkopf (nur wenn nicht "noBackground")
+  if (!args.noBackground) {
+    // Brand-Streifen rechts
+    page.drawRectangle({
+      x: PAGE_W - STRIPE_W, y: 0, width: STRIPE_W, height: PAGE_H, color: BRAND,
+    });
+    // Logo oben links
+    const logoBytes = await loadLogo();
+    if (logoBytes) {
+      try {
+        const logo = await doc.embedPng(logoBytes);
+        const lw = 130;
+        const lh = (logo.height / logo.width) * lw;
+        page.drawImage(logo, { x: TEXT_LEFT, y: PAGE_H - 40 - lh, width: lw, height: lh });
+      } catch { /* ignore */ }
+    }
+    // Adress-Footer
+    page.drawText("Flüssigboden Akademie UG", { x: TEXT_LEFT, y: 70, size: 8, font: bold, color: COLOR_TEXT });
+    page.drawText("Merseburger Str. 189", { x: TEXT_LEFT, y: 58, size: 8, font, color: COLOR_MUTED });
+    page.drawText("04179 Leipzig", { x: TEXT_LEFT, y: 46, size: 8, font, color: COLOR_MUTED });
+    page.drawText("info@fb-akademie.de", { x: TEXT_LEFT, y: 34, size: 8, font, color: COLOR_MUTED });
+    const midX = 260;
+    page.drawText("Geschäftsführer:", { x: midX, y: 58, size: 8, font, color: COLOR_MUTED });
+    page.drawText("M.Sc. Wolf-Hagen Stolzenburg", { x: midX, y: 46, size: 8, font, color: COLOR_TEXT });
+    page.drawText("www.fb-akademie.de", { x: midX, y: 34, size: 8, font: bold, color: BRAND });
   }
 
-  drawText(ctx, "zur folgenden Veranstaltung:", { size: 11, spaceAfter: 8 });
+  const ctx: Ctx = { page, font, bold, y: PAGE_H - 200 };
+
+  drawText(ctx, "Anmeldebestätigung", { bold: true, size: 22, spaceAfter: 16 });
+
+  drawText(ctx, "Hiermit bestätigen wir die Anmeldung von", { size: 11, spaceAfter: 4 });
+  drawText(ctx, `${args.firstName} ${args.lastName}`, {
+    bold: true, size: 15, spaceAfter: args.company ? 2 : 14,
+  });
+  if (args.company) {
+    drawText(ctx, args.company, { size: 11, color: COLOR_MUTED, spaceAfter: 14 });
+  }
+
+  drawText(ctx, "zur folgenden Veranstaltung:", { size: 11, spaceAfter: 6 });
 
   const d1 = fmtDateLong(args.day1Date);
   const d2 = fmtDateLong(args.day2Date);
@@ -173,35 +206,44 @@ export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs
     }
     ctx.y -= Math.max(15, lines.length * 14 + 2);
   }
-  ctx.y -= 12;
+  ctx.y -= 14;
 
   drawText(ctx,
     "Diese Bestätigung dient als Nachweis Ihrer Anmeldung. Die Rechnung wird " +
     "(sofern nicht bereits geschehen) separat zugestellt. Bei Fragen erreichen " +
     "Sie uns unter info@fb-akademie.de.",
-    { size: 10, leading: 14, color: COLOR_TEXT, spaceAfter: 22 }
+    { size: 10, leading: 14, color: COLOR_TEXT, spaceAfter: 20 }
   );
 
   drawText(ctx, `Leipzig, ${new Date().toLocaleDateString("de-DE", { day: "2-digit", month: "long", year: "numeric" })}`, {
-    size: 11, spaceAfter: 36,
+    size: 11, spaceAfter: 16,
   });
 
-  if (args.withSignatureLine) {
-    page.drawLine({
-      start: { x: TEXT_LEFT, y: ctx.y + 4 },
-      end: { x: TEXT_LEFT + 220, y: ctx.y + 4 },
-      thickness: 0.5, color: COLOR_MUTED,
-    });
-    drawText(ctx, args.issuedBy, { size: 10, bold: true });
-    drawText(ctx, "Flüssigboden Akademie", { size: 9, color: COLOR_MUTED });
-  } else {
-    drawText(ctx, args.issuedBy, { size: 10, bold: true });
-    drawText(ctx, "Flüssigboden Akademie", { size: 9, color: COLOR_MUTED, spaceAfter: 12 });
-    drawText(ctx,
-      "Diese Bestätigung ist ohne Unterschrift gültig, weil sie digital ausgestellt wurde.",
-      { size: 9, color: BRAND, leading: 12 }
-    );
+  // Digitale Unterschrift (falls hinterlegt)
+  if (args.signatureUrl) {
+    const localPath = args.signatureUrl.startsWith("/uploads/")
+      ? path.join(process.cwd(), "public", args.signatureUrl)
+      : null;
+    if (localPath) {
+      const bytes = await loadFile(localPath);
+      if (bytes) {
+        try {
+          let img;
+          const ext = localPath.toLowerCase();
+          if (ext.endsWith(".png")) img = await doc.embedPng(bytes);
+          else img = await doc.embedJpg(bytes);
+          const sw = 160;
+          const sh = (img.height / img.width) * sw;
+          // Unterschrift ueber dem Namen
+          page.drawImage(img, { x: TEXT_LEFT, y: ctx.y - sh + 10, width: sw, height: sh });
+          ctx.y -= sh - 10;
+        } catch { /* ignore */ }
+      }
+    }
   }
+
+  drawText(ctx, args.issuedBy, { size: 10, bold: true });
+  drawText(ctx, "Flüssigboden Akademie", { size: 9, color: COLOR_MUTED });
 
   return doc.save();
 }

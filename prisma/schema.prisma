@@ -80,6 +80,9 @@ model User {
   // Microsoft / Entra ID Single-Sign-On
   msOid         String?   @unique  // stabile MS Object-ID nach erstem Login
   msTenantId    String?   // MS Tenant-ID (Whitelist via MS_TENANT_ID)
+  // Digitale Unterschrift fuer Anmeldebestaetigungen u.a. (Pfad auf
+  // hochgeladenes PNG in public/uploads/signatures/)
+  signatureUrl  String?
   recoveryCodes String?   // verschluesselt, JSON-Array
   // 2FA per E-Mail (Code)
   emailCodeEnabled  Boolean   @default(false)
