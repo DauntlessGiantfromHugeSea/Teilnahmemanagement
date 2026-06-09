@@ -26,11 +26,20 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
   const url = new URL(req.url);
   const noBackground = url.searchParams.get("bg") === "0";
   const modeParam = url.searchParams.get("mode");
-  const signatureMode: "auto" | "blank" | "digital" =
-    modeParam === "blank" ? "blank" : modeParam === "digital" ? "digital" : "auto";
+  const signatureMode: "auto" | "digital" = modeParam === "digital" ? "digital" : "auto";
 
   // Signatur des ausstellenden Users laden
   const me = await prisma.user.findUnique({ where: { id: s.uid }, select: { signatureUrl: true } });
+  let signatureDataUrl: string | null = null;
+
+  // Wenn POST mit Unterschrift-DataURL (vom Signature-Pad), Signatur uebernehmen
+  if (req.method === "POST") {
+    const form = await req.formData().catch(() => null);
+    if (form) {
+      const dur = String(form.get("signatureDataUrl") ?? "");
+      if (dur.startsWith("data:image/")) signatureDataUrl = dur;
+    }
+  }
 
   const dec = decryptParticipant(p);
   const ev = p.event;
@@ -73,6 +82,7 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
     bookedAt: p.createdAt,
     issuedBy: s.name,
     signatureUrl: me?.signatureUrl ?? null,
+    signatureDataUrl,
     signatureMode,
     noBackground,
   });
@@ -87,3 +97,6 @@ export async function GET(req: Request, { params }: { params: { pid: string } })
     },
   });
 }
+
+// Gleiche Logik - akzeptiert zusaetzlich signatureDataUrl im Body.
+export const POST = GET;

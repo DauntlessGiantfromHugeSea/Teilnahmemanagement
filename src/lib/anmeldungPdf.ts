@@ -99,13 +99,14 @@ export interface AnmeldebestaetigungArgs {
   issuedBy: string;
   /** Pfad/URL zur PNG/JPG-Unterschrift (z.B. /uploads/foo.png) - optional */
   signatureUrl?: string | null;
+  /** Per Canvas gezeichnete Unterschrift (PNG-DataURL, 'data:image/png;base64,...') */
+  signatureDataUrl?: string | null;
   /** true: kein Hintergrund/Logo/Footer drucken (fuer Druck auf Briefpapier) */
   noBackground?: boolean;
   /** Modus fuer die Unterschriftszeile:
-   *  - "auto": wenn signatureUrl vorhanden, Bild stempeln; sonst Hinweis "ohne Unterschrift"
-   *  - "blank": leere Unterschriftslinie (zum Drucken + manuell unterschreiben)
+   *  - "auto": signatureDataUrl > signatureUrl > Hinweis "ohne Unterschrift"
    *  - "digital": IMMER Hinweis "ohne Unterschrift gueltig" - auch wenn Bild vorhanden */
-  signatureMode?: "auto" | "blank" | "digital";
+  signatureMode?: "auto" | "digital";
 }
 
 function fmtDateLong(d: Date | null): string {
@@ -213,44 +214,42 @@ export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs
   const mode = args.signatureMode ?? "auto";
   let stampedSignature = false;
 
-  // Digitale Unterschrift stempeln (nur im Modus 'auto' und wenn ein Bild hinterlegt ist)
-  if (mode === "auto" && args.signatureUrl) {
-    const localPath = args.signatureUrl.startsWith("/uploads/")
-      ? path.join(process.cwd(), "public", args.signatureUrl)
-      : null;
-    if (localPath) {
-      const bytes = await loadFile(localPath);
-      if (bytes) {
+  async function stamp(bytes: Uint8Array, isPng: boolean) {
+    try {
+      const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+      const sw = 180;
+      const sh = (img.height / img.width) * sw;
+      page.drawImage(img, { x: TEXT_LEFT, y: ctx.y - sh + 10, width: sw, height: sh });
+      ctx.y -= sh - 10;
+      stampedSignature = true;
+    } catch { /* ignore */ }
+  }
+
+  if (mode === "auto") {
+    // 1) Canvas-DataURL (One-shot, vom Unterschriften-Pad)
+    if (args.signatureDataUrl) {
+      const m = args.signatureDataUrl.match(/^data:image\/(png|jpeg);base64,(.+)$/);
+      if (m) {
         try {
-          let img;
-          const ext = localPath.toLowerCase();
-          if (ext.endsWith(".png")) img = await doc.embedPng(bytes);
-          else img = await doc.embedJpg(bytes);
-          const sw = 160;
-          const sh = (img.height / img.width) * sw;
-          page.drawImage(img, { x: TEXT_LEFT, y: ctx.y - sh + 10, width: sw, height: sh });
-          ctx.y -= sh - 10;
-          stampedSignature = true;
+          await stamp(Uint8Array.from(Buffer.from(m[2], "base64")), m[1] === "png");
         } catch { /* ignore */ }
       }
     }
-  }
-
-  // Leere Unterschriftslinie (manueller Druck)
-  if (mode === "blank") {
-    ctx.y -= 30;
-    page.drawLine({
-      start: { x: TEXT_LEFT, y: ctx.y + 4 },
-      end: { x: TEXT_LEFT + 220, y: ctx.y + 4 },
-      thickness: 0.5, color: COLOR_MUTED,
-    });
+    // 2) Sonst gespeicherte User-Signatur
+    if (!stampedSignature && args.signatureUrl?.startsWith("/uploads/")) {
+      const localPath = path.join(process.cwd(), "public", args.signatureUrl);
+      const bytes = await loadFile(localPath);
+      if (bytes) {
+        const isPng = localPath.toLowerCase().endsWith(".png");
+        await stamp(bytes, isPng);
+      }
+    }
   }
 
   drawText(ctx, args.issuedBy, { size: 10, bold: true });
   drawText(ctx, "Flüssigboden Akademie", { size: 9, color: COLOR_MUTED });
 
-  // Hinweis "Diese Bestaetigung ist ohne Unterschrift gueltig" -
-  // Modus 'digital' immer; Modus 'auto' nur als Fallback wenn kein Bild gestempelt.
+  // Hinweis "ohne Unterschrift" - Modus 'digital' immer; im 'auto' nur als Fallback.
   if (mode === "digital" || (mode === "auto" && !stampedSignature)) {
     ctx.y -= 8;
     drawText(ctx,

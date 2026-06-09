@@ -93,12 +93,11 @@ export default async function ParticipantDetail({
               Anmeldebestätigung (PDF)
             </a>
             <a
-              href={`/api/participants/${p.id}/anmeldebestaetigung?mode=blank`}
-              target="_blank"
-              className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
-              title="Mit leerer Unterschriftslinie zum Drucken und manuellen Unterschreiben"
+              href={`/events/${p.eventId}/participants/${p.id}/sign`}
+              className="text-xs text-brand-700 hover:underline"
+              title="Direkt im Browser digital unterschreiben"
             >
-              … zum Unterschreiben
+              … digital unterschreiben ✎
             </a>
             <a
               href={`/api/participants/${p.id}/anmeldebestaetigung?mode=digital`}
