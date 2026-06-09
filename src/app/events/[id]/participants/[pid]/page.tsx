@@ -83,6 +83,32 @@ export default async function ParticipantDetail({
           <div className="text-xs text-slate-500">
             {formatEUR(base)}{p.discountBps > 0 ? ` - ${formatPct(p.discountBps)}` : ""}
           </div>
+          <div className="mt-3 flex flex-col gap-1 items-end">
+            <a
+              href={`/api/participants/${p.id}/anmeldebestaetigung`}
+              target="_blank"
+              className="text-xs text-brand-700 hover:underline"
+              title="Anmeldebestätigung als PDF (digital, ohne Unterschrift)"
+            >
+              Anmeldebestätigung (PDF)
+            </a>
+            <a
+              href={`/api/participants/${p.id}/anmeldebestaetigung?signature=1`}
+              target="_blank"
+              className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
+              title="Mit leerer Unterschriftslinie zum Drucken"
+            >
+              … zum Unterschreiben
+            </a>
+            <a
+              href={`/api/participants/${p.id}/anmeldebestaetigung?bg=0`}
+              target="_blank"
+              className="text-xs text-slate-500 hover:text-brand-700 hover:underline"
+              title="Ohne FBA-Briefpapier (für Druck auf vorgedrucktes Briefpapier)"
+            >
+              … für Briefpapier
+            </a>
+          </div>
         </div>
       </div>
 
