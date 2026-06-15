@@ -226,7 +226,7 @@ async function renderZertifikat(
         const bytes = new Uint8Array(buf);
         const isPng = localPath.toLowerCase().endsWith(".png");
         const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        const sw = 80;                                // ~2.8 cm breit, dezent
+        const sw = 106;                               // ~3.75 cm breit (33% groesser als zuvor)
         const sh = (img.height / img.width) * sw;
         // Viele Signatur-PNGs haben oben/unten viel Weissraum. Wir lassen
         // die Box bewusst die Namenszeile leicht ueberlappen und schieben
