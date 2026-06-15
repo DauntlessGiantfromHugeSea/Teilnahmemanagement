@@ -226,18 +226,18 @@ async function renderZertifikat(
         const bytes = new Uint8Array(buf);
         const isPng = localPath.toLowerCase().endsWith(".png");
         const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        const sw = 90;                                // ~3.2 cm breit, dezent
+        const sw = 80;                                // ~2.8 cm breit, dezent
         const sh = (img.height / img.width) * sw;
-        // Unterschrift sauber UEBER den Namen platzieren (mit 6pt Abstand
-        // nach unten zum Namen). Anschliessend ctx.y so verschieben, dass die
-        // Namenszeile nicht ueberlappt.
-        const gap = 6;
+        // Viele Signatur-PNGs haben oben/unten viel Weissraum. Wir lassen
+        // die Box bewusst die Namenszeile leicht ueberlappen und schieben
+        // ctx.y nur um die HALBE Bildhoehe ab. So sitzt die sichtbare
+        // Unterschrift visuell direkt ueber dem Namen, ohne grosse Luecke.
         ctx.page.drawImage(img, {
           x: TEXT_LEFT,
-          y: ctx.y + gap,                            // Bottom der Grafik
+          y: ctx.y - sh / 2 + 4,
           width: sw, height: sh,
         });
-        ctx.y -= sh + gap;                            // Name + Rolle nach unten schieben
+        ctx.y -= sh / 2 + 4;
       }
     } catch { /* still draw name without sig */ }
   }
