@@ -202,7 +202,7 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
   function drawQrCell(x: number, y: number, hasItem: boolean) {
     if (!qrPng || !hasItem) return;
     const padX = 8 * MM_TO_PT;
-    const padY = 6 * MM_TO_PT;
+    const padY = 16 * MM_TO_PT;       // 1 cm tiefer als zuvor (war 6 mm)
     const captionH = 7 * MM_TO_PT;
     const maxW = labelW - 2 * padX;
     const maxH = labelH - 2 * padY - captionH;
