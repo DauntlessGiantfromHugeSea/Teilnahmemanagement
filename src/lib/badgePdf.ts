@@ -140,7 +140,7 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
   //  - Firma kleiner darunter, mittel-grau
   // Schriftgroesse Name: einheitlich ueber alle Etiketten, max 16pt fuer
   // 90×60mm-Schilder (vorher 22pt - viel zu gross fuer eine Reihe von Namen)
-  const innerPadX = 5 * MM_TO_PT;
+  const innerPadX = 7 * MM_TO_PT;
   const nameMaxW = labelW - 2 * innerPadX;
   // Maximale Schriftgroesse aus Label-Hoehe ableiten: Faustregel ca. labelH/4.5
   const dynamicMaxName = Math.floor((labelH / MM_TO_PT) / 4.2);   // ~14pt bei 60mm
