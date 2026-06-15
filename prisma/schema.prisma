@@ -152,13 +152,8 @@ model Event {
   pageBlocks      String?   // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
   // Optionaler Override fuer den Fliesstext der Teilnahmebescheinigung dieses Events.
   // Wenn leer, wird Training.certDefaults.tnBody verwendet.
-  certTnBody      String?   // Tag 1 (Eintagesseminar bzw. Tag 1 von zwei)
-  // Bei 2-Tages-Schulungen ein separater Body fuer die zweite Bescheinigung.
-  certTnBodyDay2  String?
-  // Spezial-Bodies fuer Teilnehmer, die NUR an einem der zwei Tage da waren.
-  // Fallback ist certTnBody / certTnBodyDay2, falls leer.
-  certTnBodyOnlyDay1 String?
-  certTnBodyOnlyDay2 String?
+  certTnBody      String?   // Body Tag 1 / Eintagesseminar
+  certTnBodyDay2  String?   // Body Tag 2 (bei 2-Tages-Schulungen)
   // Wurde die 24h-Erinnerungsmail (mit Portal-Link) verschickt?
   reminder24hSentAt DateTime?
   // Im Mitarbeiter-Portal (/portal/staff/<token>) sichtbar?

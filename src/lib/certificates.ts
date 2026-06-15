@@ -100,19 +100,10 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
         ? (
             (() => {
               const ev = args.event;
-              // Reihenfolge der Quellen je nach dayIndex + dayOption:
-              //   nur Tag 1 angemeldet → certTnBodyOnlyDay1 → certTnBody
-              //   nur Tag 2 angemeldet → certTnBodyOnlyDay2 → certTnBodyDay2
-              //   beide Tage           → Tag 1 / Tag 2 entsprechend
-              let v: string | null | undefined;
-              if (args.dayIndex === 2) {
-                if (args.participant.dayOption === "DAY_2") v = ev.certTnBodyOnlyDay2;
-                v = v?.trim() || ev.certTnBodyDay2;
-              } else {
-                if (args.participant.dayOption === "DAY_1") v = ev.certTnBodyOnlyDay1;
-                v = v?.trim() || ev.certTnBody;
-              }
-              return v?.trim() || defaults.tnBody || texts.tnDefaultBody || undefined;
+              // Body je Tag: Tag 1 -> certTnBody, Tag 2 -> certTnBodyDay2.
+              // Gilt unabhaengig davon, ob nur ein Tag oder beide Tage gebucht sind.
+              const raw = args.dayIndex === 2 ? ev.certTnBodyDay2 : ev.certTnBody;
+              return raw?.trim() || defaults.tnBody || texts.tnDefaultBody || undefined;
             })()
           )
         : undefined,
