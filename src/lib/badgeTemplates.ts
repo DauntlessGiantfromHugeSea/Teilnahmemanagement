@@ -40,10 +40,10 @@ export const BADGE_TEMPLATES: BadgeTemplate[] = [
     name: "HERMA 5028 / 4452",
     description: "Namensschilder 90 × 60 mm, 8 pro Bogen (2 × 4)",
     page: A4,
-    // Bei HERMA-Boegen sitzt die Perforation nicht exakt in der Mitte; wir
-    // schieben die rechte Spalte mit colGap=4 mm leicht nach rechts, damit
-    // der Inhalt nicht auf der Bruchkante haengt.
-    margins: { top: 28.5, right: 11, bottom: 28.5, left: 15 },
+    // Layout symmetrisch: 13 + 90 + 4 + 90 + 13 = 210 mm. colGap = 4 mm
+    // entspricht der Perforation zwischen den Spalten, sodass weder die
+    // linke noch die rechte Spalte auf der Bruchkante haengt.
+    margins: { top: 28.5, right: 13, bottom: 28.5, left: 13 },
     cols: 2,
     rows: 4,
     labelW: 90,
