@@ -8,6 +8,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { DEFAULT_CERT_TEXTS, type CertificateData, type CertificateType, type CertTexts } from "./certificateContent";
+import { getCertTexts } from "./kompetenzfelder";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -206,10 +207,19 @@ async function renderZertifikat(
   // GF-Unterschrift nur bei "ohne Briefpapier" (bg=0) und nur fuer ZERTIFIKATE
   // klein direkt ueber dem Namen stempeln. Auf dem Briefpapier-Druck wird die
   // Unterschrift weiterhin manuell aufgebracht.
-  if (noBackground && t.gfSignatureUrl) {
+  // WICHTIG: live aus AppSetting lesen, nicht aus dem Snapshot - so wirkt eine
+  // nachtraeglich hochgeladene Unterschrift sofort auch fuer alte Zertifikate.
+  let gfSignatureUrl: string | undefined = t.gfSignatureUrl;
+  if (noBackground) {
     try {
-      const localPath = t.gfSignatureUrl.startsWith("/uploads/")
-        ? path.join(process.cwd(), "public", t.gfSignatureUrl)
+      const live = await getCertTexts();
+      gfSignatureUrl = live.gfSignatureUrl || gfSignatureUrl;
+    } catch { /* fallback bleibt der Snapshot-Wert */ }
+  }
+  if (noBackground && gfSignatureUrl) {
+    try {
+      const localPath = gfSignatureUrl.startsWith("/uploads/")
+        ? path.join(process.cwd(), "public", gfSignatureUrl)
         : null;
       if (localPath) {
         const buf = await readFile(localPath);
