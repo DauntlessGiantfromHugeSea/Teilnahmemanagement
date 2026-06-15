@@ -66,13 +66,17 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
   const dec = decryptParticipant(args.participant);
   const defaults = parseDefaults(args.event.training.certDefaults);
   const texts = await getCertTexts();
-  const issued = args.issuedAt ?? new Date();
-  const validUntil = new Date(issued);
-  validUntil.setMonth(validUntil.getMonth() + (texts.validityMonths ?? 24));
-
   const eventDateLine = fmtEventDateLine(args.event, args.dayIndex);
   const dayDate = args.dayIndex === 2 ? args.event.day2Date : args.event.day1Date;
   const eventDateShort = fmtDateShort(dayDate);
+
+  // Ausstellungsdatum: standardmaessig der Schulungstag (Tag 1 oder Tag 2
+  // je nach dayIndex). Wenn kein Datum am Event hinterlegt ist: heute.
+  // Explizit uebergebenes 'issuedAt' hat Vorrang.
+  const issued = args.issuedAt
+    ?? (dayDate ? new Date(dayDate) : new Date());
+  const validUntil = new Date(issued);
+  validUntil.setMonth(validUntil.getMonth() + (texts.validityMonths ?? 24));
   const location = args.event.format === "WEBINAR"
     ? "Online-Webinar"
     : (args.event.location ?? "Leipzig");
@@ -175,6 +179,11 @@ export async function createCertificateDraft(args: {
     dayIndex: args.dayIndex,
   });
 
+  // Datenbank-issuedAt analog auf das Schulungsdatum legen, damit auch
+  // Audit/Filter dasselbe Datum wie der PDF-Druck verwenden.
+  const dayDate = args.dayIndex === 2
+    ? participant.event.day2Date
+    : participant.event.day1Date;
   const cert = await prisma.certificate.create({
     data: {
       number,
@@ -186,6 +195,7 @@ export async function createCertificateDraft(args: {
       createdById: args.createdById,
       day: args.dayIndex ?? null,
       kompetenzfeldId: args.kompetenzfeldId ?? null,
+      issuedAt: dayDate ?? null,
     },
   });
   return { id: cert.id, number, slug };

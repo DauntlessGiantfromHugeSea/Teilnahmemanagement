@@ -11,12 +11,14 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   const now = new Date();
+  // issuedAt NICHT ueberschreiben - das wurde beim Anlegen auf das
+  // Schulungsdatum gesetzt und ist die Grundlage fuer die Gueltigkeit.
   const result = await prisma.certificate.updateMany({
     where: {
       status: "DRAFT",
       participant: { eventId: params.id },
     },
-    data: { status: "RELEASED", releasedAt: now, issuedAt: now },
+    data: { status: "RELEASED", releasedAt: now },
   });
 
   return new NextResponse(null, {
