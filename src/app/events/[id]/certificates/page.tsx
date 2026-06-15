@@ -128,6 +128,37 @@ export default async function EventCertificatesPage({
                 ✓ Alle Entwürfe freigeben
               </button>
             </form>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-200">
+            <span className="text-xs font-semibold text-slate-600 w-full sm:w-auto">Nur Teilnahmebescheinigungen (TN):</span>
+            <a
+              href={`/api/events/${ev.id}/certificates/print?type=TN`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Alle TN drucken (mit Briefkopf)
+            </a>
+            <a
+              href={`/api/events/${ev.id}/certificates/print?type=TN&bg=0`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Alle TN (ohne Hintergrund)
+            </a>
+            <a
+              href={`/api/events/${ev.id}/certificates/print?type=TN&released=1`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Nur freigegebene TN
+            </a>
+            <a
+              href={`/api/events/${ev.id}/certificates/print?type=TN&released=1&bg=0`}
+              target="_blank"
+              className="btn-secondary text-sm"
+            >
+              Nur freigegebene TN (ohne Hintergrund)
+            </a>
             <form method="post" action={`/api/events/${ev.id}/certificates/regenerate`}>
               <button className="btn-secondary text-sm" title="Bestehende Zertifikate behalten ihre Nummer, bekommen aber aktuelles Datum + aktuelle Texte (Bestätigungstexte, Geschäftsführer-Name, Gültigkeit, …) frisch eingefroren.">
                 ♻ Alle neu generieren (Datum + Texte aktualisieren)

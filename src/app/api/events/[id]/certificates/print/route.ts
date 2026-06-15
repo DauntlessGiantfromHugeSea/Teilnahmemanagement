@@ -23,6 +23,12 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const url = new URL(req.url);
   const onlyReleased = url.searchParams.get("released") === "1";
   const noBackground = url.searchParams.get("bg") === "0";
+  // Optional auf einen Typ einschraenken: ?type=TN oder ?type=Z
+  const typeParam = url.searchParams.get("type");
+  const typeFilter: ("ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUNG")[] | undefined =
+    typeParam === "TN" ? ["TEILNAHMEBESCHEINIGUNG"]
+    : typeParam === "Z" ? ["ZERTIFIKAT"]
+    : undefined;
 
   // Explizit ueber Participant-IDs filtern - Prisma's relation-filter ist
   // hier robuster und liefert auch dann, wenn Participant-Indices fehlen.
@@ -39,6 +45,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     where: {
       participantId: { in: participantIds },
       status: { in: onlyReleased ? ["RELEASED"] : ["DRAFT", "RELEASED"] },
+      ...(typeFilter ? { type: { in: typeFilter } } : {}),
     },
     orderBy: { createdAt: "asc" },
   });
