@@ -24,17 +24,34 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const onlyReleased = url.searchParams.get("released") === "1";
   const noBackground = url.searchParams.get("bg") === "0";
 
+  // Explizit ueber Participant-IDs filtern - Prisma's relation-filter ist
+  // hier robuster und liefert auch dann, wenn Participant-Indices fehlen.
+  const participants = await prisma.participant.findMany({
+    where: { eventId: params.id },
+    select: { id: true },
+  });
+  if (participants.length === 0) {
+    return new NextResponse("Diese Veranstaltung hat keine Teilnehmer.", { status: 404 });
+  }
+  const participantIds = participants.map((p) => p.id);
+
   const certs = await prisma.certificate.findMany({
     where: {
-      participant: { eventId: params.id },
+      participantId: { in: participantIds },
       status: { in: onlyReleased ? ["RELEASED"] : ["DRAFT", "RELEASED"] },
     },
-    include: { participant: true },
     orderBy: { createdAt: "asc" },
   });
 
   if (certs.length === 0) {
-    return new NextResponse("Keine Zertifikate zum Drucken.", { status: 404 });
+    // Sag dem Admin warum: gibt es vielleicht nur REVOKED-Eintraege?
+    const total = await prisma.certificate.count({
+      where: { participantId: { in: participantIds } },
+    });
+    const msg = total === 0
+      ? "Für diese Veranstaltung wurden noch keine Zertifikate angelegt."
+      : `Keine ${onlyReleased ? "freigegebenen " : ""}Zertifikate zum Drucken vorhanden (insgesamt ${total} Eintrag/Eintraege, davon evtl. widerrufen).`;
+    return new NextResponse(msg, { status: 404 });
   }
 
   const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
