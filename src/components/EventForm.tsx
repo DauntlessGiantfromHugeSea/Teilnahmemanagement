@@ -457,7 +457,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             name="certTnBodyOnlyDay1"
             rows={6}
             defaultValue={event?.certTnBodyOnlyDay1 ?? ""}
-            placeholder={"Wenn leer: gleicher Text wie „Tag 1 (beide Tage)" wird verwendet."}
+            placeholder="Wenn leer: gleicher Text wie Tag 1 (beide Tage) wird verwendet."
             className="input"
           />
         </div>
@@ -467,7 +467,7 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             name="certTnBodyOnlyDay2"
             rows={6}
             defaultValue={event?.certTnBodyOnlyDay2 ?? ""}
-            placeholder={"Wenn leer: gleicher Text wie „Tag 2 (beide Tage)" wird verwendet."}
+            placeholder="Wenn leer: gleicher Text wie Tag 2 (beide Tage) wird verwendet."
             className="input"
           />
           <p className="text-xs text-slate-500 mt-1">
