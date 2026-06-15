@@ -241,6 +241,8 @@ model Participant {
   lastName     String
   email        String
   emailHash    String   // SHA-256 fuer Suche/Dedupe
+  // Hash der E-Mail-Domain fuer Auto-Tag-Vergabe (z.B. "fb-eng.de").
+  emailDomainHash String?
   // Hash der Firma fuer Auto-Tag-Vergabe (HMAC-SHA-256 ueber normalisierten
   // Firmennamen). Erlaubt Lookups ohne Klartext.
   companyHash  String?
@@ -284,6 +286,7 @@ model Participant {
   @@index([emailHash])
   @@index([eventId])
   @@index([companyHash])
+  @@index([emailDomainHash])
 }
 
 // Tag/Kategorie fuer Teilnehmer (Planer, Baugrundgutachter, Baufirma, ...)

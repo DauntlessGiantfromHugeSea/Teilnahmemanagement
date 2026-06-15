@@ -31,6 +31,27 @@ export function companyHashOf(company: string | null | undefined): string | null
   return blindIndex(norm);
 }
 
+// HMAC-Hash der E-Mail-Domain (alles nach dem @, in Kleinbuchstaben).
+// Gaengige Freemail-Domains werden ignoriert, weil sie keine Firma
+// identifizieren.
+const FREE_DOMAINS = new Set([
+  "gmail.com", "googlemail.com", "yahoo.com", "yahoo.de", "ymail.com",
+  "hotmail.com", "hotmail.de", "outlook.com", "outlook.de", "live.com",
+  "msn.com", "icloud.com", "me.com", "mac.com", "aol.com",
+  "web.de", "gmx.de", "gmx.net", "gmx.at", "gmx.ch", "t-online.de",
+  "freenet.de", "arcor.de", "mailbox.org", "posteo.de", "proton.me",
+  "protonmail.com", "tutanota.com", "tutanota.de",
+]);
+
+export function emailDomainHashOf(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const at = email.indexOf("@");
+  if (at < 0) return null;
+  const dom = email.slice(at + 1).trim().toLowerCase();
+  if (!dom || FREE_DOMAINS.has(dom)) return null;
+  return blindIndex(dom);
+}
+
 export async function ensureDefaultTags(): Promise<void> {
   const existing = await prisma.tag.count();
   if (existing > 0) return;
@@ -46,14 +67,23 @@ export async function ensureDefaultTags(): Promise<void> {
 export async function propagateTagsByCompany(participantId: string): Promise<number> {
   const p = await prisma.participant.findUnique({
     where: { id: participantId },
-    select: { id: true, companyHash: true, tagLinks: { select: { tagId: true } } },
+    select: {
+      id: true,
+      companyHash: true,
+      emailDomainHash: true,
+      tagLinks: { select: { tagId: true } },
+    },
   });
-  if (!p || !p.companyHash) return 0;
+  if (!p) return 0;
+  const orFilters: any[] = [];
+  if (p.companyHash) orFilters.push({ participant: { companyHash: p.companyHash } });
+  if (p.emailDomainHash) orFilters.push({ participant: { emailDomainHash: p.emailDomainHash } });
+  if (orFilters.length === 0) return 0;
 
   const otherLinks = await prisma.participantTagLink.findMany({
     where: {
       participantId: { not: p.id },
-      participant: { companyHash: p.companyHash },
+      OR: orFilters,
     },
     select: { tagId: true },
   });

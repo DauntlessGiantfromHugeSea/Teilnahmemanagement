@@ -31,6 +31,21 @@ export function encryptParticipantInput(input: Partial<Record<EncField, string |
   }
   if (typeof input.email === "string" && input.email.length > 0) {
     out.emailHash = blindIndex(input.email);
+    // emailDomainHash fuer Auto-Tag-Zuordnung. Freemail-Domains (gmail,
+    // gmx, web.de, ...) werden explizit ignoriert.
+    const at = input.email.indexOf("@");
+    if (at >= 0) {
+      const dom = input.email.slice(at + 1).trim().toLowerCase();
+      const FREE = new Set([
+        "gmail.com", "googlemail.com", "yahoo.com", "yahoo.de", "ymail.com",
+        "hotmail.com", "hotmail.de", "outlook.com", "outlook.de", "live.com",
+        "msn.com", "icloud.com", "me.com", "mac.com", "aol.com",
+        "web.de", "gmx.de", "gmx.net", "gmx.at", "gmx.ch", "t-online.de",
+        "freenet.de", "arcor.de", "mailbox.org", "posteo.de", "proton.me",
+        "protonmail.com", "tutanota.com", "tutanota.de",
+      ]);
+      out.emailDomainHash = dom && !FREE.has(dom) ? blindIndex(dom) : null;
+    }
   }
   // companyHash fuer Auto-Tag-Zuordnung pflegen, wenn 'company' im Input ist.
   if ("company" in input) {
