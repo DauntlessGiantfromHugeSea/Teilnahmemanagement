@@ -134,50 +134,60 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
   doc.on("data", (c) => chunks.push(c));
   const done = new Promise<void>((res) => doc.on("end", () => res()));
 
-  // Einheitliche Namens-Schriftgroesse ueber alle Etiketten
-  // Inneren Padding pro Etikett: 4mm horizontal -> 8mm Abzug
-  const innerPad = 6 * MM_TO_PT;     // Platz fuer Logo oben links und Padding
-  const nameMaxW = labelW - 2 * (4 * MM_TO_PT); // 4mm links/rechts
+  // Layout-Strategie:
+  //  - Logo klein oben links (10×8 mm) - laesst Platz fuer den Namen
+  //  - Name fett, zentriert, im optisch mittleren Bereich des Etiketts
+  //  - Firma kleiner darunter, mittel-grau
+  // Schriftgroesse Name: einheitlich ueber alle Etiketten, max 16pt fuer
+  // 90×60mm-Schilder (vorher 22pt - viel zu gross fuer eine Reihe von Namen)
+  const innerPadX = 5 * MM_TO_PT;
+  const nameMaxW = labelW - 2 * innerPadX;
+  // Maximale Schriftgroesse aus Label-Hoehe ableiten: Faustregel ca. labelH/4.5
+  const dynamicMaxName = Math.floor((labelH / MM_TO_PT) / 4.2);   // ~14pt bei 60mm
+  const maxName = Math.min(16, Math.max(11, dynamicMaxName));
   const names = items.map((i) => i.name);
   const nameSize = names.length
-    ? findUniformFontSize(doc, "Helvetica-Bold", names, nameMaxW, 22, 9)
-    : 22;
-  const companySize = Math.max(8, Math.min(12, Math.round(nameSize * 0.55)));
+    ? findUniformFontSize(doc, "Helvetica-Bold", names, nameMaxW, maxName, 9)
+    : maxName;
+  const companySize = Math.max(8, Math.min(11, Math.round(nameSize * 0.62)));
 
   function drawBadge(x: number, y: number, item: BadgeItem | null) {
-    // Optional: feiner Rahmen zur Stanzkontrolle (nur sehr dezent)
-    // doc.save(); doc.rect(x, y, labelW, labelH).lineWidth(0.25).strokeColor(220,220,220).stroke(); doc.restore();
     if (!item) return;
 
-    // Logo oben links
+    // Logo klein oben links (10×8 mm)
+    const logoW = 12 * MM_TO_PT;
+    const logoH = 9 * MM_TO_PT;
     if (logoBuffer) {
       try {
         doc.image(logoBuffer, x + 4 * MM_TO_PT, y + 3 * MM_TO_PT, {
-          fit: [14 * MM_TO_PT, 10 * MM_TO_PT],
+          fit: [logoW, logoH],
         });
       } catch {
-        // Fallback: Textmarke
+        /* ignore */
       }
     }
 
-    // Name fett, zentriert, vertikal mittig
-    const nameY = y + labelH / 2 - nameSize / 2 - 2;
+    // Vertikal mittig im Etikett, leicht nach unten verschoben (unter dem Logo)
+    // - Name + ggf. Firma als zusammenhaengender Block, optisch zentriert.
+    const hasCompany = !!(item.company && item.company.trim());
+    const blockH = nameSize + (hasCompany ? companySize + 5 : 0);
+    const blockTopY = y + (labelH - blockH) / 2 + 2;
+
     doc.save();
     doc.font("Helvetica-Bold").fontSize(nameSize).fillColor("#0f172a");
-    doc.text(item.name, x + 4 * MM_TO_PT, nameY, {
-      width: labelW - 2 * (4 * MM_TO_PT),
+    doc.text(item.name, x + innerPadX, blockTopY, {
+      width: nameMaxW,
       align: "center",
       lineBreak: false,
+      ellipsis: true,
     });
     doc.restore();
 
-    // Firma kleiner, duenner, unter dem Namen
-    if (item.company && item.company.trim()) {
-      const companyY = nameY + nameSize + 6;
+    if (hasCompany) {
       doc.save();
       doc.font("Helvetica").fontSize(companySize).fillColor("#475569");
-      doc.text(item.company.trim(), x + 4 * MM_TO_PT, companyY, {
-        width: labelW - 2 * (4 * MM_TO_PT),
+      doc.text(item.company!.trim(), x + innerPadX, blockTopY + nameSize + 4, {
+        width: nameMaxW,
         align: "center",
         lineBreak: false,
         ellipsis: true,
