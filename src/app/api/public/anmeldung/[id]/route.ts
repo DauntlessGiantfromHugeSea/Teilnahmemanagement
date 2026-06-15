@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { encryptField, blindIndex } from "@/lib/crypto";
+import { propagateTagsByCompany } from "@/lib/tags";
 import { audit } from "@/lib/audit";
 import { splitName, cleanPhone } from "@/lib/csvImport";
 import { sendMail } from "@/lib/mailer";
@@ -129,6 +130,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   };
 
   const p = await prisma.participant.create({ data });
+  // Tags anhand des Firmennamens automatisch uebernehmen (falls andere
+  // Teilnehmer der gleichen Firma bereits Tags haben).
+  await propagateTagsByCompany(p.id).catch(() => null);
 
   // Audit-Eintrag über den aeltesten Admin als Actor
   const admin = await prisma.user.findFirst({

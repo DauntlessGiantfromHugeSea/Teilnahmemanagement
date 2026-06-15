@@ -241,6 +241,9 @@ model Participant {
   lastName     String
   email        String
   emailHash    String   // SHA-256 fuer Suche/Dedupe
+  // Hash der Firma fuer Auto-Tag-Vergabe (HMAC-SHA-256 ueber normalisierten
+  // Firmennamen). Erlaubt Lookups ohne Klartext.
+  companyHash  String?
   phone        String?
   company      String?
   street       String?
@@ -276,9 +279,34 @@ model Participant {
   history      AuditLog[]
   certificates Certificate[]
   feedbackInvites FeedbackInvite[]
+  tagLinks     ParticipantTagLink[]
 
   @@index([emailHash])
   @@index([eventId])
+  @@index([companyHash])
+}
+
+// Tag/Kategorie fuer Teilnehmer (Planer, Baugrundgutachter, Baufirma, ...)
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  color       String?  // Hex z.B. #0f766e
+  position    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  participants ParticipantTagLink[]
+}
+
+model ParticipantTagLink {
+  participantId String
+  tagId         String
+  autoAssigned  Boolean  @default(false)   // true: per Firma-Match automatisch vergeben
+  createdAt     DateTime @default(now())
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([participantId, tagId])
+  @@index([tagId])
 }
 
 enum CertificateType {

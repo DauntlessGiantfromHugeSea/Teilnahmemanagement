@@ -27,6 +27,7 @@ const ADMIN = [
   { id: "zertifikate", href: "/admin/zertifikate", label: "Alle Zertifikate" },
   { id: "staff-badges", href: "/admin/staff-badges", label: "Mitarbeiter-Badges" },
   { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
+  { id: "tags", href: "/admin/tags", label: "Tags / Kategorien" },
   { id: "feedback-fragen", href: "/admin/feedback-fragen", label: "Feedback-Fragen" },
 ];
 

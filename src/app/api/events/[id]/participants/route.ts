@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { canWriteEvent } from "@/lib/rbac";
 import { encryptParticipantInput } from "@/lib/participants";
 import { audit } from "@/lib/audit";
+import { propagateTagsByCompany } from "@/lib/tags";
 import { DayOption, ParticipantStatus } from "@prisma/client";
 
 function pctToBps(v: FormDataEntryValue | null): number {
@@ -52,6 +53,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       status,
     },
   });
+  await propagateTagsByCompany(p.id).catch(() => null);
   await audit({
     actorId: s.uid,
     action: "CREATE",

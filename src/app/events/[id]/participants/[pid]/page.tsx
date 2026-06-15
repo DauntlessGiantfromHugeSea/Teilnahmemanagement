@@ -26,8 +26,10 @@ export default async function ParticipantDetail({
       event: { include: { training: true } },
       comments: { include: { author: true }, orderBy: { createdAt: "desc" } },
       history: { include: { actor: true }, orderBy: { createdAt: "desc" }, take: 50 },
+      tagLinks: { include: { tag: true } },
     },
   });
+  const allTags = await prisma.tag.findMany({ orderBy: [{ position: "asc" }, { name: "asc" }] });
   if (!p || p.eventId !== params.id) notFound();
   const dec = decryptParticipant(p);
   const canWrite = await canWriteEvent(s, p.eventId);
@@ -182,6 +184,48 @@ export default async function ParticipantDetail({
               </dl>
             </section>
           )}
+
+          <section className="card p-6">
+            <h2 className="font-semibold mb-3">Tags / Kategorien</h2>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {p.tagLinks.length === 0 && (
+                <span className="text-xs text-slate-400 italic">Noch keine Tags vergeben.</span>
+              )}
+              {p.tagLinks.map((tl) => (
+                <span
+                  key={tl.tagId}
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-semibold"
+                  style={{ background: (tl.tag.color ?? "#94a3b8") + "22", color: tl.tag.color ?? "#475569" }}
+                  title={tl.autoAssigned ? "automatisch anhand der Firma vergeben" : "manuell vergeben"}
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ background: tl.tag.color ?? "#94a3b8" }} />
+                  {tl.tag.name}
+                  {tl.autoAssigned && <span className="text-[10px] opacity-70">·auto</span>}
+                  {canWrite && (
+                    <form method="post" action={`/api/participants/${p.id}/tags`} className="inline ml-1">
+                      <input type="hidden" name="action" value="remove" />
+                      <input type="hidden" name="tagId" value={tl.tagId} />
+                      <button className="hover:text-rose-700" title="Entfernen">×</button>
+                    </form>
+                  )}
+                </span>
+              ))}
+            </div>
+            {canWrite && (
+              <form method="post" action={`/api/participants/${p.id}/tags`} className="flex items-center gap-2">
+                <input type="hidden" name="action" value="add" />
+                <select name="tagId" required className="input text-sm flex-1">
+                  <option value="">+ Tag hinzufügen …</option>
+                  {allTags
+                    .filter((t) => !p.tagLinks.some((tl) => tl.tagId === t.id))
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                </select>
+                <button className="btn-secondary text-sm">+ vergeben</button>
+              </form>
+            )}
+          </section>
 
           <section className="card p-6">
             <h2 className="font-semibold mb-4">Kommentare</h2>

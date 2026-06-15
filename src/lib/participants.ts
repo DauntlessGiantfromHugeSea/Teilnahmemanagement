@@ -32,6 +32,16 @@ export function encryptParticipantInput(input: Partial<Record<EncField, string |
   if (typeof input.email === "string" && input.email.length > 0) {
     out.emailHash = blindIndex(input.email);
   }
+  // companyHash fuer Auto-Tag-Zuordnung pflegen, wenn 'company' im Input ist.
+  if ("company" in input) {
+    const c = (input.company ?? "").trim();
+    if (c.length > 0) {
+      const norm = c.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      out.companyHash = norm ? blindIndex(norm) : null;
+    } else {
+      out.companyHash = null;
+    }
+  }
   return out;
 }
 

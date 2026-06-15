@@ -1,6 +1,7 @@
 import { prisma } from "./db";
 import { encryptField, blindIndex } from "./crypto";
 import { DayOption, EventFormat, Prisma } from "@prisma/client";
+import { propagateTagsByCompany } from "./tags";
 
 // Minimaler RFC-4180-Parser. Unterstützt:
 // - Felder in Anführungszeichen mit eingebetteten Zeilenumbrüchen
@@ -277,6 +278,7 @@ export async function createAnmeldung(
     dayOption,
   };
   const p = await prisma.participant.create({ data });
+  await propagateTagsByCompany(p.id).catch(() => null);
   return { status: "created", participantId: p.id, eventId: event.id, message: "Angelegt" };
 }
 
@@ -466,6 +468,7 @@ export async function importKontakteCsv(
         costCenter: encryptField(r.kostenstelle || null),
       };
       const p = await prisma.participant.create({ data });
+      await propagateTagsByCompany(p.id).catch(() => null);
       summary.created++;
       summary.results.push({ row: rowNum, ok: true, message: "Angelegt", participantId: p.id });
     } catch (e: any) {
