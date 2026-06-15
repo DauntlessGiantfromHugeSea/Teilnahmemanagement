@@ -236,18 +236,16 @@ function renderTeilnahme(ctx: DrawCtx, d: CertificateData, number: string) {
   drawText(ctx, `Nr. ${number}`, { size: 10, align: "center", color: COLOR_MUTED, spaceAfter: 26 });
 
   drawLabeledField(ctx, t.herrnFrauLabel, `${d.firstName} ${d.lastName}`);
-  ctx.y -= 4;
+  ctx.y -= 10;
 
-  drawText(ctx,
-    `hat am ${d.eventDateLine} erfolgreich an der Schulung „${d.eventTitle}“ teilgenommen.`,
-    { size: 11, leading: 16, spaceAfter: 14 });
-
+  // Body-Text aus dem Event/Schulungs-Setup. Nur dieser wird ausgegeben -
+  // keine automatisch generierte Bestaetigungs-Zeile mehr.
   if (d.bodyText) {
     const paras = d.bodyText.split(/\n\s*\n/);
     for (const p of paras) {
-      drawText(ctx, p.replace(/\s*\n\s*/g, " ").trim(), { size: 10, leading: 14, spaceAfter: 8 });
+      drawText(ctx, p.replace(/\s*\n\s*/g, " ").trim(), { size: 11, leading: 16, spaceAfter: 10 });
     }
-    ctx.y -= 6;
+    ctx.y -= 4;
   }
 
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
