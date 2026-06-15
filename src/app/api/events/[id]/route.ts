@@ -111,6 +111,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       heroImageUrl: await resolveUpload(f, "heroImageFile", strOrNull(f.get("heroImageUrl"))),
       logoUrl: await resolveUpload(f, "logoFile", strOrNull(f.get("logoUrl"))),
       certTnBody: strOrNull(f.get("certTnBody")),
+      certTnBodyDay2: strOrNull(f.get("certTnBodyDay2")),
+      certTnBodyOnlyDay1: strOrNull(f.get("certTnBodyOnlyDay1")),
+      certTnBodyOnlyDay2: strOrNull(f.get("certTnBodyOnlyDay2")),
       notes: notesPlain ? encryptField(notesPlain) : null,
     },
   });

@@ -426,21 +426,52 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
         <div>
           <h2 className="font-semibold text-slate-800">Teilnahmebescheinigung</h2>
           <p className="text-xs text-slate-500 mt-1">
-            Optionaler Fließtext, der auf der Teilnahmebescheinigung dieser Veranstaltung erscheint
-            (zwischen Schulungs-Zeile und Unterschrift). Wenn leer, wird der Standardtext aus der Schulung verwendet.
+            Bis zu vier Body-Varianten — je nachdem, ob der Teilnehmer beide Tage oder nur
+            einen Tag angemeldet war. Die „nur Tag …"-Texte fallen auf den jeweiligen
+            Tages-Text zurück, wenn sie leer sind.
           </p>
         </div>
         <div>
-          <label className="label">Beschreibungstext</label>
+          <label className="label">Beschreibungstext — Tag 1 / Eintagesseminar (beide Tage)</label>
           <textarea
             name="certTnBody"
-            rows={8}
+            rows={6}
             defaultValue={event?.certTnBody ?? ""}
-            placeholder={"Die Fortbildung vermittelte vertiefte Kenntnisse zu …\n\nSchwerpunkte waren …"}
+            placeholder={"Die Fortbildung vermittelte vertiefte Kenntnisse zu …"}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Beschreibungstext — Tag 2 (beide Tage)</label>
+          <textarea
+            name="certTnBodyDay2"
+            rows={6}
+            defaultValue={event?.certTnBodyDay2 ?? ""}
+            placeholder={"Am zweiten Tag wurden vertiefende Themen behandelt …"}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Beschreibungstext — nur Tag 1 angemeldet</label>
+          <textarea
+            name="certTnBodyOnlyDay1"
+            rows={6}
+            defaultValue={event?.certTnBodyOnlyDay1 ?? ""}
+            placeholder={"Wenn leer: gleicher Text wie „Tag 1 (beide Tage)" wird verwendet."}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Beschreibungstext — nur Tag 2 angemeldet</label>
+          <textarea
+            name="certTnBodyOnlyDay2"
+            rows={6}
+            defaultValue={event?.certTnBodyOnlyDay2 ?? ""}
+            placeholder={"Wenn leer: gleicher Text wie „Tag 2 (beide Tage)" wird verwendet."}
             className="input"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Absätze durch Leerzeile trennen. Wird auf jeder neu erstellten Teilnahmebescheinigung dieses Events übernommen.
+            Absätze durch Leerzeile trennen.
           </p>
         </div>
       </section>

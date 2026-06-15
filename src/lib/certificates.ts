@@ -98,12 +98,22 @@ export async function buildCertificateData(args: BuildCertificateDataArgs): Prom
     bodyText:
       args.type === "TEILNAHMEBESCHEINIGUNG"
         ? (
-            (args.dayIndex === 2
-              ? args.event.certTnBodyDay2?.trim()
-              : args.event.certTnBody?.trim())
-            || defaults.tnBody
-            || texts.tnDefaultBody
-            || undefined
+            (() => {
+              const ev = args.event;
+              // Reihenfolge der Quellen je nach dayIndex + dayOption:
+              //   nur Tag 1 angemeldet → certTnBodyOnlyDay1 → certTnBody
+              //   nur Tag 2 angemeldet → certTnBodyOnlyDay2 → certTnBodyDay2
+              //   beide Tage           → Tag 1 / Tag 2 entsprechend
+              let v: string | null | undefined;
+              if (args.dayIndex === 2) {
+                if (args.participant.dayOption === "DAY_2") v = ev.certTnBodyOnlyDay2;
+                v = v?.trim() || ev.certTnBodyDay2;
+              } else {
+                if (args.participant.dayOption === "DAY_1") v = ev.certTnBodyOnlyDay1;
+                v = v?.trim() || ev.certTnBody;
+              }
+              return v?.trim() || defaults.tnBody || texts.tnDefaultBody || undefined;
+            })()
           )
         : undefined,
   };
