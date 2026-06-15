@@ -123,6 +123,11 @@ export default async function EventCertificatesPage({
             >
               Nur freigegebene (ohne Hintergrund)
             </a>
+            <form method="post" action={`/api/events/${ev.id}/certificates/release-all`}>
+              <button className="btn-secondary text-sm" title="Setzt alle Entwürfe auf 'freigegeben'">
+                ✓ Alle Entwürfe freigeben
+              </button>
+            </form>
             <form method="post" action={`/api/events/${ev.id}/certificates/send-batch`}>
               <button className="btn-primary text-sm">
                 Alle freigegebenen per Mail versenden

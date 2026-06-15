@@ -123,6 +123,8 @@ export async function renderCertificatePdf(args: {
   /** Wenn true: nur die Text-Inhalte ohne FBA-Briefpapier-Hintergrund.
    *  Fuer Druck auf bereits vorgedrucktes Briefpapier. */
   noBackground?: boolean;
+  /** Vorgeladene GF-Unterschrift-URL (vermeidet DB-Lookup bei Bulk-Druck). */
+  gfSignatureUrlOverride?: string | null;
 }): Promise<Uint8Array> {
   let doc: PDFDocument;
   let page: PDFPage;
@@ -148,7 +150,7 @@ export async function renderCertificatePdf(args: {
   const ctx: DrawCtx = { page, font, bold, italic, y: startY };
 
   if (args.type === "ZERTIFIKAT") {
-    await renderZertifikat(ctx, args.data, args.number, doc, !!args.noBackground);
+    await renderZertifikat(ctx, args.data, args.number, doc, !!args.noBackground, args.gfSignatureUrlOverride);
   } else {
     renderTeilnahme(ctx, args.data, args.number);
   }
@@ -164,6 +166,7 @@ async function renderZertifikat(
   number: string,
   doc: PDFDocument,
   noBackground: boolean,
+  gfSignatureUrlOverride?: string | null,
 ) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
 
@@ -204,17 +207,20 @@ async function renderZertifikat(
     size: 11, leading: 16, spaceAfter: 48,
   });
 
-  // GF-Unterschrift nur bei "ohne Briefpapier" (bg=0) und nur fuer ZERTIFIKATE
-  // klein direkt ueber dem Namen stempeln. Auf dem Briefpapier-Druck wird die
-  // Unterschrift weiterhin manuell aufgebracht.
-  // WICHTIG: live aus AppSetting lesen, nicht aus dem Snapshot - so wirkt eine
-  // nachtraeglich hochgeladene Unterschrift sofort auch fuer alte Zertifikate.
+  // GF-Unterschrift nur bei "ohne Briefpapier" (bg=0) und nur fuer ZERTIFIKATE.
+  // Bei Bulk-Druck wird die URL vorgeladen (override) - sonst live aus den
+  // AppSettings, damit eine nachtraeglich hochgeladene Unterschrift sofort
+  // wirkt.
   let gfSignatureUrl: string | undefined = t.gfSignatureUrl;
   if (noBackground) {
-    try {
-      const live = await getCertTexts();
-      gfSignatureUrl = live.gfSignatureUrl || gfSignatureUrl;
-    } catch { /* fallback bleibt der Snapshot-Wert */ }
+    if (gfSignatureUrlOverride !== undefined) {
+      gfSignatureUrl = gfSignatureUrlOverride || undefined;
+    } else {
+      try {
+        const live = await getCertTexts();
+        gfSignatureUrl = live.gfSignatureUrl || gfSignatureUrl;
+      } catch { /* fallback bleibt der Snapshot-Wert */ }
+    }
   }
   if (noBackground && gfSignatureUrl) {
     try {

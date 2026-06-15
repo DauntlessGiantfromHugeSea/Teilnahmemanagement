@@ -9,8 +9,11 @@ import { canWriteEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { parseCertificateData } from "@/lib/certificates";
 import { renderCertificatePdf } from "@/lib/certificatePdf";
+import { getCertTexts } from "@/lib/kompetenzfelder";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
+export const runtime = "nodejs";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
@@ -35,6 +38,11 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   }
 
   const appUrl = (process.env.APP_URL ?? "").replace(/\/+$/, "");
+  // Live-Texte einmal vorab laden, damit nicht pro Zertifikat ein DB-Lookup
+  // gemacht wird.
+  const liveTexts = noBackground ? await getCertTexts() : null;
+  const gfSignatureUrlOverride = liveTexts?.gfSignatureUrl ?? null;
+
   const combined = await PDFDocument.create();
   for (const c of certs) {
     const validateUrl = `${appUrl}/zertifikat/${c.slug}`;
@@ -44,6 +52,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       data: parseCertificateData(c.data),
       validateUrl,
       noBackground,
+      gfSignatureUrlOverride,
     });
     const src = await PDFDocument.load(single);
     const pages = await combined.copyPages(src, src.getPageIndices());
