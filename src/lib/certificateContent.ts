@@ -86,6 +86,10 @@ export interface CertTexts {
   // TN-Bescheinigung
   tnTitle: string;                // "Teilnahmebescheinigung"
   tnDefaultBody: string;          // globaler Standardtext, wenn pro Event nichts gesetzt
+  /** Pfad zur PNG/JPG der Geschaeftsfuehrer-Unterschrift. Wird auf ZERTIFIKATEN
+   *  ohne eingebettetem Briefpapier (bg=0) klein ueber dem Namen platziert.
+   *  Nicht auf Teilnahmebescheinigungen. */
+  gfSignatureUrl?: string;
 }
 
 export const DEFAULT_CERT_TEXTS: CertTexts = {
@@ -104,6 +108,7 @@ export const DEFAULT_CERT_TEXTS: CertTexts = {
   normLineForIds: ["VIII"],
   tnTitle: "Teilnahmebescheinigung",
   tnDefaultBody: "",
+  gfSignatureUrl: undefined,
 };
 
 // Default-Inhalt fuer Teilnahmebescheinigungen. Pro Training via certDefaults

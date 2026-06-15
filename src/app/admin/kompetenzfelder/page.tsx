@@ -73,6 +73,46 @@ export default async function KompetenzfelderPage({
         <button className="btn-primary">Allgemeine Texte speichern</button>
       </form>
 
+      {/* Geschaeftsfuehrer-Unterschrift fuer Zertifikate ohne Briefpapier */}
+      <div className="card p-4 mt-6 space-y-3">
+        <div>
+          <h2 className="font-semibold">Geschäftsführer-Unterschrift</h2>
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            Wird auf <strong>Zertifikaten ohne Briefpapier</strong> (Variante „für Briefpapier")
+            klein direkt über den Namen gestempelt. Bei Teilnahmebescheinigungen und bei der
+            Variante mit eingebettetem Briefpapier wird sie nicht verwendet.
+            PNG mit transparentem Hintergrund empfohlen.
+          </p>
+        </div>
+        {texts.gfSignatureUrl ? (
+          <div className="flex items-center gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={texts.gfSignatureUrl}
+              alt="Geschäftsführer-Unterschrift"
+              className="h-14 bg-white border border-slate-200 rounded p-2"
+            />
+            <form method="post" action="/api/admin/cert-texts/gf-signature/delete" className="inline">
+              <button className="text-xs text-rose-700 hover:underline">Löschen</button>
+            </form>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400 italic">Keine Unterschrift hinterlegt.</p>
+        )}
+        <form
+          method="post"
+          action="/api/admin/cert-texts/gf-signature"
+          encType="multipart/form-data"
+          className="flex flex-wrap items-end gap-3"
+        >
+          <div>
+            <label className="label text-xs">PNG / JPG hochladen</label>
+            <input type="file" name="file" accept="image/png,image/jpeg" required className="input text-sm" />
+          </div>
+          <button className="btn-primary text-sm">Hochladen</button>
+        </form>
+      </div>
+
       {/* Kompetenzfelder */}
       <h2 className="text-xl font-semibold mb-3">Kompetenzfelder</h2>
       <p className="text-sm text-slate-500 mb-4 max-w-3xl">

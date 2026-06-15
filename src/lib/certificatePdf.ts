@@ -146,15 +146,24 @@ export async function renderCertificatePdf(args: {
   const startY = PAGE_H - 250;
   const ctx: DrawCtx = { page, font, bold, italic, y: startY };
 
-  if (args.type === "ZERTIFIKAT") renderZertifikat(ctx, args.data, args.number);
-  else renderTeilnahme(ctx, args.data, args.number);
+  if (args.type === "ZERTIFIKAT") {
+    await renderZertifikat(ctx, args.data, args.number, doc, !!args.noBackground);
+  } else {
+    renderTeilnahme(ctx, args.data, args.number);
+  }
 
   // Validierungs-Fuesschen wird IMMER gezeichnet (auch bei Briefpapier-Druck)
   drawIdFooter(page, font, args.number, args.validateUrl);
   return doc.save();
 }
 
-function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
+async function renderZertifikat(
+  ctx: DrawCtx,
+  d: CertificateData,
+  number: string,
+  doc: PDFDocument,
+  noBackground: boolean,
+) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
 
   // Optional Norm-Linie (wenn Kompetenzfeld in normLineForIds)
@@ -193,6 +202,30 @@ function renderZertifikat(ctx: DrawCtx, d: CertificateData, number: string) {
   drawText(ctx, tpl(t.leipzigDateLabel, { issuedAt: d.issuedDateShort }), {
     size: 11, leading: 16, spaceAfter: 48,
   });
+
+  // GF-Unterschrift nur bei "ohne Briefpapier" (bg=0) und nur fuer ZERTIFIKATE
+  // klein direkt ueber dem Namen stempeln. Auf dem Briefpapier-Druck wird die
+  // Unterschrift weiterhin manuell aufgebracht.
+  if (noBackground && t.gfSignatureUrl) {
+    try {
+      const localPath = t.gfSignatureUrl.startsWith("/uploads/")
+        ? path.join(process.cwd(), "public", t.gfSignatureUrl)
+        : null;
+      if (localPath) {
+        const buf = await readFile(localPath);
+        const bytes = new Uint8Array(buf);
+        const isPng = localPath.toLowerCase().endsWith(".png");
+        const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+        const sw = 110;                                 // ~3.9 cm breit, klein
+        const sh = (img.height / img.width) * sw;
+        ctx.page.drawImage(img, {
+          x: TEXT_LEFT, y: ctx.y - sh + 14,             // direkt ueber dem Namen
+          width: sw, height: sh,
+        });
+      }
+    } catch { /* still draw name without sig */ }
+  }
+
   drawText(ctx, t.geschaeftsfuehrer, { size: 11 });
   drawText(ctx, t.geschaeftsfuehrerRole, { size: 10 });
 }
