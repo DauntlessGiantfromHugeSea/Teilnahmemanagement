@@ -37,18 +37,18 @@ export const BADGE_TEMPLATES: BadgeTemplate[] = [
   },
   {
     id: "HERMA5028",
-    name: "HERMA 5028 / 4452",
-    description: "Namensschilder 90 × 60 mm, 8 pro Bogen (2 × 4)",
+    name: "HERMA 90 × 60 mm",
+    description: "Namensschilder 90 × 60 mm Hochformat, 8 pro Bogen (2 × 4)",
     page: A4,
-    // Layout symmetrisch: 13 + 90 + 4 + 90 + 13 = 210 mm. colGap = 4 mm
-    // entspricht der Perforation zwischen den Spalten, sodass weder die
-    // linke noch die rechte Spalte auf der Bruchkante haengt.
-    margins: { top: 28.5, right: 13, bottom: 28.5, left: 13 },
+    // Werte 1:1 aus der offiziellen HERMA-Word-Vorlage
+    // (EtikettenVorlageHERMA90x60blankoHochformat):
+    // Layout: 10 + 90 + 10 + 90 + 10 = 210 mm; 28.5 + 4×60 + 28.5 = 297 mm
+    margins: { top: 28.5, right: 10, bottom: 28.5, left: 10 },
     cols: 2,
     rows: 4,
     labelW: 90,
     labelH: 60,
-    colGap: 4,
+    colGap: 10,
     rowGap: 0,
   },
   {
