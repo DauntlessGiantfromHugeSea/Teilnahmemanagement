@@ -201,11 +201,14 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
   // hinter dem zugehoerigen Namensschild landet.
   function drawQrCell(x: number, y: number, hasItem: boolean) {
     if (!qrPng || !hasItem) return;
-    const padX = 6 * MM_TO_PT;
-    const padY = 5 * MM_TO_PT;
+    const padX = 8 * MM_TO_PT;
+    const padY = 6 * MM_TO_PT;
+    const captionH = 7 * MM_TO_PT;
     const maxW = labelW - 2 * padX;
-    const maxH = labelH - 2 * padY - 7 * MM_TO_PT; // Platz fuer Untertext
-    const size = Math.min(maxW, maxH);
+    const maxH = labelH - 2 * padY - captionH;
+    // QR-Code-Groesse: maximal ~28mm, damit Inhalt sicher im Etikett bleibt
+    const qrMax = 28 * MM_TO_PT;
+    const size = Math.min(maxW, maxH, qrMax);
     const qrX = x + (labelW - size) / 2;
     const qrY = y + padY;
     try {
@@ -213,7 +216,7 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
     } catch {
       // ignore
     }
-    // Untertitel
+    // Untertitel zentriert unter dem QR-Code
     doc.save();
     doc.font("Helvetica-Bold").fontSize(7).fillColor("#0f172a");
     doc.text("Schulungs-Portal", x + 4 * MM_TO_PT, qrY + size + 1.5 * MM_TO_PT, {
