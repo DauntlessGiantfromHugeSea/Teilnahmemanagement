@@ -46,7 +46,17 @@ export default async function StaffBadgesPage({
 
   return (
     <Shell session={s} active="staff-badges">
-      <h1 className="text-2xl font-semibold mb-1">Mitarbeiter &amp; Namensschilder</h1>
+      <div className="flex items-baseline justify-between flex-wrap gap-3 mb-1">
+        <h1 className="text-2xl font-semibold">Mitarbeiter &amp; Namensschilder</h1>
+        <div className="flex items-center gap-3 text-sm">
+          <a href="/api/admin/staff-badges/export?scope=active" className="text-brand-700 hover:underline">
+            CSV-Export (aktive)
+          </a>
+          <a href="/api/admin/staff-badges/export?scope=all" className="text-slate-500 hover:text-brand-700 hover:underline">
+            inkl. archivierter
+          </a>
+        </div>
+      </div>
       <p className="text-sm text-slate-500 mb-5 max-w-3xl">
         Mitarbeiter werden einmal hier angelegt und können beliebig oft als Namensschild
         gedruckt werden. Die Rückseite trägt den QR zum Schulungs-Portal — eine Karte ist also
