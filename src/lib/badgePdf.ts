@@ -231,7 +231,7 @@ export async function renderBadgePdf(opts: BadgePdfOptions): Promise<Buffer> {
   }
 
   // Suppress unused var lint
-  void innerPad;
+  void innerPadX;
   void brand;
 
   for (let i = 0; i < Math.max(1, items.length); i += perPage) {
