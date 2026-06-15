@@ -128,6 +128,11 @@ export default async function EventCertificatesPage({
                 ✓ Alle Entwürfe freigeben
               </button>
             </form>
+            <form method="post" action={`/api/events/${ev.id}/certificates/regenerate`}>
+              <button className="btn-secondary text-sm" title="Bestehende Zertifikate behalten ihre Nummer, bekommen aber aktuelles Datum + aktuelle Texte (Bestätigungstexte, Geschäftsführer-Name, Gültigkeit, …) frisch eingefroren.">
+                ♻ Alle neu generieren (Datum + Texte aktualisieren)
+              </button>
+            </form>
             <form method="post" action={`/api/events/${ev.id}/certificates/send-batch`}>
               <button className="btn-primary text-sm">
                 Alle freigegebenen per Mail versenden
