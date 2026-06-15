@@ -226,12 +226,18 @@ async function renderZertifikat(
         const bytes = new Uint8Array(buf);
         const isPng = localPath.toLowerCase().endsWith(".png");
         const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        const sw = 110;                                 // ~3.9 cm breit, klein
+        const sw = 90;                                // ~3.2 cm breit, dezent
         const sh = (img.height / img.width) * sw;
+        // Unterschrift sauber UEBER den Namen platzieren (mit 6pt Abstand
+        // nach unten zum Namen). Anschliessend ctx.y so verschieben, dass die
+        // Namenszeile nicht ueberlappt.
+        const gap = 6;
         ctx.page.drawImage(img, {
-          x: TEXT_LEFT, y: ctx.y - sh + 14,             // direkt ueber dem Namen
+          x: TEXT_LEFT,
+          y: ctx.y + gap,                            // Bottom der Grafik
           width: sw, height: sh,
         });
+        ctx.y -= sh + gap;                            // Name + Rolle nach unten schieben
       }
     } catch { /* still draw name without sig */ }
   }
