@@ -29,6 +29,7 @@ const ADMIN = [
   { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
   { id: "tags", href: "/admin/tags", label: "Tags / Kategorien" },
   { id: "feedback-fragen", href: "/admin/feedback-fragen", label: "Feedback-Fragen" },
+  { id: "brief", href: "/admin/brief", label: "Brief drucken" },
 ];
 
 export function Shell({ session, active, children }: Props) {
