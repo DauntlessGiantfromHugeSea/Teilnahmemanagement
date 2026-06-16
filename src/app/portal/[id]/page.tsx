@@ -4,10 +4,28 @@ import { PortalIcon } from "@/components/PortalIcon";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 function fmtDateLong(d: Date | null): string {
   if (!d) return "";
   return new Date(d).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+}
+
+// Liefert die aktuellen Datums-/Zeit-Bestandteile in Europe/Berlin,
+// unabhaengig davon, in welcher Timezone der Server laeuft (Container ist
+// typischerweise UTC).
+function berlinDateParts(): { year: number; month: number; day: number; hour: number; minute: number } {
+  const fmt = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Berlin",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (k: string) => Number(parts.find((p) => p.type === k)?.value ?? "0");
+  return {
+    year: get("year"), month: get("month"), day: get("day"),
+    hour: get("hour"), minute: get("minute"),
+  };
 }
 
 function timeToMinutes(t: string | null | undefined): number | null {
@@ -33,9 +51,11 @@ export default async function EventPortalPage({
   });
   if (!ev) notFound();
 
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  // 'Jetzt'-Berechnung explizit in Europe/Berlin - sonst kollidiert die
+  // UTC-Server-Zeit mit der Agenda, die in Berliner Zeit gepflegt wird.
+  const berlinNow = berlinDateParts();
+  const nowMin = berlinNow.hour * 60 + berlinNow.minute;
+  const today = new Date(berlinNow.year, berlinNow.month - 1, berlinNow.day).getTime();
   const d1 = ev.day1Date ? new Date(ev.day1Date) : null;
   const d2 = ev.day2Date ? new Date(ev.day2Date) : null;
   const d1day = d1 ? new Date(d1.getFullYear(), d1.getMonth(), d1.getDate()).getTime() : null;
@@ -233,12 +253,14 @@ export default async function EventPortalPage({
         </section>
 
         <footer className="pt-4 text-center text-xs text-slate-400">
-          <p>Diese Seite aktualisiert sich automatisch alle 30 Sekunden.</p>
+          <p>Diese Seite aktualisiert sich automatisch alle 20 Sekunden.</p>
           <p className="mt-2 uppercase tracking-wider">Flüssigboden Akademie</p>
         </footer>
       </div>
 
-      <meta httpEquiv="refresh" content="30" />
+      {/* Seite reloaded automatisch alle 20 s, damit die JETZT-Markierung
+          ohne manuellen Refresh nachzieht. */}
+      <meta httpEquiv="refresh" content="20" />
     </main>
   );
 }
