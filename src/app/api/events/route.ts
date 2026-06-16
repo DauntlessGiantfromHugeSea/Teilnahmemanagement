@@ -5,6 +5,7 @@ import { canWriteGlobal } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
 import { saveUpload } from "@/lib/uploads";
+import { generateEventExternalId } from "@/lib/eventId";
 import { EventFormat } from "@prisma/client";
 
 function dateOrNull(v: FormDataEntryValue | null) {
@@ -91,11 +92,14 @@ export async function POST(req: Request) {
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "Training", entityId: training.id });
 
-  // Veranstaltungs-ID: nur uebernehmen, wenn nicht bereits vergeben.
+  // Veranstaltungs-ID: manueller Wert vor, sonst automatisch generieren (YYMMNN).
   let externalId: string | null = strOrNull(f.get("externalId"));
   if (externalId) {
     const clash = await prisma.event.findUnique({ where: { externalId } });
     if (clash) externalId = null;
+  }
+  if (!externalId) {
+    externalId = await generateEventExternalId(dateOrNull(f.get("day1Date")));
   }
 
   const ev = await prisma.event.create({

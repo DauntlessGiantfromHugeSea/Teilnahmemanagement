@@ -145,7 +145,8 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
             className="input"
           />
           <p className="text-xs text-slate-500 mt-1">
-            Interne Nummer aus dem Anmeldeformular / CSV-Import (optional, muss eindeutig sein).
+            Format YYMMNN (z.B. 260301 = März 2026, lfd. Nr. 01). Wird bei leerem Feld
+            automatisch vergeben und kann z.B. als Fallback im Webhook-Versand genutzt werden.
           </p>
         </div>
         <div>

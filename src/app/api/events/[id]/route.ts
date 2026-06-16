@@ -5,6 +5,7 @@ import { canWriteEvent } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
 import { saveUpload } from "@/lib/uploads";
+import { generateEventExternalId } from "@/lib/eventId";
 import { EventFormat } from "@prisma/client";
 
 function dateOrNull(v: FormDataEntryValue | null) {
@@ -79,8 +80,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const existing = await prisma.event.findUnique({ where: { id: params.id } });
   if (!existing) return new NextResponse("Not found", { status: 404 });
 
-  // Veranstaltungs-ID (z.B. 260301): nur uebernehmen, wenn nicht bereits an
-  // einem anderen Event vergeben.
+  // Veranstaltungs-ID (z.B. 260301): manuell uebernehmen wenn frei, sonst
+  // bestehende behalten und ggf. erstmalig generieren.
   const externalIdRaw = strOrNull(f.get("externalId"));
   let externalId: string | null = existing.externalId;
   if (externalIdRaw !== existing.externalId) {
@@ -90,6 +91,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     } else {
       externalId = null;
     }
+  }
+  if (!externalId) {
+    externalId = await generateEventExternalId(dateOrNull(f.get("day1Date")) ?? existing.day1Date);
   }
 
   // Training mit den übergebenen Preisen aktualisieren (gleiches trainingId behalten)
