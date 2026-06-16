@@ -253,14 +253,14 @@ export default async function EventPortalPage({
         </section>
 
         <footer className="pt-4 text-center text-xs text-slate-400">
-          <p>Diese Seite aktualisiert sich automatisch alle 20 Sekunden.</p>
+          <p>Diese Seite aktualisiert sich automatisch alle 5 Minuten.</p>
           <p className="mt-2 uppercase tracking-wider">Flüssigboden Akademie</p>
         </footer>
       </div>
 
-      {/* Seite reloaded automatisch alle 20 s, damit die JETZT-Markierung
+      {/* Seite reloaded automatisch alle 5 min, damit die JETZT-Markierung
           ohne manuellen Refresh nachzieht. */}
-      <meta httpEquiv="refresh" content="20" />
+      <meta httpEquiv="refresh" content="300" />
     </main>
   );
 }
