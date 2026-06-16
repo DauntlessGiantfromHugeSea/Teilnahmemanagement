@@ -79,6 +79,19 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const existing = await prisma.event.findUnique({ where: { id: params.id } });
   if (!existing) return new NextResponse("Not found", { status: 404 });
 
+  // Veranstaltungs-ID (z.B. 260301): nur uebernehmen, wenn nicht bereits an
+  // einem anderen Event vergeben.
+  const externalIdRaw = strOrNull(f.get("externalId"));
+  let externalId: string | null = existing.externalId;
+  if (externalIdRaw !== existing.externalId) {
+    if (externalIdRaw) {
+      const clash = await prisma.event.findUnique({ where: { externalId: externalIdRaw } });
+      if (!clash || clash.id === params.id) externalId = externalIdRaw;
+    } else {
+      externalId = null;
+    }
+  }
+
   // Training mit den übergebenen Preisen aktualisieren (gleiches trainingId behalten)
   await prisma.training.update({
     where: { id: existing.trainingId },
@@ -95,6 +108,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     where: { id: params.id },
     data: {
       title,
+      externalId,
       format,
       description,
       day1Date: dateOrNull(f.get("day1Date")),

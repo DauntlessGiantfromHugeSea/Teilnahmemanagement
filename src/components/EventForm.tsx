@@ -137,6 +137,18 @@ export function EventForm({ event, training, action, allowAddAnother }: Props) {
           />
         </div>
         <div>
+          <label className="label">Veranstaltungs-ID</label>
+          <input
+            name="externalId"
+            defaultValue={event?.externalId ?? ""}
+            placeholder="z. B. 260301"
+            className="input"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Interne Nummer aus dem Anmeldeformular / CSV-Import (optional, muss eindeutig sein).
+          </p>
+        </div>
+        <div>
           <label className="label">Beschreibung</label>
           <textarea
             name="description"

@@ -91,9 +91,17 @@ export async function POST(req: Request) {
   });
   await audit({ actorId: s.uid, action: "CREATE", entityType: "Training", entityId: training.id });
 
+  // Veranstaltungs-ID: nur uebernehmen, wenn nicht bereits vergeben.
+  let externalId: string | null = strOrNull(f.get("externalId"));
+  if (externalId) {
+    const clash = await prisma.event.findUnique({ where: { externalId } });
+    if (clash) externalId = null;
+  }
+
   const ev = await prisma.event.create({
     data: {
       title,
+      externalId,
       trainingId: training.id,
       format,
       description,
