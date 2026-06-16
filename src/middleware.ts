@@ -11,6 +11,7 @@ const PUBLIC = [
   /^\/api\/cron\/.+$/,
   /^\/zertifikat(\/.+)?$/,
   /^\/portal\/.+$/,
+  /^\/api\/portal\/.+$/,
   /^\/api\/zertifikat\/.+$/,
   /^\/meine-zertifikate(\/.*)?$/,
   /^\/api\/meine-zertifikate(\/.*)?$/,

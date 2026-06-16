@@ -17,7 +17,13 @@ function timeToMinutes(t: string | null | undefined): number | null {
   return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
 }
 
-export default async function EventPortalPage({ params }: { params: { id: string } }) {
+export default async function EventPortalPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams?: { ok?: string; error?: string };
+}) {
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
     include: {
@@ -185,6 +191,46 @@ export default async function EventPortalPage({ params }: { params: { id: string
             )}
           </section>
         )}
+
+        {/* Fragen-Box: nur Eingabe, keine Anzeige der bisherigen Fragen */}
+        <section id="fragen" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Frage an die Schulungsleitung</h2>
+          <p className="text-xs text-slate-500 mb-3">
+            Etwas unklar? Stell deine Frage hier — wir gehen im Verlauf der Schulung darauf ein.
+          </p>
+          {searchParams?.ok && (
+            <div className="mb-3 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-sm text-emerald-900">
+              {searchParams.ok}
+            </div>
+          )}
+          {searchParams?.error && (
+            <div className="mb-3 p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-900">
+              {searchParams.error}
+            </div>
+          )}
+          <form method="post" action={`/api/portal/${ev.id}/questions`} className="space-y-2">
+            <textarea
+              name="text"
+              required
+              minLength={3}
+              maxLength={2000}
+              rows={3}
+              placeholder="Deine Frage …"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                name="name"
+                maxLength={120}
+                placeholder="Dein Name (optional)"
+                className="flex-1 min-w-[160px] px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <button className="inline-flex items-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-semibold hover:bg-brand-700">
+                Frage senden
+              </button>
+            </div>
+          </form>
+        </section>
 
         <footer className="pt-4 text-center text-xs text-slate-400">
           <p>Diese Seite aktualisiert sich automatisch alle 30 Sekunden.</p>

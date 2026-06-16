@@ -191,6 +191,9 @@ export default async function EventDetail({
             <Link href={`/events/${ev.id}/feedback`} className="btn-secondary">Feedback</Link>
           )}
           {canWrite && (
+            <Link href={`/events/${ev.id}/questions`} className="btn-secondary">Fragen</Link>
+          )}
+          {canWrite && (
             <Link href={`/events/${ev.id}/mailing`} className="btn-secondary">Rundmail</Link>
           )}
           {canWrite && (

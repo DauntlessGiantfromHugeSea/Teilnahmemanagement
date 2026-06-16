@@ -175,6 +175,23 @@ model Event {
   feedbackInvites FeedbackInvite[]
   agendaItems EventAgendaItem[]
   portalBlocks EventPortalBlock[]
+  questions    EventQuestion[]
+}
+
+// Fragen, die Teilnehmer ueber das oeffentliche Schulungs-Portal einreichen.
+model EventQuestion {
+  id           String   @id @default(cuid())
+  eventId      String
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  text         String   // Frage (Plaintext)
+  name         String?  // optional: wer hat gefragt
+  status       String   @default("OPEN") // OPEN | ANSWERED | HIDDEN
+  adminNote    String?  // interner Vermerk
+  createdAt    DateTime @default(now())
+  answeredAt   DateTime?
+
+  @@index([eventId])
+  @@index([createdAt])
 }
 
 // Agenda-Eintrag fuer eine Schulung. Sortierung ueber 'position'; aktuell
