@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   const f = await req.formData();
   const text = String(f.get("text") ?? "").trim().slice(0, 2000);
-  const name = String(f.get("name") ?? "").trim().slice(0, 120) || null;
+  const nameRaw = String(f.get("name") ?? "").trim().slice(0, 120);
 
   const back = (q: Record<string, string>) => new NextResponse(null, {
     status: 303,
@@ -22,8 +22,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
   if (text.length < 3) return back({ error: "Bitte eine kurze Frage eintippen." });
 
-  await prisma.eventQuestion.create({
-    data: { eventId: ev.id, text, name },
-  });
+  try {
+    await prisma.eventQuestion.create({
+      data: { eventId: ev.id, text, name: nameRaw || null },
+    });
+  } catch {
+    // Fallback fuer historische DBs, in denen die Spalte 'name' noch NOT NULL ist:
+    // einfach einen leeren String einsetzen statt NULL.
+    await prisma.eventQuestion.create({
+      data: { eventId: ev.id, text, name: nameRaw },
+    });
+  }
   return back({ ok: "Danke! Deine Frage ist abgeschickt." });
 }
