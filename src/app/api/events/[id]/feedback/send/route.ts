@@ -14,10 +14,15 @@ import { shortEventId } from "@/lib/feedback";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
   if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+
+  // Optional: nur Teilnehmer mit dayOption = DAY_1 (oder DAY_2) anschreiben.
+  // Default = alle.
+  const f = await req.formData().catch(() => null);
+  const dayFilter = String(f?.get("day") ?? new URL(req.url).searchParams.get("day") ?? "").trim();
 
   const back = (q: Record<string, string>) => new NextResponse(null, {
     status: 303,
@@ -30,7 +35,11 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!event) return back({ error: "Veranstaltung nicht gefunden." });
 
   const participants = await prisma.participant.findMany({
-    where: { eventId: params.id },
+    where: {
+      eventId: params.id,
+      ...(dayFilter === "1" ? { dayOption: "DAY_1" as const } : {}),
+      ...(dayFilter === "2" ? { dayOption: "DAY_2" as const } : {}),
+    },
     include: { feedbackInvites: true },
   });
 
@@ -108,5 +117,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   }
 
   const detail = invalid.length > 0 ? ` Fehler bei: ${invalid.slice(0, 5).join(", ")}${invalid.length > 5 ? " …" : ""}` : "";
-  return back({ ok: `${sent} Feedback-Links versendet, ${skipped} bereits zuvor verschickt.${detail}` });
+  const scope = dayFilter === "1" ? " (nur Tag-1-Teilnehmer)"
+              : dayFilter === "2" ? " (nur Tag-2-Teilnehmer)"
+              : "";
+  return back({ ok: `${sent} Feedback-Links versendet${scope}, ${skipped} bereits zuvor verschickt.${detail}` });
 }

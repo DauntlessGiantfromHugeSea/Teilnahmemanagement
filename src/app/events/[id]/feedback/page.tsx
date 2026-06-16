@@ -89,15 +89,30 @@ export default async function EventFeedbackPage({
       </div>
 
       {canWrite && (
-        <div className="card p-4 mb-6">
-          <form method="post" action={`/api/events/${ev.id}/feedback/send`}>
-            <button className="btn-primary text-sm">Feedback-Links an alle Teilnehmer senden</button>
-            <p className="text-xs text-slate-500 mt-2">
-              Versendet pro Teilnehmer einen Token-Link per Mail. Aus Sicht des Teilnehmers
-              ist das Feedback anonym beschriftet — intern siehst du, von wem es kommt.
-              Bereits versendete Links werden nicht erneut zugestellt.
-            </p>
-          </form>
+        <div className="card p-4 mb-6 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <form method="post" action={`/api/events/${ev.id}/feedback/send`}>
+              <button className="btn-primary text-sm">📧 An alle Teilnehmer senden</button>
+            </form>
+            {ev.day2Date && (
+              <>
+                <form method="post" action={`/api/events/${ev.id}/feedback/send`}>
+                  <input type="hidden" name="day" value="1" />
+                  <button className="btn-secondary text-sm">Nur Tag-1-Teilnehmer</button>
+                </form>
+                <form method="post" action={`/api/events/${ev.id}/feedback/send`}>
+                  <input type="hidden" name="day" value="2" />
+                  <button className="btn-secondary text-sm">Nur Tag-2-Teilnehmer</button>
+                </form>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-slate-500">
+            Versendet pro Teilnehmer einen Token-Link per Mail. Aus Sicht des Teilnehmers
+            ist das Feedback anonym beschriftet — intern siehst du, von wem es kommt.
+            Bereits versendete Links werden nicht erneut zugestellt.
+            {ev.day2Date && " Tag-1-/Tag-2-Buttons filtern nach dayOption — praktisch, um nach Abschluss von Tag 1 direkt die Tag-1-only-Teilnehmer anzuschreiben."}
+          </p>
         </div>
       )}
 
