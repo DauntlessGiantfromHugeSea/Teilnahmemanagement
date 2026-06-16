@@ -263,6 +263,24 @@ Pflege: **„Portal-Inhalte"** → `/events/<id>/portal` (Icon-Typen, Sichtbarke
 
 Standard-Fragebogen zentral: Sidebar → **Feedback-Fragen** → `/admin/feedback-fragen` (13 Fragen vorbelegt, Typen Auswahl/Radio/Checkboxen/Text).
 
+### 5.8 Fragen aus dem Portal (Q&A)
+`/events/<id>/questions`:
+- Teilnehmer reichen Fragen über das Schulungs-Portal ein (`/portal/<id>` ganz unten, Anker `#fragen`)
+- Teilnehmer sehen **keine** anderen Fragen — nur das Eingabefeld
+- Admins sehen Fragen in 3 Gruppen: **offen / beantwortet / ausgeblendet**
+- **Antwort per Mail an alle aktiven Teilnehmer** (mit Checkbox „Frage anonymisiert einbauen")
+- Interner Vermerk + Status (offen/beantwortet/ausgeblendet) + Löschen
+- **„📧 Fragen-Link versenden"** verschickt eine Einladungsmail mit Direkt-Link auf das Eingabefeld an alle aktiven Teilnehmer — vorab als **„✉️ Test an mich"** prüfbar
+- Mail-Endpoints: `/api/events/<id>/questions/invite`, `/api/events/<id>/questions/invite/test`, `/api/events/<id>/questions/<qid>/answer`
+
+### 5.9 Tags / Kategorien
+`/events/<id>/participants` und `/admin/tags`:
+- 5 Default-Tags: **Planer · Baugrundgutachter · Baufirma · Flüssigbodenhersteller · Gerätehersteller** (frei erweiterbar)
+- Tag pro Teilnehmer setzbar (Schreibrecht auf Event genügt)
+- **Auto-Propagation**: setzt ein Admin einem Teilnehmer einen Tag, übernehmen alle Teilnehmer mit **gleichem Firmennamen** ODER **gleicher E-Mail-Domain** den Tag automatisch (Flag `autoAssigned`)
+- Freemail-Domains (gmail, gmx, web.de, t-online, …) werden bei der Domain-Propagation **übersprungen**
+- Matching erfolgt über HMAC-Blind-Indizes (`companyHash`, `emailDomainHash`) — Klartext bleibt verschlüsselt
+
 ---
 
 ## 6 · Zertifikate & Bescheinigungen
@@ -381,6 +399,9 @@ Event-Detailseite → **„Test-Erinnerung an mich"** → schickt **dieselbe** M
 | Rundmail | alle Teilnehmer | `/api/events/<id>/mailing/send` |
 | Zertifikat-Versand (Portal-Link) | einzeln/Bulk | `/api/certificates/<id>/send`, `/api/events/<id>/certificates/send-batch` |
 | Feedback-Einladung | alle Teilnehmer | `/api/events/<id>/feedback/send` |
+| Fragen-Link-Einladung | aktive Teilnehmer (Test: nur Admin) | `/api/events/<id>/questions/invite`, `/api/events/<id>/questions/invite/test` |
+| Antwort auf Portal-Frage | aktive Teilnehmer | `/api/events/<id>/questions/<qid>/answer` |
+| Umbuchung Teilnehmer | umgebuchter Teilnehmer | `/api/participants/<id>/move` |
 | OTP für Teilnehmer-Portal | Anfragende Adresse | `/api/meine-zertifikate/request` |
 | 24h-Reminder | aktive Teilnehmer | `/api/cron/reminders` |
 

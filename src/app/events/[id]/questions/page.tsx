@@ -56,19 +56,22 @@ export default async function EventQuestionsPage({
       {searchParams.error && <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>}
 
       {canWrite && (
-        <form
-          method="post"
-          action={`/api/events/${ev.id}/questions/invite`}
-          className="card p-4 mb-5 flex flex-wrap items-center justify-between gap-3"
-        >
+        <div className="card p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm">
             <div className="font-semibold text-slate-900">Fragen-Link an Teilnehmer senden</div>
             <div className="text-xs text-slate-500">
               Verschickt eine Mail mit Link zum Eingabefeld im Schulungs-Portal an alle aktiven Teilnehmer.
             </div>
           </div>
-          <button className="btn-primary text-sm">📧 Fragen-Link versenden</button>
-        </form>
+          <div className="flex flex-wrap gap-2">
+            <form method="post" action={`/api/events/${ev.id}/questions/invite/test`}>
+              <button className="btn-secondary text-sm">✉️ Test an mich</button>
+            </form>
+            <form method="post" action={`/api/events/${ev.id}/questions/invite`}>
+              <button className="btn-primary text-sm">📧 An alle versenden</button>
+            </form>
+          </div>
+        </div>
       )}
 
       <div className="card p-4 mb-5 grid grid-cols-3 gap-3 text-center text-sm">
