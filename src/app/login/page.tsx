@@ -97,6 +97,7 @@ export default async function LoginPage({
 }
 
 function errorText(code?: string) {
+  if (!code) return null;
   switch (code) {
     case "invalid":
       return "E-Mail oder Passwort falsch.";
@@ -105,6 +106,8 @@ function errorText(code?: string) {
     case "totp":
       return "2FA-Code ungültig.";
     default:
-      return null;
+      // MS-SSO und andere Quellen schicken eigene, ausführliche Fehlertexte
+      // im error-Param. Dann zeigen wir die direkt an.
+      try { return decodeURIComponent(code); } catch { return code; }
   }
 }
