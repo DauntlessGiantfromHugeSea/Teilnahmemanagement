@@ -51,7 +51,7 @@ export default function ZertifikatLookupPage({
                   className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 bg-slate-50 text-base font-mono tracking-wide focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
                 />
                 <span className="block text-xs text-slate-500 mt-1.5">
-                  Die Nummer finden Sie auf der Urkunde unten rechts.
+                  Die Nummer finden Sie auf der Urkunde unten links.
                 </span>
               </label>
               <button className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-3 text-sm font-semibold shadow-sm hover:bg-brand-700 transition">
