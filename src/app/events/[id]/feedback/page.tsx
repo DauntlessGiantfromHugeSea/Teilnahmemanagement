@@ -91,6 +91,9 @@ export default async function EventFeedbackPage({
       {canWrite && (
         <div className="card p-4 mb-6 space-y-3">
           <div className="flex flex-wrap gap-2">
+            <form method="post" action={`/api/events/${ev.id}/feedback/send/test`}>
+              <button className="btn-secondary text-sm">✉️ Test an mich</button>
+            </form>
             <form method="post" action={`/api/events/${ev.id}/feedback/send`}>
               <button className="btn-primary text-sm">📧 An alle Teilnehmer senden</button>
             </form>
