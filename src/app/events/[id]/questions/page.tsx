@@ -44,10 +44,6 @@ export default async function EventQuestionsPage({
   const answered: Q[] = ev.questions.filter((q) => q.status === "ANSWERED");
   const hidden: Q[] = ev.questions.filter((q) => q.status === "HIDDEN");
 
-  // Sammel-Versand-Pool: offene + beantwortete (damit beantwortete erneut
-  // korrigiert/versendet werden koennen). Hidden ist raus.
-  const pool = [...open, ...answered];
-
   return (
     <Shell session={s} active="events">
       <div className="mb-3">
@@ -99,8 +95,8 @@ export default async function EventQuestionsPage({
         </div>
       </div>
 
-      {canWrite && pool.length > 0 && (
-        <form method="post" action={`/api/events/${ev.id}/questions/send-batch`} className="space-y-4 mb-6">
+      {canWrite && open.length > 0 && (
+        <form method="post" action={`/api/events/${ev.id}/questions/send-batch`} className="space-y-4 mb-8">
           {/* Toolbar - sticky am oberen Rand */}
           <div className="card p-4 sticky top-20 z-10 shadow-md">
             <div className="flex flex-wrap items-center gap-3 justify-between">
@@ -129,8 +125,17 @@ export default async function EventQuestionsPage({
           </div>
 
           <BatchList title="Offene Fragen" items={open} />
-          {answered.length > 0 && <BatchList title="Beantwortet" items={answered} />}
         </form>
+      )}
+
+      {open.length === 0 && answered.length > 0 && (
+        <div className="card p-4 mb-6 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-2xl">
+          ✓ Alle offenen Fragen sind beantwortet. Die Historie findest du unten.
+        </div>
+      )}
+
+      {answered.length > 0 && (
+        <AnsweredHistory items={answered} eventId={ev.id} canWrite={canWrite} />
       )}
 
       {hidden.length > 0 && <HiddenList items={hidden} eventId={ev.id} canWrite={canWrite} />}
@@ -194,6 +199,68 @@ function BatchList({ title, items }: { title: string; items: Q[] }) {
                 </div>
               )}
             </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AnsweredHistory({ items, eventId, canWrite }: { items: Q[]; eventId: string; canWrite: boolean }) {
+  return (
+    <section className="mb-8">
+      <h2 className="text-lg font-semibold mb-3 text-ink">Beantwortet ({items.length})</h2>
+      <div className="space-y-3">
+        {items.map((q) => (
+          <div key={q.id} className="card p-4">
+            <div className="flex items-start gap-2 justify-between flex-wrap">
+              <div className="flex-1 min-w-0">
+                <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">Frage</div>
+                <div className="text-sm text-ink whitespace-pre-wrap">{q.text}</div>
+                <div className="text-xs text-slate-500 mt-1">
+                  von <span className="font-medium text-slate-700">{q.name ?? "anonym"}</span>
+                  {" · eingereicht "}{new Date(q.createdAt).toLocaleString("de-DE")}
+                  {q.answeredAt && (
+                    <> · beantwortet {new Date(q.answeredAt).toLocaleString("de-DE")}</>
+                  )}
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 shrink-0">
+                beantwortet
+              </span>
+            </div>
+
+            <div className="mt-3 rounded-xl bg-accent/15 border-2 border-accent/40 p-3">
+              <div className="text-[10px] uppercase tracking-wider font-bold text-ink mb-1">Antwort</div>
+              {q.answer ? (
+                <div className="text-sm text-ink whitespace-pre-wrap">{q.answer}</div>
+              ) : (
+                <div className="text-sm text-amber-700 italic">
+                  Antworttext nicht gespeichert (per Einzel-Mail vor dem Update beantwortet).
+                </div>
+              )}
+            </div>
+
+            {q.adminNote && (
+              <div className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-2 whitespace-pre-wrap">
+                <span className="font-semibold">Interner Vermerk: </span>{q.adminNote}
+              </div>
+            )}
+
+            {canWrite && (
+              <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 justify-end">
+                <form method="post" action={`/api/events/${eventId}/questions/${q.id}/update`}>
+                  <input type="hidden" name="status" value="OPEN" />
+                  <input type="hidden" name="adminNote" value={q.adminNote ?? ""} />
+                  <button className="text-xs text-slate-500 hover:text-brand-700 hover:underline">
+                    Wieder als offen markieren
+                  </button>
+                </form>
+                <form method="post" action={`/api/events/${eventId}/questions/${q.id}/delete`}>
+                  <button className="text-xs text-rose-700 hover:underline">Frage löschen</button>
+                </form>
+              </div>
+            )}
           </div>
         ))}
       </div>
