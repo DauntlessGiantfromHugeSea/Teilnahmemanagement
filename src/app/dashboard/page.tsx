@@ -46,7 +46,7 @@ export default async function Dashboard() {
   return (
     <Shell session={s} active="dashboard">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Willkommen, {s.name.split(" ")[0]}</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-ink">Willkommen, {s.name.split(" ")[0]}</h1>
         <div className="text-sm text-slate-500">{new Date().toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</div>
       </div>
 
@@ -159,11 +159,12 @@ function Avatar({ firstName, lastName }: { firstName: string; lastName: string }
 
 function KpiCard({ label, value, tone }: { label: string; value: any; tone?: "warn" }) {
   return (
-    <div className="card p-5">
-      <div className="text-xs text-slate-500 uppercase tracking-wide">{label}</div>
-      <div className={"mt-2 text-2xl font-semibold " + (tone === "warn" ? "text-amber-600" : "text-slate-800")}>
+    <div className="card p-6 relative overflow-hidden">
+      <div className="text-[11px] text-slate-500 uppercase tracking-wider font-bold">{label}</div>
+      <div className={"mt-2 text-4xl font-bold tracking-tight " + (tone === "warn" ? "text-amber-600" : "text-ink")}>
         {value}
       </div>
+      <div className="absolute -right-3 -bottom-3 h-16 w-16 rounded-full bg-accent/30" />
     </div>
   );
 }
