@@ -30,10 +30,21 @@ export default async function StaffPortalLanding({
   const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const showAll = searchParams.all === "1";
 
+  const todayDate = new Date(today0);
   const events = await prisma.event.findMany({
     where: showAll
       ? { cancelled: false, showInStaffPortal: true }
-      : { cancelled: false, showInStaffPortal: true, day1Date: { gte: new Date(today0) } },
+      : {
+          cancelled: false,
+          showInStaffPortal: true,
+          // Event sichtbar, solange irgendein Termin (Tag 1 ODER Tag 2) heute
+          // oder in der Zukunft liegt - damit ein laufendes 2-Tages-Event auch
+          // an Tag 2 noch in der Liste auftaucht.
+          OR: [
+            { day1Date: { gte: todayDate } },
+            { day2Date: { gte: todayDate } },
+          ],
+        },
     orderBy: { day1Date: "asc" },
     take: 50,
   });
