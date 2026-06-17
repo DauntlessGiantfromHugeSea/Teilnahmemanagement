@@ -168,15 +168,26 @@ function BatchList({ title, items }: { title: string; items: Q[] }) {
                 </div>
               </div>
             </label>
-            <div className="mt-3 pl-8">
-              <label className="label">Antwort</label>
-              <textarea
-                name={`answer-${q.id}`}
-                defaultValue={q.answer ?? ""}
-                rows={3}
-                placeholder="Antwort-Text … (leer = nicht in Mail)"
-                className="input text-sm"
-              />
+            <div className="mt-4 pl-8">
+              <div className="rounded-2xl bg-accent/15 border-2 border-accent/40 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs uppercase tracking-wider font-bold text-ink">
+                    Antwort an Teilnehmer
+                  </label>
+                  {q.status === "ANSWERED" && !q.answer && (
+                    <span className="text-[10px] text-amber-700">
+                      bereits per Einzel-Mail beantwortet — Text nicht gespeichert
+                    </span>
+                  )}
+                </div>
+                <textarea
+                  name={`answer-${q.id}`}
+                  defaultValue={q.answer ?? ""}
+                  rows={4}
+                  placeholder="Antwort-Text hier eintippen … (leer lassen = nicht in Sammel-Mail aufnehmen)"
+                  className="w-full px-3 py-2 rounded-xl border-2 border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                />
+              </div>
               {q.adminNote && (
                 <div className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded p-2 whitespace-pre-wrap">
                   <span className="font-semibold">Interner Vermerk: </span>{q.adminNote}
