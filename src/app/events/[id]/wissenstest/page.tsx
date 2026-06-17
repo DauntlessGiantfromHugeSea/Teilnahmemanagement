@@ -56,13 +56,17 @@ export default async function EventWissenstestPage({
       {searchParams.error && <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>}
 
       {/* Offline-Modus-Toggle + Bulk-Druck */}
-      <div className="card p-4 mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className={
+        "card p-4 mb-5 flex flex-wrap items-center justify-between gap-3 " +
+        (ev.offlineMode ? "border-2 border-amber-300 bg-amber-50/40" : "")
+      }>
         <div className="text-sm">
           <div className="font-bold text-ink">
-            Offline-Modus: {ev.offlineMode ? <span className="text-emerald-700">aktiv</span> : <span className="text-slate-500">aus</span>}
+            Offline-Modus für diese Schulung: {ev.offlineMode ? <span className="text-amber-700">aktiv</span> : <span className="text-slate-500">aus</span>}
           </div>
           <div className="text-xs text-slate-500">
-            Im Offline-Modus zeigen wir die Drucker- und Auswertungs-Werkzeuge an.
+            Gilt nur für diese eine Veranstaltung. Wenn aktiv, drucke pro Teilnehmer einen
+            Bogen und erfasse die Ergebnisse hier mit dem aufgedruckten Code.
           </div>
         </div>
         <div className="flex flex-wrap gap-2">

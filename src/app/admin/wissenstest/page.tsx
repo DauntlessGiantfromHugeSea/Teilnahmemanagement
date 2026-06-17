@@ -30,6 +30,17 @@ export default async function WissenstestAdminPage({
       {searchParams.ok && <div className="toast-ok mb-4"><span aria-hidden>✓</span><span>{searchParams.ok}</span></div>}
       {searchParams.error && <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>}
 
+      <form method="post" action="/api/admin/wissenstest/seed" className="card p-4 mb-5 flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-sm">
+          <div className="font-bold text-ink">Beispiel-Test importieren</div>
+          <div className="text-xs text-slate-500">
+            12 Fragen aus „Wissenstest Flüssigboden – Mischplatz, Bodenmanagement & Flüssigbodenherstellung".
+            Bereits vorhandene Fragen werden übersprungen.
+          </div>
+        </div>
+        <button className="btn-secondary text-sm">📥 Importieren</button>
+      </form>
+
       <div className="space-y-3 mb-6">
         {questions.length === 0 && (
           <div className="card p-6 text-sm text-slate-500 italic">

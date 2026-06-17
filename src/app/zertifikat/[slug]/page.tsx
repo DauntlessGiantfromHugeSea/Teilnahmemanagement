@@ -19,63 +19,62 @@ export default async function ZertifikatValidierungsPage({
   const isReleased = cert.status === "RELEASED";
   const isRevoked = cert.status === "REVOKED";
 
+  // Abgelaufene Zertifikate: validUntilShort als "TT.MM.JJJJ" parsen
+  const isExpired = (() => {
+    if (!isReleased || !data.validUntilShort) return false;
+    const m = data.validUntilShort.match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (!m) return false;
+    const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+    return d.getTime() < Date.now();
+  })();
+
   const typeLabel = cert.type === "ZERTIFIKAT" ? "Zertifikat" : "Teilnahmebescheinigung";
 
-  // Status-Konfiguration: Farben, Icon, Headline-Text
+  // Status-Konfiguration: Farben, Headline-Text, Hero-Gradient
   const status = isRevoked
     ? {
-        kind: "revoked" as const,
         label: "Widerrufen",
-        headline: "Widerrufen",
-        hero: "from-rose-600 via-rose-700 to-rose-900",
+        headline: "Zertifikat widerrufen",
+        sub: "Dieses Zertifikat wurde zurückgezogen und ist nicht mehr gültig.",
+        heroStyle: { background: "linear-gradient(135deg, #b91c1c 0%, #991b1b 50%, #7f1d1d 100%)" },
         ring: "bg-rose-50 text-rose-700 border-rose-200",
-        icon: (
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
-        ),
+      }
+    : isExpired
+    ? {
+        label: "Abgelaufen",
+        headline: "Zertifikat abgelaufen",
+        sub: "Die Gültigkeit dieses Zertifikats ist abgelaufen.",
+        heroStyle: { background: "linear-gradient(135deg, #b91c1c 0%, #991b1b 50%, #7f1d1d 100%)" },
+        ring: "bg-rose-50 text-rose-700 border-rose-200",
       }
     : isReleased
     ? {
-        kind: "valid" as const,
         label: "Gültig",
-        headline: "Ist gültig",
-        hero: "from-brand-600 via-brand-700 to-brand-900",
+        headline: "Zertifikat ist gültig",
+        sub: "Echtheit bestätigt durch die Flüssigboden Akademie.",
+        heroStyle: undefined, // fba-hero (Firmenfarbe Teal)
         ring: "bg-emerald-50 text-emerald-700 border-emerald-200",
-        icon: (
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-        ),
       }
     : {
-        kind: "pending" as const,
         label: "Nicht freigegeben",
-        headline: "Nicht freigegeben",
-        hero: "from-amber-600 via-amber-700 to-amber-900",
+        headline: "Noch nicht freigegeben",
+        sub: "Dieses Zertifikat ist noch in Bearbeitung und nicht gültig.",
+        heroStyle: { background: "linear-gradient(135deg, #d97706 0%, #b45309 50%, #92400e 100%)" },
         ring: "bg-amber-50 text-amber-700 border-amber-200",
-        icon: (
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 8v4" />
-            <path d="M12 16h.01" />
-          </svg>
-        ),
       };
 
   return (
     <main className="min-h-screen bg-white">
-      <header className="relative overflow-hidden fba-hero">
+      <header className={`relative overflow-hidden ${status.heroStyle ? "" : "fba-hero"}`} style={status.heroStyle}>
         <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
-        <div className="relative max-w-3xl mx-auto px-4 pt-12 pb-20 text-white text-center">
+        <div className="relative max-w-3xl mx-auto px-4 pt-12 pb-24 text-white text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-fba.png" alt="Flüssigboden Akademie" className="h-10 w-auto mx-auto mb-6 brightness-0 invert" />
-          <div className="fba-pill">
+          <div className="fba-pill mb-5">
             Validierung · {typeLabel}
           </div>
+          <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight">{status.headline}</h1>
+          <p className="mt-4 text-sm sm:text-base text-white/85 max-w-xl mx-auto">{status.sub}</p>
         </div>
       </header>
 
