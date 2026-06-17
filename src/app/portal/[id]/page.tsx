@@ -111,10 +111,10 @@ export default async function EventPortalPage({
             alt="Flüssigboden Akademie"
             className="h-10 sm:h-11 w-auto mb-5"
           />
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider mb-3">
+          <div className="fba-pill mb-4">
             Schulungs-Portal
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{ev.title}</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">{ev.title}</h1>
           <div className="mt-3 space-y-1.5 text-sm text-white/90">
             <div className="flex items-start gap-2">
               <span className="mt-0.5"><CalendarSvg /></span>
@@ -136,7 +136,7 @@ export default async function EventPortalPage({
       <div className="max-w-2xl mx-auto px-3 sm:px-4 py-6 space-y-5">
         {/* JETZT-Karte */}
         {liveItem && (
-          <section className="relative rounded-2xl border border-brand-200 bg-white p-5 shadow-lg shadow-brand-900/5">
+          <section className="relative rounded-3xl border-2 border-accent bg-white p-5 shadow-xl shadow-brand-900/10">
             <div className="flex items-center gap-2 text-xs uppercase tracking-wider font-semibold mb-2">
               {isUpcoming ? (
                 <>
@@ -200,7 +200,7 @@ export default async function EventPortalPage({
 
         {/* Programm */}
         {ev.agendaItems.length > 0 && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+          <section className="fba-card p-4 sm:p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base sm:text-lg font-bold text-slate-900">Programm</h2>
               <span className="text-[11px] uppercase tracking-wider text-slate-400">
@@ -219,7 +219,7 @@ export default async function EventPortalPage({
         )}
 
         {/* Fragen-Box: nur Eingabe, keine Anzeige der bisherigen Fragen */}
-        <section id="fragen" className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+        <section id="fragen" className="fba-card p-4 sm:p-5">
           <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-1">Frage an die Schulungsleitung</h2>
           <p className="text-xs text-slate-500 mb-3">
             Etwas unklar? Stell deine Frage hier — wir gehen im Verlauf der Schulung darauf ein.
@@ -251,7 +251,7 @@ export default async function EventPortalPage({
                 placeholder="Dein Name (optional)"
                 className="flex-1 min-w-[160px] px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
-              <button className="inline-flex items-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-semibold hover:bg-brand-700">
+              <button className="fba-cta">
                 Frage senden
               </button>
             </div>

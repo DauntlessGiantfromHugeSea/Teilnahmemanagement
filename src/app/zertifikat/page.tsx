@@ -17,44 +17,40 @@ export default function ZertifikatLookupPage({
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-brand-50/40">
-      <header className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand-600 via-brand-700 to-brand-900" />
+    <main className="min-h-screen bg-white">
+      <header className="relative overflow-hidden fba-hero">
         <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
-        <div className="relative max-w-3xl mx-auto px-4 pt-12 pb-16 text-white text-center">
+        <div className="relative max-w-3xl mx-auto px-4 pt-14 pb-20 text-white text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-fba.png" alt="Flüssigboden Akademie" className="h-12 w-auto mx-auto mb-6 brightness-0 invert" />
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-[11px] font-semibold uppercase tracking-wider mb-4">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12l2 2 4-4" /><circle cx="12" cy="12" r="10" /></svg>
-            Zertifikatsprüfung
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold leading-tight">Zertifikat prüfen</h1>
-          <p className="mt-3 text-sm sm:text-base text-white/85 max-w-xl mx-auto">
+          <div className="fba-pill mb-5">Zertifikatsprüfung</div>
+          <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight">Zertifikat prüfen</h1>
+          <p className="mt-4 text-sm sm:text-base text-white/85 max-w-xl mx-auto">
             Prüfen Sie hier die Echtheit und Gültigkeit eines Zertifikats oder einer
             Teilnahmebescheinigung der Flüssigboden Akademie.
           </p>
         </div>
       </header>
 
-      <div className="max-w-xl mx-auto px-4 -mt-10 pb-10 relative">
-        <div className="bg-white rounded-2xl shadow-xl shadow-brand-900/10 border border-slate-200 overflow-hidden">
+      <div className="max-w-xl mx-auto px-4 -mt-14 pb-12 relative">
+        <div className="fba-card shadow-xl shadow-slate-900/5 overflow-hidden">
           <div className="p-6 sm:p-8">
             <form method="get" className="space-y-4">
               <label className="block">
-                <span className="block text-xs font-semibold text-slate-700 mb-1.5 uppercase tracking-wider">Zertifikatsnummer</span>
+                <span className="block text-xs font-bold text-ink mb-1.5 uppercase tracking-wider">Zertifikatsnummer</span>
                 <input
                   type="text"
                   name="q"
                   placeholder="z. B. 24-SC-FBA/0"
                   required
                   autoFocus
-                  className="w-full px-4 py-3 rounded-lg border-2 border-slate-200 bg-slate-50 text-base font-mono tracking-wide focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
+                  className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 bg-slate-50 text-base font-mono tracking-wide focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:bg-white transition"
                 />
                 <span className="block text-xs text-slate-500 mt-1.5">
                   Die Nummer finden Sie auf der Urkunde unten links.
                 </span>
               </label>
-              <button className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-3 text-sm font-semibold shadow-sm hover:bg-brand-700 transition">
+              <button className="w-full fba-cta py-3.5">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                 Prüfen
               </button>
@@ -96,10 +92,10 @@ export default function ZertifikatLookupPage({
 
 function Feature({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
   return (
-    <div className="rounded-xl bg-white border border-slate-200 p-4 text-center shadow-sm">
-      <div className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-brand-50 text-brand-700 mb-2">{icon}</div>
-      <div className="font-semibold text-sm text-slate-900">{title}</div>
-      <div className="text-xs text-slate-500 mt-0.5 leading-snug">{text}</div>
+    <div className="rounded-2xl bg-white border border-slate-200 p-5 text-center shadow-sm">
+      <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-accent text-ink mb-3">{icon}</div>
+      <div className="font-bold text-sm text-ink">{title}</div>
+      <div className="text-xs text-slate-500 mt-1 leading-snug">{text}</div>
     </div>
   );
 }

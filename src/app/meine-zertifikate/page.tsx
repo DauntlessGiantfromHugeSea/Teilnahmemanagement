@@ -13,18 +13,23 @@ export default async function MeineZertifikatePage({
   const emailHash = await getPortalEmailHash();
   if (!emailHash) {
     return (
-      <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="h-1.5 bg-brand-600" />
-          <div className="p-6 sm:p-8">
+      <main className="min-h-screen bg-white">
+        <header className="relative overflow-hidden fba-hero">
+          <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
+          <div className="relative max-w-3xl mx-auto px-4 pt-12 pb-20 text-white text-center">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-fba.png" alt="FB-Akademie" className="h-10 w-auto mb-6" />
-            <div className="text-xs uppercase tracking-wide text-slate-500">Zertifikats-Portal</div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 mt-1 mb-2">Meine Zertifikate</h1>
-            <p className="text-sm text-slate-600 mb-5">
+            <img src="/logo-fba.png" alt="Flüssigboden Akademie" className="h-10 w-auto mx-auto mb-6 brightness-0 invert" />
+            <div className="fba-pill mb-5">Zertifikats-Portal</div>
+            <h1 className="text-3xl sm:text-4xl font-bold leading-tight tracking-tight">Meine Zertifikate</h1>
+            <p className="mt-4 text-sm sm:text-base text-white/85 max-w-xl mx-auto">
               Geben Sie Ihre E-Mail-Adresse ein, mit der Sie sich zur Schulung angemeldet haben.
               Wir senden Ihnen einen 6-stelligen Code zur Anmeldung.
             </p>
+          </div>
+        </header>
+        <div className="max-w-md mx-auto px-4 -mt-14 pb-12 relative">
+          <div className="fba-card shadow-xl shadow-slate-900/5 overflow-hidden">
+          <div className="p-6 sm:p-8">
 
             {searchParams.error && (
               <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-sm text-rose-900">
@@ -48,7 +53,7 @@ export default async function MeineZertifikatePage({
                   className="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </label>
-              <button className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-700">
+              <button className="w-full fba-cta py-3">
                 Code anfordern
               </button>
             </form>
@@ -56,9 +61,10 @@ export default async function MeineZertifikatePage({
               Schon einen Code? <Link href="/meine-zertifikate/code" className="text-brand-700 hover:underline">Code eingeben</Link>
             </p>
           </div>
-          <div className="px-6 sm:px-8 py-4 bg-slate-50 border-t border-slate-200 text-xs text-slate-500">
-            Flüssigboden Akademie UG · Merseburger Str. 189 · 04179 Leipzig
           </div>
+          <p className="mt-6 text-center text-xs text-slate-500">
+            Flüssigboden Akademie UG · Merseburger Str. 189 · 04179 Leipzig
+          </p>
         </div>
       </main>
     );
@@ -133,7 +139,7 @@ export default async function MeineZertifikatePage({
                     <a
                       href={`/api/zertifikat/${c.slug}/pdf`}
                       target="_blank"
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 text-white px-3 py-1.5 text-sm font-medium hover:bg-brand-700"
+                      className="fba-cta py-2 px-4 text-xs"
                     >
                       PDF herunterladen
                     </a>

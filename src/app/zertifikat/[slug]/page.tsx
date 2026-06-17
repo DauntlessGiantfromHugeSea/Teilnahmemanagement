@@ -67,21 +67,20 @@ export default async function ZertifikatValidierungsPage({
       };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-brand-50/30">
-      <header className="relative overflow-hidden">
-        <div className={`absolute inset-0 bg-gradient-to-br ${status.hero}`} />
+    <main className="min-h-screen bg-white">
+      <header className="relative overflow-hidden fba-hero">
         <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
-        <div className="relative max-w-3xl mx-auto px-4 pt-10 pb-20 text-white text-center">
+        <div className="relative max-w-3xl mx-auto px-4 pt-12 pb-20 text-white text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-fba.png" alt="Flüssigboden Akademie" className="h-10 w-auto mx-auto mb-6 brightness-0 invert" />
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/15 backdrop-blur px-3 py-1 text-[11px] font-semibold uppercase tracking-wider">
+          <div className="fba-pill">
             Validierung · {typeLabel}
           </div>
         </div>
       </header>
 
-      <div className="max-w-xl mx-auto px-4 -mt-14 pb-10 relative">
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-900/5 border border-slate-200 overflow-hidden">
+      <div className="max-w-xl mx-auto px-4 -mt-14 pb-12 relative">
+        <div className="fba-card shadow-xl shadow-slate-900/5 overflow-hidden">
           <div className="px-6 sm:px-8 py-6 sm:py-7">
             <dl className="rounded-xl border border-slate-200 divide-y divide-slate-200 text-sm overflow-hidden">
               <Row label="Zertifikatsnummer">
