@@ -184,6 +184,7 @@ model EventQuestion {
   eventId      String
   event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   text         String   // Frage (Plaintext)
+  answer       String?  // gespeicherte Antwort (fuer Sammelversand)
   name         String?  // optional: wer hat gefragt
   status       String   @default("OPEN") // OPEN | ANSWERED | HIDDEN
   adminNote    String?  // interner Vermerk
