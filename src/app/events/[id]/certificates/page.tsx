@@ -196,24 +196,26 @@ export default async function EventCertificatesPage({
               <summary className="btn-secondary text-xs list-none cursor-pointer">
                 + Zertifikat(e) mit Kompetenzfeld …
               </summary>
-              <div className="absolute right-0 z-10 mt-1 w-80 rounded-xl border border-slate-200 bg-white shadow-lg p-3 max-h-80 overflow-auto">
-                <div className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 mb-2">
-                  Kompetenzfelder auswählen
+              <div className="absolute left-0 sm:left-auto sm:right-0 z-50 mt-2 w-[min(90vw,360px)] rounded-2xl border border-slate-200 bg-white shadow-2xl p-4 max-h-[70vh] overflow-auto">
+                <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-3">
+                  Kompetenzfelder auswählen ({kompetenzfelder.length} verfügbar)
                 </div>
-                {kompetenzfelder.map((k) => (
-                  <label key={k.id} className="flex items-start gap-2 text-xs py-1 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="kompetenz"
-                      value={k.id}
-                      defaultChecked={defaultK.has(k.id)}
-                      className="mt-0.5 h-3.5 w-3.5 accent-brand-600"
-                    />
-                    <span>{k.label}</span>
-                  </label>
-                ))}
-                <button name="type" value="ZERTIFIKAT" className="btn-primary text-xs w-full mt-2">
-                  Anlegen
+                <div className="space-y-1 mb-3">
+                  {kompetenzfelder.map((k) => (
+                    <label key={k.id} className="flex items-start gap-2 text-xs py-1.5 px-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="kompetenz"
+                        value={k.id}
+                        defaultChecked={defaultK.has(k.id)}
+                        className="mt-0.5 h-4 w-4 accent-ink"
+                      />
+                      <span className="leading-snug">{k.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <button name="type" value="ZERTIFIKAT" className="btn-primary text-xs w-full">
+                  Zertifikat(e) anlegen
                 </button>
               </div>
             </details>
@@ -322,42 +324,42 @@ export default async function EventCertificatesPage({
                           </button>
                         </form>
                       )}
-                      <details className="text-left">
-                          <summary className="text-xs text-brand-700 hover:underline cursor-pointer list-none text-right">
-                            + Zertifikat(e) (Kompetenzfelder wählen)
-                          </summary>
-                          <form
-                            method="post"
-                            action={`/api/events/${ev.id}/certificates/create`}
-                            className="mt-2 p-3 border-2 border-brand-200 rounded-lg bg-brand-50/40 space-y-2"
-                          >
-                            <input type="hidden" name="participantId" value={p.id} />
-                            <input type="hidden" name="type" value="ZERTIFIKAT" />
-                            <div className="text-xs font-semibold text-slate-600">
-                              Welche Kompetenzfelder bestätigen?
-                            </div>
-                            <div className="space-y-1 max-h-72 overflow-auto pr-1">
-                              {kompetenzfelder.map((k) => (
-                                <label key={k.id} className="flex items-start gap-2 text-xs cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    name="kompetenz"
-                                    value={k.id}
-                                    defaultChecked={defaultK.has(k.id)}
-                                    className="mt-0.5 h-3.5 w-3.5 accent-brand-600"
-                                  />
-                                  <span><span className="font-medium">{k.label}</span></span>
-                                </label>
-                              ))}
-                            </div>
-                            <button className="btn-primary text-xs px-3 py-1.5 w-full">
-                              Zertifikat(e) anlegen
-                            </button>
-                            <p className="text-[10px] text-slate-500 mt-1">
-                              Pro ausgewähltem Kompetenzfeld wird ein eigenes Zertifikat (eigene Nummer, eigene PDF) angelegt.
-                            </p>
-                          </form>
-                        </details>
+                      <details className="relative inline-block text-left">
+                        <summary className="text-xs text-brand-700 hover:underline cursor-pointer list-none">
+                          + Zertifikat(e) (Kompetenzfelder wählen)
+                        </summary>
+                        <form
+                          method="post"
+                          action={`/api/events/${ev.id}/certificates/create`}
+                          className="absolute right-0 z-50 mt-2 w-[min(90vw,340px)] p-4 rounded-2xl border border-slate-200 bg-white shadow-2xl space-y-2"
+                        >
+                          <input type="hidden" name="participantId" value={p.id} />
+                          <input type="hidden" name="type" value="ZERTIFIKAT" />
+                          <div className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+                            Welche Kompetenzfelder bestätigen? ({kompetenzfelder.length} verfügbar)
+                          </div>
+                          <div className="space-y-1 max-h-[50vh] overflow-auto pr-1">
+                            {kompetenzfelder.map((k) => (
+                              <label key={k.id} className="flex items-start gap-2 text-xs py-1.5 px-2 rounded-lg hover:bg-slate-50 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  name="kompetenz"
+                                  value={k.id}
+                                  defaultChecked={defaultK.has(k.id)}
+                                  className="mt-0.5 h-4 w-4 accent-ink"
+                                />
+                                <span className="leading-snug font-medium">{k.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <button className="btn-primary text-xs w-full">
+                            Zertifikat(e) anlegen
+                          </button>
+                          <p className="text-[10px] text-slate-500">
+                            Pro Kompetenzfeld wird ein eigenes Zertifikat angelegt.
+                          </p>
+                        </form>
+                      </details>
                     </td>
                   )}
                 </tr>
