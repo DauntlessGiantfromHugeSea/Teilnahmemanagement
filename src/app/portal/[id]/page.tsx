@@ -91,6 +91,10 @@ export default async function EventPortalPage({
   const isTwoDay = !!(d1 && d2);
   const day1Items = ev.agendaItems.filter((i) => i.day === 1);
   const day2Items = ev.agendaItems.filter((i) => i.day === 2);
+  // Ab dem zweiten Tag (oder spaeter) blenden wir das Tag-1-Programm aus,
+  // damit die Teilnehmer im Portal nur noch die heute relevante Agenda sehen.
+  // Links und QR-Codes bleiben unveraendert - es wird nichts neu vergeben.
+  const hideDay1 = isTwoDay && d2day !== null && today >= d2day;
   const announcements = ev.portalBlocks.filter((b) => b.icon === "announcement");
   const otherBlocks = ev.portalBlocks.filter((b) => b.icon !== "announcement");
 
@@ -203,9 +207,11 @@ export default async function EventPortalPage({
                 {nowState === "before" ? "vor Beginn" : nowState === "after" ? "abgeschlossen" : "läuft"}
               </span>
             </div>
-            <AgendaList items={day1Items} title={isTwoDay ? "Tag 1" : undefined} liveId={liveItem?.id ?? null} />
+            {!hideDay1 && (
+              <AgendaList items={day1Items} title={isTwoDay ? "Tag 1" : undefined} liveId={liveItem?.id ?? null} />
+            )}
             {isTwoDay && (
-              <div className="mt-5 pt-5 border-t border-slate-200">
+              <div className={hideDay1 ? "" : "mt-5 pt-5 border-t border-slate-200"}>
                 <AgendaList items={day2Items} title="Tag 2" liveId={liveItem?.id ?? null} />
               </div>
             )}
