@@ -48,16 +48,7 @@ export default async function ZertifikatValidierungsPage({
 
             <dl className="space-y-3 text-sm">
               <Row label="Nummer">{cert.number}</Row>
-              <Row label="Teilnehmer/in">{data.firstName} {data.lastName}</Row>
-              <Row label="Schulung">{data.eventTitle}</Row>
-              <Row label="Datum">{data.eventDateShort}</Row>
-              {data.kompetenzfeld && <Row label="Kompetenzfeld">{data.kompetenzfeld.label}</Row>}
               {data.validUntilShort && <Row label="Gültig bis">{data.validUntilShort}</Row>}
-              {cert.releasedAt && (
-                <Row label="Freigegeben am">
-                  {new Date(cert.releasedAt).toLocaleDateString("de-DE")}
-                </Row>
-              )}
               {isRevoked && cert.revokedAt && (
                 <Row label="Widerrufen am">
                   {new Date(cert.revokedAt).toLocaleDateString("de-DE")}
@@ -65,17 +56,6 @@ export default async function ZertifikatValidierungsPage({
                 </Row>
               )}
             </dl>
-
-            {isReleased && (
-              <div className="mt-6 flex flex-wrap gap-3">
-                <a
-                  href={`/api/zertifikat/${cert.slug}/pdf`}
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 text-white px-4 py-2 text-sm font-medium hover:bg-brand-700"
-                >
-                  PDF herunterladen
-                </a>
-              </div>
-            )}
 
             {!isReleased && !isRevoked && (
               <div className="mt-6 p-4 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-900">
