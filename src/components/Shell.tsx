@@ -45,8 +45,8 @@ export function Shell({ session, active, children }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="topbar sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-3 sm:gap-6">
+      <header className="sticky top-0 z-30 bg-brand-700 text-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3 sm:gap-6">
           <MobileMenu
             name={session.name}
             role={session.role}
@@ -57,7 +57,7 @@ export function Shell({ session, active, children }: Props) {
           />
 
           <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-            <Logo className="h-7 w-auto" />
+            <Logo className="h-7 w-auto brightness-0 invert" />
           </Link>
 
           {/* Desktop Nav */}
@@ -67,10 +67,10 @@ export function Shell({ session, active, children }: Props) {
                 key={n.id}
                 href={n.href}
                 className={
-                  "px-3 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap " +
+                  "px-4 py-1.5 rounded-full text-sm font-semibold transition whitespace-nowrap " +
                   (active === n.id
-                    ? "bg-white/80 text-brand-700 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset,0_4px_14px_-6px_rgba(0,126,128,0.35)] border border-white/60"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
+                    ? "bg-accent text-ink"
+                    : "text-white/85 hover:text-white hover:bg-white/10")
                 }
               >
                 {n.label}
@@ -80,10 +80,10 @@ export function Shell({ session, active, children }: Props) {
               <details className="relative">
                 <summary
                   className={
-                    "list-none cursor-pointer px-3 py-1.5 rounded-full text-sm font-medium transition whitespace-nowrap flex items-center gap-1 " +
+                    "list-none cursor-pointer px-4 py-1.5 rounded-full text-sm font-semibold transition whitespace-nowrap flex items-center gap-1 " +
                     (ADMIN.some((a) => a.id === active)
-                      ? "bg-white/80 text-brand-700 border border-white/60"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-white/60")
+                      ? "bg-accent text-ink"
+                      : "text-white/85 hover:text-white hover:bg-white/10")
                   }
                 >
                   Administration
@@ -91,7 +91,7 @@ export function Shell({ session, active, children }: Props) {
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </summary>
-                <div className="absolute left-0 mt-2 w-60 rounded-2xl glass-strong py-1 z-40">
+                <div className="absolute left-0 mt-2 w-60 rounded-2xl bg-white shadow-xl border border-slate-200 py-1 z-40">
                   {ADMIN.map((n) => (
                     <Link
                       key={n.id}
@@ -115,7 +115,7 @@ export function Shell({ session, active, children }: Props) {
             href="/hilfe"
             aria-label="Hilfe & Anleitung"
             title="Hilfe & Anleitung"
-            className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition"
+            className="shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 transition"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="9" />
@@ -126,13 +126,13 @@ export function Shell({ session, active, children }: Props) {
 
           {/* User-Avatar / Dropdown (Desktop) */}
           <details className="relative shrink-0 hidden md:block">
-            <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-brand-50 pl-2 pr-1 py-1">
-              <span className="hidden lg:block text-sm text-slate-700 max-w-[140px] truncate">{session.name}</span>
-              <span className="h-9 w-9 rounded-full bg-brand-500 text-white text-xs font-semibold flex items-center justify-center shadow-sm">
+            <summary className="list-none cursor-pointer flex items-center gap-2 rounded-full hover:bg-white/10 pl-2 pr-1 py-1">
+              <span className="hidden lg:block text-sm text-white/90 max-w-[140px] truncate">{session.name}</span>
+              <span className="h-9 w-9 rounded-full bg-accent text-ink text-xs font-bold flex items-center justify-center shadow-sm">
                 {initials}
               </span>
             </summary>
-            <div className="absolute right-0 mt-2 w-60 rounded-2xl glass-strong py-1 z-40">
+            <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-white shadow-xl border border-slate-200 py-1 z-40 text-slate-700">
               <div className="px-3 py-2 border-b border-slate-100">
                 <div className="text-sm font-medium truncate">{session.name}</div>
                 <div className="text-xs text-slate-500">{roleLabel(session.role)}</div>

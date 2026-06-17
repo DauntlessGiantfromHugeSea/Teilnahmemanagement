@@ -152,12 +152,7 @@ summary { list-style: none; }
 html, body {
   min-height: 100%;
   color: var(--text);
-  background-color: var(--bg-base);
-  background-image:
-    radial-gradient(900px 600px at 8% -10%, var(--bg-tint-1), transparent 60%),
-    radial-gradient(700px 500px at 92% 0%, var(--bg-tint-2), transparent 65%),
-    radial-gradient(800px 600px at 60% 110%, var(--bg-tint-3), transparent 60%);
-  background-attachment: fixed;
+  background-color: #f6f7f9;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "cv11", "ss01";
@@ -181,12 +176,10 @@ html, body {
 
 /* Karten greifen jetzt auf den Glas-Effekt zurueck */
 .card {
-  @apply rounded-2xl;
-  background: var(--glass-bg-strong);
-  backdrop-filter: saturate(1.4) blur(20px);
-  -webkit-backdrop-filter: saturate(1.4) blur(20px);
-  border: 1px solid var(--glass-stroke);
-  box-shadow: var(--shadow-card), inset 0 1px 0 var(--glass-border);
+  @apply rounded-3xl;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -16px rgba(15, 23, 42, 0.12);
   transition: box-shadow 0.25s ease, transform 0.25s ease;
 }
 .card:hover { box-shadow: var(--shadow-card-hover); }
@@ -200,25 +193,29 @@ html, body {
 .btn:active { transform: translateY(0.5px); }
 
 .btn-primary {
-  @apply btn text-white disabled:opacity-50;
-  background: linear-gradient(180deg, rgb(0, 142, 144) 0%, rgb(0, 110, 112) 100%);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.25) inset, 0 8px 20px -10px rgba(0, 126, 128, 0.55);
+  @apply btn font-semibold disabled:opacity-50;
+  background: #d4ff3d;
+  color: #0a1f2c;
+  border-radius: 9999px;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 6px 18px -10px rgba(168, 219, 28, 0.7);
 }
-.btn-primary:hover { filter: brightness(1.05); }
-.btn-primary:active { filter: brightness(0.97); }
+.btn-primary:hover { background: #c2f53a; }
+.btn-primary:active { background: #a8db1c; }
 
 .btn-secondary {
-  @apply btn text-slate-700;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: saturate(1.4) blur(14px);
-  -webkit-backdrop-filter: saturate(1.4) blur(14px);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 14px -8px rgba(15,23,42,0.12);
+  @apply btn font-semibold;
+  background: #ffffff;
+  color: #0a1f2c;
+  border-radius: 9999px;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+  border: 1.5px solid #0a1f2c;
 }
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(0, 126, 128, 0.35);
-  color: rgb(0, 76, 77);
+  background: #0a1f2c;
+  color: #ffffff;
 }
 
 .btn-danger {
@@ -230,12 +227,10 @@ html, body {
 
 /* Inputs */
 .input {
-  @apply w-full rounded-xl px-3.5 py-2.5 text-sm;
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(15, 23, 42, 0.10);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  @apply w-full rounded-2xl px-4 py-2.5 text-sm;
+  background: #ffffff;
+  border: 1.5px solid rgba(15, 23, 42, 0.12);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   color: var(--text);
 }
 .input:focus {

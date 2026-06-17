@@ -67,22 +67,20 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
           />
           <div className="absolute left-0 right-0 bottom-0">
             <div className="max-w-5xl mx-auto px-4 sm:px-8 pb-8 sm:pb-12 text-white">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-white/95 text-brand-700 px-3 py-1 text-xs font-semibold mb-3 sm:mb-4">
-                {dateBadge}
-              </div>
+              <div className="fba-pill mb-4">{dateBadge}</div>
               {ev.subtitle && (
                 <div className="text-xs sm:text-sm uppercase tracking-[0.2em] opacity-90 mb-2">
                   {ev.subtitle}
                 </div>
               )}
-              <h1 className="text-2xl sm:text-5xl font-semibold leading-tight max-w-3xl drop-shadow">
+              <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight max-w-3xl drop-shadow">
                 {ev.title}
               </h1>
             </div>
           </div>
         </div>
       ) : (
-        <div className="relative w-full bg-gradient-to-br from-brand-500 via-brand-600 to-brand-800 text-white overflow-hidden">
+        <div className="relative w-full fba-hero text-white overflow-hidden">
           <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 80% 20%, white, transparent 50%)" }} />
           <div className="relative max-w-5xl mx-auto px-4 sm:px-8 py-12 sm:py-20">
             <img
@@ -98,7 +96,7 @@ export default async function AnmeldungPage({ params, searchParams }: Props) {
                 {ev.subtitle}
               </div>
             )}
-            <h1 className="text-2xl sm:text-5xl font-semibold leading-tight max-w-3xl">{ev.title}</h1>
+            <h1 className="text-3xl sm:text-5xl font-bold leading-tight tracking-tight max-w-3xl">{ev.title}</h1>
           </div>
         </div>
       ))}
