@@ -183,7 +183,7 @@ export default async function EventCertificatesPage({
           id="cert-bulk-form"
           method="post"
           action={`/api/events/${ev.id}/certificates/create`}
-          className="card overflow-hidden mb-3"
+          className="card mb-3 overflow-visible"
         >
           <div className="px-4 py-3 bg-slate-50 flex flex-wrap items-center gap-3">
             <span className="text-xs font-semibold text-slate-600 mr-auto">
