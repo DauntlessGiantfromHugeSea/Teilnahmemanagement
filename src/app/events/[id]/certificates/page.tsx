@@ -227,7 +227,7 @@ export default async function EventCertificatesPage({
         </form>
       )}
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-visible">
         <table className="table">
           <thead>
             <tr>
