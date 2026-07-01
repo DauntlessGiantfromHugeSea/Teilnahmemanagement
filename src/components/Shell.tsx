@@ -46,6 +46,22 @@ export function Shell({ session, active, children }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {session.impersonatorUid && (
+        <div className="sticky top-0 z-40 bg-amber-500 text-ink border-b-2 border-amber-600">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2 flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm">
+              <strong>👤 Support-Modus:</strong> Du siehst die App als{" "}
+              <strong>{session.name}</strong> ({session.email})
+              {session.impersonatorName ? <> — angemeldet durch <strong>{session.impersonatorName}</strong></> : null}.
+            </div>
+            <form method="post" action="/api/admin/users/impersonate/stop">
+              <button className="rounded-full bg-ink text-white px-4 py-1.5 text-xs font-semibold hover:bg-ink-700">
+                ← Zurück zu meinem Konto
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
       <header className="sticky top-0 z-30 bg-brand-700 text-white shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3 sm:gap-6">
           <MobileMenu

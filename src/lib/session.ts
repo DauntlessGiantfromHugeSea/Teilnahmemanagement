@@ -17,6 +17,10 @@ export interface SessionPayload extends JWTPayload {
   role: Role;
   name: string;
   email: string;
+  // Impersonation: gesetzt, wenn ein Admin gerade als anderer User agiert.
+  // Enthaelt die uid des Original-Admins, damit wir zurueckwechseln koennen.
+  impersonatorUid?: string;
+  impersonatorName?: string;
 }
 
 export interface PendingPayload extends JWTPayload {

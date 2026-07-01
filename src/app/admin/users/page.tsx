@@ -94,7 +94,21 @@ export default async function UsersPage({
                         <span className="badge bg-rose-50 text-rose-700">deaktiviert</span>
                       )}
                     </td>
-                    <td className="text-right">
+                    <td className="text-right whitespace-nowrap">
+                      {u.id !== s.uid && u.active && (
+                        <form
+                          method="post"
+                          action={`/api/admin/users/${u.id}/impersonate`}
+                          className="inline-block mr-1"
+                        >
+                          <button
+                            className="btn-row"
+                            title="Als diesen Benutzer anmelden (Support-Modus)"
+                          >
+                            👤 Support
+                          </button>
+                        </form>
+                      )}
                       <Link href={`/admin/users/${u.id}/edit`} className="btn-row">
                         Bearbeiten
                       </Link>
