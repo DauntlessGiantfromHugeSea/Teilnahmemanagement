@@ -40,8 +40,10 @@ export async function canWriteEvent(s: SessionPayload, eventId: string): Promise
     // Bestehendes Verhalten: Editoren duerfen alles schreiben.
     return true;
   }
-  if (s.role === Role.EVENTMANAGER) {
-    // Nur Veranstaltungen, die der Admin explizit freigegeben hat.
+  if (s.role === Role.EVENTMANAGER || s.role === Role.VIEWER) {
+    // Auf einzelnen Veranstaltungen: Schreibrechte moeglich, wenn der Admin
+    // in EventAccess canWrite=true gesetzt hat. Betrachter ohne Grant sehen
+    // die Veranstaltung nur lesend.
     const g = await prisma.eventAccess.findUnique({
       where: { eventId_userId: { eventId, userId: s.uid } },
     });
