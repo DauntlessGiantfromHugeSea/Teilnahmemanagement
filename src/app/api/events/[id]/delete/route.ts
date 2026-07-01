@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 
 // Loescht eine Veranstaltung endgueltig.
@@ -11,7 +11,7 @@ import { audit } from "@/lib/audit";
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
-  if (!(await canWriteEvent(s, params.id))) {
+  if (!(await canManageEvent(s, params.id))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
   const ev = await prisma.event.findUnique({

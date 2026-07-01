@@ -1,14 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { EventForm } from "@/components/EventForm";
 import { prisma } from "@/lib/db";
 
 export default async function EditEvent({ params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) redirect("/login");
-  if (!(await canWriteEvent(s, params.id))) redirect(`/events/${params.id}`);
+  if (!(await canManageEvent(s, params.id))) redirect(`/events/${params.id}`);
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
     include: { training: true },

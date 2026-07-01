@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import { PDFDocument } from "pdf-lib";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { parseCertificateData } from "@/lib/certificates";
 import { renderCertificatePdf } from "@/lib/certificatePdf";
@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   const url = new URL(req.url);
   const onlyReleased = url.searchParams.get("released") === "1";

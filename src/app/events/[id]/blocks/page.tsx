@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { parseBlocks, BLOCK_LABELS, type Block, type BlockType } from "@/lib/pageBlocks";
 
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function BlocksEditor({ params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) redirect("/login");
-  if (!(await canWriteEvent(s, params.id))) redirect(`/events/${params.id}`);
+  if (!(await canManageEvent(s, params.id))) redirect(`/events/${params.id}`);
   const ev = await prisma.event.findUnique({ where: { id: params.id } });
   if (!ev) notFound();
 

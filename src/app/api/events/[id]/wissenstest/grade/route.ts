@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 
 function back(eventId: string, q: Record<string, string>) {
@@ -13,7 +13,7 @@ function back(eventId: string, q: Record<string, string>) {
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
   const code = String(f.get("code") ?? "").trim().toUpperCase();
   const correctRaw = String(f.get("correctCount") ?? "").trim();

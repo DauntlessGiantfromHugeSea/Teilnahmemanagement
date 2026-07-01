@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 
 const STATUSES = new Set(["OPEN", "ANSWERED", "HIDDEN"]);
@@ -8,7 +8,7 @@ const STATUSES = new Set(["OPEN", "ANSWERED", "HIDDEN"]);
 export async function POST(req: Request, { params }: { params: { id: string; qid: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
   const status = String(f.get("status") ?? "OPEN");
   const adminNote = String(f.get("adminNote") ?? "").trim() || null;

@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { ensureResult, getActiveQuestions } from "@/lib/wissenstest";
@@ -20,7 +20,7 @@ function fmtDate(d: Date | null): string {
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   const url = new URL(req.url);
   const onePid = url.searchParams.get("pid");

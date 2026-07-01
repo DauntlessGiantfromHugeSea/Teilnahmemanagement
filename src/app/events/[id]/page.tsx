@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
+import { canViewEvent, canWriteEvent, canManageEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
@@ -42,6 +42,7 @@ export default async function EventDetail({
   if (!ev) notFound();
 
   const canWrite = await canWriteEvent(s, ev.id);
+  const canManage = await canManageEvent(s, ev.id);
   const participants = ev.participants
     .map(decryptParticipant)
     .sort((a, b) => {
@@ -178,37 +179,39 @@ export default async function EventDetail({
           {canWrite && (
             <Link href={`/events/${ev.id}/edit`} className="btn-secondary">Bearbeiten</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/blocks`} className="btn-secondary">Seite gestalten</Link>
           )}
           {canWrite && (
             <Link href={`/events/${ev.id}/participants/new`} className="btn-primary">Teilnehmer eintragen</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/certificates`} className="btn-secondary">Zertifikate</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/feedback`} className="btn-secondary">Feedback</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/questions`} className="btn-secondary">Fragen</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/wissenstest`} className="btn-secondary">
               Wissenstest{ev.offlineMode ? " (offline)" : ""}
             </Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/mailing`} className="btn-secondary">Rundmail</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/agenda`} className="btn-secondary">Agenda</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <Link href={`/events/${ev.id}/portal`} className="btn-secondary">Portal-Inhalte</Link>
           )}
-          <a href={`/portal/${ev.id}`} target="_blank" className="btn-secondary">Portal ↗</a>
-          {canWrite && (
+          {canManage && (
+            <a href={`/portal/${ev.id}`} target="_blank" className="btn-secondary">Portal ↗</a>
+          )}
+          {canManage && (
             <form method="post" action={`/api/events/${ev.id}/reminder/test`} className="inline">
               <button className="btn-secondary text-sm" title="Schickt die 24h-Erinnerungsmail testweise an deine Adresse">
                 Test-Erinnerung an mich
@@ -218,7 +221,7 @@ export default async function EventDetail({
           {isAdmin(s) && (
             <Link href={`/events/${ev.id}/access`} className="btn-secondary">Zugriffe</Link>
           )}
-          {canWrite && (
+          {canManage && (
             <details className="inline-block">
               <summary
                 className={

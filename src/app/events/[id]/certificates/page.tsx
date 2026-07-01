@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
+import { canViewEvent, canManageEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { parseDefaults } from "@/lib/certificateContent";
@@ -20,7 +20,8 @@ export default async function EventCertificatesPage({
   const s = await getSession();
   if (!s) redirect("/login");
   if (!(await canViewEvent(s, params.id))) redirect("/events");
-  const canWrite = await canWriteEvent(s, params.id);
+  if (!(await canManageEvent(s, params.id))) redirect(`/events/${params.id}`);
+  const canWrite = await canManageEvent(s, params.id);
   const admin = isAdmin(s);
 
   const ev = await prisma.event.findUnique({

@@ -5,7 +5,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { sendMail, isMailingConfigured } from "@/lib/mailer";
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   // Optional: nur Teilnehmer mit dayOption = DAY_1 (oder DAY_2) anschreiben.
   // Default = alle.

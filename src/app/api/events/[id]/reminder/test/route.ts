@@ -4,7 +4,7 @@
 
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { sendReminderMail } from "@/lib/reminderMail";
 import { isMailingConfigured } from "@/lib/mailer";
@@ -12,7 +12,7 @@ import { isMailingConfigured } from "@/lib/mailer";
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Forbidden", { status: 403 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   const back = (q: Record<string, string>) => new NextResponse(null, {
     status: 303,

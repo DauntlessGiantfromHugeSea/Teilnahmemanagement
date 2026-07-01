@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
 import { saveUpload } from "@/lib/uploads";
@@ -69,7 +69,7 @@ async function resolveUpload(
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
-  if (!(await canWriteEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
   const f = await req.formData();
   const format = formatOrDefault(f.get("format"));
   const title = String(f.get("title") ?? "").trim();

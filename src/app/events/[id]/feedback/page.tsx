@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canViewEvent, canWriteEvent } from "@/lib/rbac";
+import { canViewEvent, canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { getQuestionsForEvent, shortEventId } from "@/lib/feedback";
@@ -20,7 +20,8 @@ export default async function EventFeedbackPage({
   const s = await getSession();
   if (!s) redirect("/login");
   if (!(await canViewEvent(s, params.id))) redirect("/events");
-  const canWrite = await canWriteEvent(s, params.id);
+  if (!(await canManageEvent(s, params.id))) redirect(`/events/${params.id}`);
+  const canWrite = await canManageEvent(s, params.id);
 
   const ev = await prisma.event.findUnique({
     where: { id: params.id },
