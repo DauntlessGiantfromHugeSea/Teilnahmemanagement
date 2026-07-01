@@ -36,23 +36,14 @@ export default async function ParticipantDetail({
   const base = basePriceCents(p.event.training, p.dayOption);
   const final = finalPriceCents(base, p.discountBps);
 
-  // Andere Veranstaltungen für Umbuchung — nur aktive (nicht abgesagt,
-  // Datum heute oder in der Zukunft).
-  const today0 = new Date();
-  today0.setHours(0, 0, 0, 0);
+  // Andere Veranstaltungen für Umbuchung — alle nicht-abgesagten (inkl.
+  // vergangener, damit Nachtragen in eine alte Schulung moeglich ist).
   const otherEvents = canWrite
     ? await prisma.event.findMany({
-        where: {
-          id: { not: p.eventId },
-          cancelled: false,
-          OR: [
-            { day1Date: { gte: today0 } },
-            { day1Date: null },
-          ],
-        },
-        orderBy: [{ day1Date: "asc" }, { createdAt: "asc" }],
+        where: { id: { not: p.eventId }, cancelled: false },
+        orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
         include: { training: true },
-        take: 200,
+        take: 400,
       })
     : [];
 
@@ -319,13 +310,18 @@ export default async function ParticipantDetail({
                   <label className="label">Ziel-Veranstaltung</label>
                   <select name="targetEventId" required className="input">
                     <option value="" disabled>Bitte wählen</option>
-                    {otherEvents.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.title}
-                        {e.day1Date ? ` - ${e.day1Date.toLocaleDateString("de-DE")}` : ""}
-                      </option>
-                    ))}
+                    {otherEvents.map((e) => {
+                      const last = e.day2Date ?? e.day1Date;
+                      const past = last ? last.getTime() < Date.now() : false;
+                      const label = `${past ? "[Archiv] " : ""}${e.title}${e.day1Date ? ` - ${e.day1Date.toLocaleDateString("de-DE")}` : ""}`;
+                      return (
+                        <option key={e.id} value={e.id}>{label}</option>
+                      );
+                    })}
                   </select>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Vergangene Schulungen sind mit „[Archiv]" markiert und können für nachträgliche Eintragungen gewählt werden.
+                  </p>
                 </div>
                 <div>
                   <label className="label">Begründung (optional, erscheint in der Mail)</label>
