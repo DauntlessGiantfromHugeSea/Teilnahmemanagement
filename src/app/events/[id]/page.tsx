@@ -146,37 +146,39 @@ export default async function EventDetail({
             </>
           )}
           {/* Namensschilder: Dropdown mit Vorlagen */}
-          <details className="menu inline-block">
-            <summary className="btn-secondary cursor-pointer select-none">
-              Namensschilder
-              <span aria-hidden className="ml-1 text-slate-400">▾</span>
-            </summary>
-            <div className="menu-panel" style={{ minWidth: 260 }}>
-              <div className="px-3 py-2 text-[11px] uppercase tracking-wider font-semibold text-slate-400">
-                Vorlage waehlen
+          {canManage && (
+            <details className="menu inline-block">
+              <summary className="btn-secondary cursor-pointer select-none">
+                Namensschilder
+                <span aria-hidden className="ml-1 text-slate-400">▾</span>
+              </summary>
+              <div className="menu-panel" style={{ minWidth: 260 }}>
+                <div className="px-3 py-2 text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+                  Vorlage waehlen
+                </div>
+                {BADGE_TEMPLATES.map((tpl) => (
+                  <a
+                    key={tpl.id}
+                    href={`/api/events/${ev.id}/badges/pdf?template=${tpl.id}`}
+                    download
+                    className="menu-item"
+                    title={tpl.description}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{tpl.name}</span>
+                      {tpl.description && (
+                        <span className="text-[11px] text-slate-500">{tpl.description}</span>
+                      )}
+                    </div>
+                  </a>
+                ))}
+                <div className="px-3 py-2 text-[11px] text-slate-400 border-t border-slate-100 mt-1">
+                  Jede Vorderseite bekommt eine Rückseite mit QR-Code zum Schulungs-Portal — duplex drucken (Bindung lange Seite).
+                </div>
               </div>
-              {BADGE_TEMPLATES.map((tpl) => (
-                <a
-                  key={tpl.id}
-                  href={`/api/events/${ev.id}/badges/pdf?template=${tpl.id}`}
-                  download
-                  className="menu-item"
-                  title={tpl.description}
-                >
-                  <div className="flex flex-col">
-                    <span className="font-medium">{tpl.name}</span>
-                    {tpl.description && (
-                      <span className="text-[11px] text-slate-500">{tpl.description}</span>
-                    )}
-                  </div>
-                </a>
-              ))}
-              <div className="px-3 py-2 text-[11px] text-slate-400 border-t border-slate-100 mt-1">
-                Jede Vorderseite bekommt eine Rückseite mit QR-Code zum Schulungs-Portal — duplex drucken (Bindung lange Seite).
-              </div>
-            </div>
-          </details>
-          {canWrite && (
+            </details>
+          )}
+          {canManage && (
             <Link href={`/events/${ev.id}/edit`} className="btn-secondary">Bearbeiten</Link>
           )}
           {canManage && (

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
-import { canViewEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { decryptParticipant } from "@/lib/participants";
 import { getBadgeTemplate, BADGE_TEMPLATES } from "@/lib/badgeTemplates";
 import { renderBadgePdf, loadLogoBuffer, type BadgeItem } from "@/lib/badgePdf";
@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
-  if (!(await canViewEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
 
   const url = new URL(req.url);
   const templateId = url.searchParams.get("template") ?? BADGE_TEMPLATES[0].id;
