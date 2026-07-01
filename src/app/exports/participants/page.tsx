@@ -4,6 +4,7 @@ import { Shell } from "@/components/Shell";
 import { isAdmin, isAccounting } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { EXPORT_FIELDS, DEFAULT_FIELDS } from "@/lib/exportFields";
+import { ExportToolbarScript } from "@/components/ExportToolbarScript";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function ParticipantsExportPage({
         <div className="toast-error mb-4"><span aria-hidden>!</span><span>{searchParams.error}</span></div>
       )}
 
-      <form method="post" action="/api/exports/participants" className="space-y-6">
+      <form method="post" action="/api/exports/participants" className="space-y-6" data-export-form>
         {/* Veranstaltungen */}
         <section className="card p-5">
           <div className="flex items-baseline justify-between mb-3">
@@ -220,42 +221,7 @@ export default async function ParticipantsExportPage({
           </button>
         </div>
 
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){
-              var form=document.currentScript.parentElement;
-              if(!form) return;
-              form.addEventListener('click', function(e){
-                var t=e.target;
-                if(!(t instanceof HTMLElement)) return;
-                var a=t.getAttribute('data-action');
-                if(!a) return;
-                e.preventDefault();
-                if(a==='evt-all'||a==='evt-none'){
-                  form.querySelectorAll('input.export-evt').forEach(function(b){ b.checked=(a==='evt-all'); });
-                } else if(a==='fld-all'||a==='fld-none'){
-                  form.querySelectorAll('input.export-fld').forEach(function(b){ b.checked=(a==='fld-all'); });
-                } else if(a==='fld-default'){
-                  form.querySelectorAll('input.export-fld').forEach(function(b){ b.checked=(b.getAttribute('data-default')==='1'); });
-                }
-              });
-              function syncMode(){
-                var sel = form.querySelector('input.mode-radio:checked');
-                var mode = sel ? sel.getAttribute('data-mode') : 'download';
-                form.querySelectorAll('.email-fields').forEach(function(el){
-                  if(mode==='email') el.classList.remove('hidden'); else el.classList.add('hidden');
-                });
-                var toInput = form.querySelector('input[name="to"]');
-                if(toInput) toInput.required = (mode==='email');
-              }
-              form.addEventListener('change', function(e){
-                var t = e.target;
-                if(t instanceof HTMLElement && t.classList.contains('mode-radio')) syncMode();
-              });
-              syncMode();
-            })();`,
-          }}
-        />
+        <ExportToolbarScript />
       </form>
     </Shell>
   );
