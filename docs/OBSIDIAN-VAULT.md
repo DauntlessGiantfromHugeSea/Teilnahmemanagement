@@ -1,24 +1,28 @@
 # Obsidian Vault — Ablageort
 
-Der persönliche Obsidian-Vault des Projekt-Owners liegt lokal unter:
+Der Vault liegt **auf dem Desktop im Ordner `FBE`**.
+
+Weil der Desktop via OneDrive gespiegelt wird, ist der reale Pfad:
 
 ```
 C:\Users\dm\OneDrive - Flüssigboden Engineering GmbH\Desktop\FBE
 ```
 
+Kurzschreibweise reicht meistens auch: `Desktop\FBE`.
+
 ## Wichtig für Claude / Sessions
 
 Die Cloud-Session hat **keinen Zugriff** auf diesen Pfad
-(läuft in einem Linux-Container ohne Zugriff auf Windows/OneDrive).
+(Linux-Container ohne Windows/OneDrive-Mount).
 
 **Verfahren für Changelogs & Doku, die in den Vault sollen:**
 
 1. Datei im Repo unter `docs/…-CHANGELOG.md` (o. ä.) erzeugen.
-2. Nach `git pull` auf dem lokalen Rechner die Datei mit z. B. PowerShell rüberziehen:
+2. Nach `git pull` auf dem lokalen Rechner rüberziehen — PowerShell-Zweizeiler:
 
 ```powershell
 Copy-Item ".\docs\OBSIDIAN-CHANGELOG.md" `
-  "C:\Users\dm\OneDrive - Flüssigboden Engineering GmbH\Desktop\FBE\FBA-Teilnahmemanagement-Changelog.md"
+  "$env:USERPROFILE\Desktop\FBE\FBA-Teilnahmemanagement-Changelog.md"
 ```
 
-3. Optional per Task Scheduler / Git-Hook automatisieren.
+(`$env:USERPROFILE\Desktop` folgt automatisch der OneDrive-Umleitung.)
