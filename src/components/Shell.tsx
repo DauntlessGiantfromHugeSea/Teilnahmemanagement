@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
+import { CertificateBell } from "./CertificateBell";
 import type { SessionPayload } from "@/lib/session";
 import { Role } from "@prisma/client";
 
@@ -126,6 +127,9 @@ export function Shell({ session, active, children }: Props) {
             )}
           </nav>
           <div className="flex-1 md:hidden" />
+
+          {/* Zertifikat-Pruefungs-Glocke (nur Admin) */}
+          <CertificateBell session={session} />
 
           {/* Hilfe-Icon */}
           <Link

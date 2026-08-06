@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { parseCertificateData } from "@/lib/certificates";
 
@@ -14,6 +15,26 @@ export default async function ZertifikatValidierungsPage({
     where: { slug: params.slug },
   });
   if (!cert) notFound();
+
+  // Aufruf tracken (nur fuer freigegebene und widerrufene Zertifikate - DRAFTs
+  // werden noch nicht validiert und ignoriert). Fehler nicht bubblen lassen,
+  // damit die Seite auch bei DB-Hickups noch geladen wird.
+  if (cert.status === "RELEASED" || cert.status === "REVOKED") {
+    try {
+      const h = headers();
+      const ua = h.get("user-agent")?.slice(0, 200) ?? null;
+      const ref = h.get("referer")?.slice(0, 300) ?? null;
+      await prisma.certificateView.create({
+        data: {
+          certificateId: cert.id,
+          userAgent: ua,
+          referer: ref,
+        },
+      });
+    } catch {
+      /* best effort */
+    }
+  }
 
   const data = parseCertificateData(cert.data);
   const isReleased = cert.status === "RELEASED";

@@ -423,6 +423,8 @@ model Certificate {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  views         CertificateView[]
+
   @@index([participantId])
   @@index([status])
 }
@@ -560,6 +562,24 @@ model CertificateOtp {
   createdAt DateTime @default(now())
 
   @@index([emailHash])
+}
+
+// Tracking der oeffentlichen Zertifikat-Validierungs-Aufrufe.
+// Jeder Aufruf von /zertifikat/<slug> (auch von Bots/Crawlern) erzeugt einen
+// Eintrag. seenAt=NULL = noch nicht vom Admin gesehen (Glocke im Header).
+// IPs werden bewusst NICHT gespeichert (DSGVO).
+model CertificateView {
+  id            String      @id @default(cuid())
+  certificateId String
+  certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  viewedAt      DateTime    @default(now())
+  userAgent     String?     // gekuerzt auf 200 Zeichen
+  referer       String?     // gekuerzt auf 300 Zeichen
+  seenAt        DateTime?   // vom Admin als gelesen markiert
+
+  @@index([certificateId])
+  @@index([viewedAt])
+  @@index([seenAt])
 }
 
 // Mitarbeiter-Stammdaten fuer das Drucken von wiederverwendbaren
