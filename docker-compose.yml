@@ -26,6 +26,11 @@ services:
     image: teilnahmemanagement:latest
     container_name: tm-app
     restart: unless-stopped
+    # Nur auf 127.0.0.1 publishen, damit ein Host-Reverse-Proxy (z. B. der
+    # systemd-Caddy: "reverse_proxy 127.0.0.1:3000") die App erreichen kann.
+    # Nicht extern erreichbar - der Proxy davor macht TLS und Rate-Limiting.
+    ports:
+      - "127.0.0.1:3000:3000"
     depends_on:
       db:
         condition: service_healthy
