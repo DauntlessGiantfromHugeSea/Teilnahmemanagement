@@ -6,7 +6,15 @@
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import {
+  PDFDocument,
+  StandardFonts,
+  rgb,
+  type PDFEmbeddedPage,
+  type PDFFont,
+  type PDFImage,
+  type PDFPage,
+} from "pdf-lib";
 import { DEFAULT_CERT_TEXTS, type CertificateData, type CertificateType, type CertTexts } from "./certificateContent";
 import { getCertTexts } from "./kompetenzfelder";
 
@@ -115,58 +123,150 @@ function tpl(s: string, vars: Record<string, string>): string {
   return s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
 }
 
-export async function renderCertificatePdf(args: {
+/** Ein einzelnes zu druckendes Zertifikat. */
+export interface CertificateSpec {
   type: CertificateType;
   number: string;
   data: CertificateData;
   validateUrl: string;
+}
+
+interface RenderOpts {
   /** Wenn true: nur die Text-Inhalte ohne FBA-Briefpapier-Hintergrund.
    *  Fuer Druck auf bereits vorgedrucktes Briefpapier. */
   noBackground?: boolean;
   /** Vorgeladene GF-Unterschrift-URL (vermeidet DB-Lookup bei Bulk-Druck). */
   gfSignatureUrlOverride?: string | null;
-}): Promise<Uint8Array> {
-  let doc: PDFDocument;
-  let page: PDFPage;
-  if (args.noBackground) {
-    doc = await PDFDocument.create();
-    page = doc.addPage([PAGE_W, PAGE_H]);
-  } else {
-    // Briefpapier-PDF als Basis laden, dann auf der vorhandenen Seite ueberlagern
-    const blank = await loadBlank();
-    doc = await PDFDocument.load(blank);
-    page = doc.getPage(0);
+}
+
+// Briefpapier, Schriften und Unterschrift werden EINMAL pro Dokument
+// eingebettet und auf allen Seiten wiederverwendet. Frueher bekam jedes
+// Zertifikat sein eigenes Dokument, das anschliessend per copyPages
+// zusammenkopiert wurde - dabei landete das ~88 KB grosse Briefpapier
+// einmal PRO SEITE in der Ausgabe (400 Zertifikate -> ~30 MB statt ~250 KB).
+async function prepareShared(opts: RenderOpts) {
+  const doc = await PDFDocument.create();
+  const noBackground = !!opts.noBackground;
+
+  let background: PDFEmbeddedPage | null = null;
+  let pageW = PAGE_W;
+  let pageH = PAGE_H;
+  if (!noBackground) {
+    const blankDoc = await PDFDocument.load(await loadBlank());
+    const blankPage = blankDoc.getPage(0);
+    // Die Vorlage ist nicht exakt A4 (606.6 x 853.2). Wir uebernehmen ihre
+    // Masse, damit die Ausgabe identisch zu vorher bleibt - die Textkoordinaten
+    // rechnen wie bisher mit den PAGE_W/PAGE_H-Konstanten.
+    pageW = blankPage.getWidth();
+    pageH = blankPage.getHeight();
+    [background] = await doc.embedPdf(blankDoc, [0]);
   }
+
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const italic = await doc.embedFont(StandardFonts.HelveticaOblique);
+
+  // GF-Unterschrift gibt es nur bei "ohne Briefpapier" (bg=0) und nur fuer
+  // ZERTIFIKATE. Die dokumentweit gueltige URL (Override bzw. Live-Wert aus
+  // den AppSettings) einmal aufloesen; ist sie leer, entscheidet weiterhin
+  // der Snapshot des einzelnen Zertifikats.
+  let sharedSignatureUrl: string | undefined;
+  if (noBackground) {
+    if (opts.gfSignatureUrlOverride !== undefined) {
+      sharedSignatureUrl = opts.gfSignatureUrlOverride || undefined;
+    } else {
+      try {
+        const live = await getCertTexts();
+        sharedSignatureUrl = live.gfSignatureUrl || undefined;
+      } catch { /* faellt auf den Snapshot-Wert zurueck */ }
+    }
+  }
+
+  // Gleiche Unterschrift = gleiches eingebettetes Bild, auch bei 400 Seiten.
+  const signatures = new Map<string, PDFImage | null>();
+
+  return {
+    doc, background, pageW, pageH, font, bold, italic,
+    noBackground, sharedSignatureUrl, signatures,
+  };
+}
+
+type Shared = Awaited<ReturnType<typeof prepareShared>>;
+
+async function embedSignature(shared: Shared, url: string | undefined): Promise<PDFImage | null> {
+  if (!url || !url.startsWith("/uploads/")) return null;
+  const cached = shared.signatures.get(url);
+  if (cached !== undefined) return cached;
+
+  let img: PDFImage | null = null;
+  try {
+    const localPath = path.join(process.cwd(), "public", url);
+    const bytes = new Uint8Array(await readFile(localPath));
+    img = localPath.toLowerCase().endsWith(".png")
+      ? await shared.doc.embedPng(bytes)
+      : await shared.doc.embedJpg(bytes);
+  } catch {
+    img = null; // ohne Unterschrift, nur mit Namen, weiterdrucken
+  }
+  shared.signatures.set(url, img);
+  return img;
+}
+
+async function addCertificatePage(shared: Shared, spec: CertificateSpec): Promise<void> {
+  const page = shared.doc.addPage([shared.pageW, shared.pageH]);
+  if (shared.background) {
+    page.drawPage(shared.background, { x: 0, y: 0, width: shared.pageW, height: shared.pageH });
+  }
 
   // Der Titel ("Zertifikat / Flüssigboden") sitzt entweder auf der Vorlage
   // ODER auf dem Vor-Druck-Briefpapier - in keiner Variante drucken wir ihn
   // also nochmal. Beide Varianten starten an derselben Y-Position, damit der
   // Inhalt auf dem Vor-Druck-Briefpapier genauso ausgerichtet ist wie bei der
   // Variante mit eingebettetem Hintergrund.
-  const startY = PAGE_H - 250;
-  const ctx: DrawCtx = { page, font, bold, italic, y: startY };
+  const ctx: DrawCtx = {
+    page,
+    font: shared.font,
+    bold: shared.bold,
+    italic: shared.italic,
+    y: PAGE_H - 250,
+  };
 
-  if (args.type === "ZERTIFIKAT") {
-    await renderZertifikat(ctx, args.data, args.number, doc, !!args.noBackground, args.gfSignatureUrlOverride);
+  if (spec.type === "ZERTIFIKAT") {
+    const url = shared.noBackground
+      ? shared.sharedSignatureUrl ?? { ...DEFAULT_CERT_TEXTS, ...(spec.data.texts ?? {}) }.gfSignatureUrl
+      : undefined;
+    renderZertifikat(ctx, spec.data, spec.number, shared.noBackground, await embedSignature(shared, url));
   } else {
-    renderTeilnahme(ctx, args.data, args.number);
+    renderTeilnahme(ctx, spec.data, spec.number);
   }
 
   // Validierungs-Fuesschen wird IMMER gezeichnet (auch bei Briefpapier-Druck)
-  drawIdFooter(page, font, args.number, args.validateUrl);
-  return doc.save();
+  drawIdFooter(page, shared.font, spec.number, spec.validateUrl);
 }
 
-async function renderZertifikat(
+/** Mehrere Zertifikate in EIN PDF - Briefpapier wird nur einmal eingebettet. */
+export async function renderCertificatesPdf(
+  specs: CertificateSpec[],
+  opts: RenderOpts = {},
+): Promise<Uint8Array> {
+  const shared = await prepareShared(opts);
+  for (const spec of specs) await addCertificatePage(shared, spec);
+  return shared.doc.save();
+}
+
+export async function renderCertificatePdf(
+  args: CertificateSpec & RenderOpts,
+): Promise<Uint8Array> {
+  const { noBackground, gfSignatureUrlOverride, ...spec } = args;
+  return renderCertificatesPdf([spec], { noBackground, gfSignatureUrlOverride });
+}
+
+function renderZertifikat(
   ctx: DrawCtx,
   d: CertificateData,
   number: string,
-  doc: PDFDocument,
   noBackground: boolean,
-  gfSignatureUrlOverride?: string | null,
+  signature: PDFImage | null,
 ) {
   const t: CertTexts = { ...DEFAULT_CERT_TEXTS, ...(d.texts ?? {}) };
 
@@ -208,44 +308,20 @@ async function renderZertifikat(
   });
 
   // GF-Unterschrift nur bei "ohne Briefpapier" (bg=0) und nur fuer ZERTIFIKATE.
-  // Bei Bulk-Druck wird die URL vorgeladen (override) - sonst live aus den
-  // AppSettings, damit eine nachtraeglich hochgeladene Unterschrift sofort
-  // wirkt.
-  let gfSignatureUrl: string | undefined = t.gfSignatureUrl;
-  if (noBackground) {
-    if (gfSignatureUrlOverride !== undefined) {
-      gfSignatureUrl = gfSignatureUrlOverride || undefined;
-    } else {
-      try {
-        const live = await getCertTexts();
-        gfSignatureUrl = live.gfSignatureUrl || gfSignatureUrl;
-      } catch { /* fallback bleibt der Snapshot-Wert */ }
-    }
-  }
-  if (noBackground && gfSignatureUrl) {
-    try {
-      const localPath = gfSignatureUrl.startsWith("/uploads/")
-        ? path.join(process.cwd(), "public", gfSignatureUrl)
-        : null;
-      if (localPath) {
-        const buf = await readFile(localPath);
-        const bytes = new Uint8Array(buf);
-        const isPng = localPath.toLowerCase().endsWith(".png");
-        const img = isPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        const sw = 106;                               // ~3.75 cm breit (33% groesser als zuvor)
-        const sh = (img.height / img.width) * sw;
-        // Viele Signatur-PNGs haben oben/unten viel Weissraum. Wir lassen
-        // die Box bewusst die Namenszeile leicht ueberlappen und schieben
-        // ctx.y nur um die HALBE Bildhoehe ab. So sitzt die sichtbare
-        // Unterschrift visuell direkt ueber dem Namen, ohne grosse Luecke.
-        ctx.page.drawImage(img, {
-          x: TEXT_LEFT,
-          y: ctx.y - sh / 2 + 4,
-          width: sw, height: sh,
-        });
-        ctx.y -= sh / 2 + 4;
-      }
-    } catch { /* still draw name without sig */ }
+  // Aufloesen und Einbetten passiert einmal pro Dokument in prepareShared().
+  if (noBackground && signature) {
+    const sw = 106;                               // ~3.75 cm breit (33% groesser als zuvor)
+    const sh = (signature.height / signature.width) * sw;
+    // Viele Signatur-PNGs haben oben/unten viel Weissraum. Wir lassen
+    // die Box bewusst die Namenszeile leicht ueberlappen und schieben
+    // ctx.y nur um die HALBE Bildhoehe ab. So sitzt die sichtbare
+    // Unterschrift visuell direkt ueber dem Namen, ohne grosse Luecke.
+    ctx.page.drawImage(signature, {
+      x: TEXT_LEFT,
+      y: ctx.y - sh / 2 + 4,
+      width: sw, height: sh,
+    });
+    ctx.y -= sh / 2 + 4;
   }
 
   drawText(ctx, t.geschaeftsfuehrer, { size: 11 });

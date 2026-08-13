@@ -3,12 +3,11 @@
 // schon vor dem Event drucken und nach dem Event unterschreiben kann).
 
 import { NextResponse } from "next/server";
-import { PDFDocument } from "pdf-lib";
 import { getSession } from "@/lib/session";
 import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { parseCertificateData } from "@/lib/certificates";
-import { renderCertificatePdf } from "@/lib/certificatePdf";
+import { renderCertificatesPdf } from "@/lib/certificatePdf";
 import { getCertTexts } from "@/lib/kompetenzfelder";
 
 export const dynamic = "force-dynamic";
@@ -67,22 +66,15 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const liveTexts = noBackground ? await getCertTexts() : null;
   const gfSignatureUrlOverride = liveTexts?.gfSignatureUrl ?? null;
 
-  const combined = await PDFDocument.create();
-  for (const c of certs) {
-    const validateUrl = `${appUrl}/zertifikat/${c.slug}`;
-    const single = await renderCertificatePdf({
+  const bytes = await renderCertificatesPdf(
+    certs.map((c) => ({
       type: c.type,
       number: c.number,
       data: parseCertificateData(c.data),
-      validateUrl,
-      noBackground,
-      gfSignatureUrlOverride,
-    });
-    const src = await PDFDocument.load(single);
-    const pages = await combined.copyPages(src, src.getPageIndices());
-    pages.forEach((p) => combined.addPage(p));
-  }
-  const bytes = await combined.save();
+      validateUrl: `${appUrl}/zertifikat/${c.slug}`,
+    })),
+    { noBackground, gfSignatureUrlOverride },
+  );
   return new NextResponse(new Uint8Array(bytes), {
     status: 200,
     headers: {
