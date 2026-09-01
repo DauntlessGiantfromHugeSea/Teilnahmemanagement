@@ -3,9 +3,8 @@
 // dann nummerierte Fragen mit Auswahlkaestchen, ganz unten ein eindeutiger
 // Code, ueber den die Auswertung spaeter zugeordnet wird.
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { LETTERHEAD_HEIGHT, LETTERHEAD_WIDTH, embedLetterhead } from "./letterhead";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -16,17 +15,6 @@ const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
 const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
 const BRAND = rgb(0.06, 0.46, 0.43);
-
-let cachedBlank: ArrayBuffer | null = null;
-async function loadBriefpapier(): Promise<ArrayBuffer | null> {
-  if (cachedBlank) return cachedBlank;
-  try {
-    const p = path.join(process.cwd(), "public", "cert-templates", "briefpapier-blank.pdf");
-    const buf = await readFile(p);
-    cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    return cachedBlank;
-  } catch { return null; }
-}
 
 function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const out: string[] = [];
@@ -47,13 +35,13 @@ function wrap(text: string, font: PDFFont, size: number, maxW: number): string[]
 interface PageCtx { doc: PDFDocument; page: PDFPage; font: PDFFont; bold: PDFFont; y: number; pageNum: number; total: number }
 
 async function newPage(ctx: PageCtx): Promise<void> {
-  const blank = await loadBriefpapier();
+  // Das Briefpapier wird pro Dokument nur einmal eingebettet und auf jeder
+  // Seite gezeichnet - frueher bekam jede Seite ihre eigene Kopie.
+  const blank = await embedLetterhead(ctx.doc, "briefpapier-blank");
   let newPg: PDFPage;
   if (blank) {
-    const tmp = await PDFDocument.load(blank);
-    const [embedded] = await ctx.doc.copyPages(tmp, [0]);
-    newPg = ctx.doc.addPage([embedded.getSize().width, embedded.getSize().height]);
-    newPg.drawPage(await ctx.doc.embedPage(embedded));
+    newPg = ctx.doc.addPage([LETTERHEAD_WIDTH, LETTERHEAD_HEIGHT]);
+    newPg.drawPage(blank, { x: 0, y: 0, width: LETTERHEAD_WIDTH, height: LETTERHEAD_HEIGHT });
   } else {
     newPg = ctx.doc.addPage([PAGE_W, PAGE_H]);
   }

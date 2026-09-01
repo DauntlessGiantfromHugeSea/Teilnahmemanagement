@@ -1,8 +1,8 @@
 // Rendert Zertifikat / Teilnahmebescheinigung als PDF.
 //
-// Hintergrund ist das offizielle FBA-Briefpapier in
-// public/cert-templates/fba-blank.pdf - Logo, Markenstreifen und
-// Adressblock kommen aus diesem PDF. Der Text wird drueber gelegt.
+// Hintergrund ist das offizielle FBA-Briefpapier (Logo, Markenstreifen,
+// Adressblock), siehe lib/letterhead.ts. Der Text wird als echte PDF-Schrift
+// darueber gelegt und bleibt damit scharf und durchsuchbar.
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -17,6 +17,7 @@ import {
 } from "pdf-lib";
 import { DEFAULT_CERT_TEXTS, type CertificateData, type CertificateType, type CertTexts } from "./certificateContent";
 import { getCertTexts } from "./kompetenzfelder";
+import { LETTERHEAD_HEIGHT, LETTERHEAD_WIDTH, embedLetterhead } from "./letterhead";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -28,15 +29,6 @@ const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
 const BRAND = rgb(0.06, 0.46, 0.43);     // teal #0f766e (FBA-Brand) - fuer Akzente
 const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
-
-let cachedBlank: ArrayBuffer | null = null;
-async function loadBlank(): Promise<ArrayBuffer> {
-  if (cachedBlank) return cachedBlank;
-  const p = path.join(process.cwd(), "public", "cert-templates", "fba-blank.pdf");
-  const buf = await readFile(p);
-  cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-  return cachedBlank;
-}
 
 function wrap(text: string, font: PDFFont, size: number, maxWidth: number): string[] {
   const words = text.split(/\s+/);
@@ -142,8 +134,8 @@ interface RenderOpts {
 // Briefpapier, Schriften und Unterschrift werden EINMAL pro Dokument
 // eingebettet und auf allen Seiten wiederverwendet. Frueher bekam jedes
 // Zertifikat sein eigenes Dokument, das anschliessend per copyPages
-// zusammenkopiert wurde - dabei landete das ~88 KB grosse Briefpapier
-// einmal PRO SEITE in der Ausgabe (400 Zertifikate -> ~30 MB statt ~250 KB).
+// zusammenkopiert wurde - dabei landete das Briefpapier einmal PRO SEITE
+// in der Ausgabe (400 Zertifikate -> ~30 MB statt ~350 KB).
 async function prepareShared(opts: RenderOpts) {
   const doc = await PDFDocument.create();
   const noBackground = !!opts.noBackground;
@@ -152,14 +144,14 @@ async function prepareShared(opts: RenderOpts) {
   let pageW = PAGE_W;
   let pageH = PAGE_H;
   if (!noBackground) {
-    const blankDoc = await PDFDocument.load(await loadBlank());
-    const blankPage = blankDoc.getPage(0);
-    // Die Vorlage ist nicht exakt A4 (606.6 x 853.2). Wir uebernehmen ihre
-    // Masse, damit die Ausgabe identisch zu vorher bleibt - die Textkoordinaten
-    // rechnen wie bisher mit den PAGE_W/PAGE_H-Konstanten.
-    pageW = blankPage.getWidth();
-    pageH = blankPage.getHeight();
-    [background] = await doc.embedPdf(blankDoc, [0]);
+    background = await embedLetterhead(doc, "fba-blank");
+    if (background) {
+      // Die Vorlage ist nicht exakt A4 (214 x 301 mm). Wir uebernehmen ihre
+      // Masse, damit die Ausgabe unveraendert bleibt - die Textkoordinaten
+      // rechnen wie bisher mit den PAGE_W/PAGE_H-Konstanten.
+      pageW = LETTERHEAD_WIDTH;
+      pageH = LETTERHEAD_HEIGHT;
+    }
   }
 
   const font = await doc.embedFont(StandardFonts.Helvetica);

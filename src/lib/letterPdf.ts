@@ -1,9 +1,8 @@
 // Leerer Brief auf dem FBA-Briefpapier: Betreff + Anrede + Freitext + Gruss.
 // Reines Druck-Hilfsmittel, kein Mailversand.
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { LETTERHEAD_HEIGHT, LETTERHEAD_WIDTH, embedLetterhead } from "./letterhead";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -12,17 +11,6 @@ const STRIPE_W = 14;
 const TEXT_RIGHT = PAGE_W - 60 - STRIPE_W;
 const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
 const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
-
-let cachedBlank: ArrayBuffer | null = null;
-async function loadBriefpapier(): Promise<ArrayBuffer | null> {
-  if (cachedBlank) return cachedBlank;
-  try {
-    const p = path.join(process.cwd(), "public", "cert-templates", "briefpapier-blank.pdf");
-    const buf = await readFile(p);
-    cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    return cachedBlank;
-  } catch { return null; }
-}
 
 function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const out: string[] = [];
@@ -67,15 +55,13 @@ export interface LetterArgs {
 }
 
 export async function renderLetterPdf(args: LetterArgs): Promise<Uint8Array> {
-  let doc: PDFDocument;
-  let page: PDFPage;
-  const blank = await loadBriefpapier();
+  const doc = await PDFDocument.create();
+  const blank = await embedLetterhead(doc, "briefpapier-blank");
+  const page = blank
+    ? doc.addPage([LETTERHEAD_WIDTH, LETTERHEAD_HEIGHT])
+    : doc.addPage([PAGE_W, PAGE_H]);
   if (blank) {
-    doc = await PDFDocument.load(blank);
-    page = doc.getPage(0);
-  } else {
-    doc = await PDFDocument.create();
-    page = doc.addPage([PAGE_W, PAGE_H]);
+    page.drawPage(blank, { x: 0, y: 0, width: LETTERHEAD_WIDTH, height: LETTERHEAD_HEIGHT });
   }
 
   const font = await doc.embedFont(StandardFonts.Helvetica);

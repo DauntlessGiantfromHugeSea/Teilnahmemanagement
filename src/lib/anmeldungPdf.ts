@@ -11,6 +11,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { LETTERHEAD_HEIGHT, LETTERHEAD_WIDTH, embedLetterhead } from "./letterhead";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -21,17 +22,6 @@ const TEXT_WIDTH = TEXT_RIGHT - TEXT_LEFT;
 const COLOR_TEXT = rgb(0.10, 0.12, 0.14);
 const COLOR_MUTED = rgb(0.42, 0.45, 0.50);
 const BRAND = rgb(0.06, 0.46, 0.43);
-
-let cachedBlank: ArrayBuffer | null = null;
-async function loadBriefpapier(): Promise<ArrayBuffer | null> {
-  if (cachedBlank) return cachedBlank;
-  try {
-    const p = path.join(process.cwd(), "public", "cert-templates", "briefpapier-blank.pdf");
-    const buf = await readFile(p);
-    cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    return cachedBlank;
-  } catch { return null; }
-}
 
 async function loadFile(p: string): Promise<Uint8Array | null> {
   try {
@@ -129,20 +119,14 @@ const INVOICE_LABEL: Record<string, string> = {
 };
 
 export async function renderAnmeldebestaetigungPdf(args: AnmeldebestaetigungArgs): Promise<Uint8Array> {
-  let doc: PDFDocument;
+  const doc = await PDFDocument.create();
   let page: PDFPage;
-  if (args.noBackground) {
-    doc = await PDFDocument.create();
-    page = doc.addPage([PAGE_W, PAGE_H]);
+  const blank = args.noBackground ? null : await embedLetterhead(doc, "briefpapier-blank");
+  if (blank) {
+    page = doc.addPage([LETTERHEAD_WIDTH, LETTERHEAD_HEIGHT]);
+    page.drawPage(blank, { x: 0, y: 0, width: LETTERHEAD_WIDTH, height: LETTERHEAD_HEIGHT });
   } else {
-    const blank = await loadBriefpapier();
-    if (blank) {
-      doc = await PDFDocument.load(blank);
-      page = doc.getPage(0);
-    } else {
-      doc = await PDFDocument.create();
-      page = doc.addPage([PAGE_W, PAGE_H]);
-    }
+    page = doc.addPage([PAGE_W, PAGE_H]);
   }
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);

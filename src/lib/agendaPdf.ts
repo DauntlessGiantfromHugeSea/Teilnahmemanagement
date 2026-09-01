@@ -1,12 +1,11 @@
 // A3-Plakat der Agenda im FBA-Design.
 //
-// Hintergrund ist das offizielle FBA-Briefpapier (public/cert-templates/
-// briefpapier-blank.pdf, A4-Format). Wir embedden die A4-Seite als FormXObject
-// und skalieren sie auf A3 hoch (A4 → A3 = sqrt(2)).
+// Hintergrund ist das offizielle FBA-Briefpapier (siehe lib/letterhead.ts,
+// A4-Format). Wir betten es einmal als Bild ein und skalieren es auf A3
+// hoch (A4 → A3 = sqrt(2)).
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
+import { LETTERHEAD_HEIGHT, LETTERHEAD_WIDTH, embedLetterhead } from "./letterhead";
 
 export interface AgendaPdfItem {
   startTime: string;
@@ -52,17 +51,6 @@ function fmtDate(d: Date | null): string {
   return new Date(d).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
 }
 
-let cachedBlank: ArrayBuffer | null = null;
-async function loadBriefpapier(): Promise<ArrayBuffer | null> {
-  if (cachedBlank) return cachedBlank;
-  try {
-    const p = path.join(process.cwd(), "public", "cert-templates", "briefpapier-blank.pdf");
-    const buf = await readFile(p);
-    cachedBlank = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    return cachedBlank;
-  } catch { return null; }
-}
-
 function wrap(text: string, font: PDFFont, size: number, maxW: number): string[] {
   const words = text.split(/\s+/);
   const lines: string[] = [];
@@ -102,18 +90,15 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
 
   // Briefpapier (A4) als Hintergrund auf A3 skaliert einbetten
-  const blank = await loadBriefpapier();
+  const blank = await embedLetterhead(doc, "briefpapier-blank");
   if (blank) {
-    try {
-      const src = await PDFDocument.load(blank);
-      const [embedded] = await doc.embedPdf(src, [0]);
-      // A4 (595x842) -> A3 (842x1191). Skalierung um sqrt(2).
-      const scale = PAGE_W / embedded.width; // ~1.414
-      page.drawPage(embedded, {
-        x: 0, y: 0,
-        xScale: scale, yScale: scale,
-      });
-    } catch { /* ignore - fallback bleibt weisser Hintergrund */ }
+    // A4 (595x842) -> A3 (842x1191). Skalierung um sqrt(2).
+    const scale = PAGE_W / LETTERHEAD_WIDTH; // ~1.414
+    page.drawPage(blank, {
+      x: 0, y: 0,
+      width: LETTERHEAD_WIDTH * scale,
+      height: LETTERHEAD_HEIGHT * scale,
+    });
   }
 
   // === Inhalt ===
@@ -161,15 +146,16 @@ export async function renderAgendaA3(opts: AgendaPdfOptions): Promise<Buffer> {
 
   function ensureSpace(needed: number) {
     if (ctx.y - needed < 110) {
-      // Neue Seite mit gleichem Hintergrund
+      // Neue Seite mit gleichem Hintergrund. Das Briefpapier liegt als
+      // eingebettetes Bild vor und laesst sich beliebig oft zeichnen, ohne
+      // dass es erneut in der Datei landet.
       const next = doc.addPage([PAGE_W, PAGE_H]);
       if (blank) {
-        // embeddedPage existiert bereits im PDF - nochmal embedden:
-        // bei pdf-lib genuegt aber das ID der vorherigen Embed nicht teilen,
-        // wir embedden erneut.
-        // Workaround: einfach weisser Hintergrund + minimal Stripe.
-        next.drawRectangle({
-          x: PAGE_W - STRIPE_W, y: 0, width: STRIPE_W, height: PAGE_H, color: BRAND,
+        const s = PAGE_W / LETTERHEAD_WIDTH;
+        next.drawPage(blank, {
+          x: 0, y: 0,
+          width: LETTERHEAD_WIDTH * s,
+          height: LETTERHEAD_HEIGHT * s,
         });
       }
       ctx.page = next;
