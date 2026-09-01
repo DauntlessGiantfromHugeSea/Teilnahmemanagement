@@ -1,5 +1,5 @@
 // Gemeinsamer Briefpapier-Hintergrund fuer alle erzeugten PDFs
-// (Zertifikate, Briefe, Agenda, Anmeldebestaetigungen, Wissenstest).
+// (Zertifikate, Briefe, Agenda, Anmeldebestaetigungen).
 //
 // Das Briefpapier wird pro Dokument GENAU EINMAL eingebettet und danach auf
 // beliebig vielen Seiten gezeichnet. Vorher legte jedes Modul die Vorlage pro

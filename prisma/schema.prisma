@@ -158,8 +158,6 @@ model Event {
   reminder24hSentAt DateTime?
   // Im Mitarbeiter-Portal (/portal/staff/<token>) sichtbar?
   showInStaffPortal Boolean @default(true)
-  // Offline-/Papier-Modus: PDF-Wissenstest exportieren, Ergebnis manuell erfassen.
-  offlineMode  Boolean   @default(false)
   // Pro-Event-Override fuer den Feedback-Fragebogen (JSON-Array). Wenn leer,
   // gilt der globale Standard aus AppSetting 'feedbackQuestions'.
   feedbackQuestions String?
@@ -195,35 +193,6 @@ model EventQuestion {
 
   @@index([eventId])
   @@index([createdAt])
-}
-
-// Wissenstest-Fragenbank (global). Multiple-Choice mit genau einer richtigen
-// Option. Reihenfolge ueber 'position'.
-model WissenstestQuestion {
-  id        String   @id @default(cuid())
-  position  Int      @default(0)
-  text      String
-  options   String   // JSON-Array von Strings
-  correctIdx Int?    // 0-basierter Index der richtigen Option (optional)
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-}
-
-// Ergebnis eines Teilnehmers fuer einen ausgedruckten Wissenstest.
-// 'code' ist auf dem PDF aufgedruckt und wird per Eingabemaske zugeordnet,
-// um spaeter die Anzahl richtiger Antworten zu erfassen.
-model WissenstestResult {
-  id            String      @id @default(cuid())
-  participantId String      @unique
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
-  code          String      @unique
-  correctCount  Int?
-  totalCount    Int?
-  gradedAt      DateTime?
-  gradedById    String?
-  notes         String?
-  createdAt     DateTime    @default(now())
-  @@index([code])
 }
 
 // Agenda-Eintrag fuer eine Schulung. Sortierung ueber 'position'; aktuell
@@ -331,7 +300,6 @@ model Participant {
   certificates Certificate[]
   feedbackInvites FeedbackInvite[]
   tagLinks     ParticipantTagLink[]
-  wissenstestResult WissenstestResult?
 
   @@index([emailHash])
   @@index([eventId])

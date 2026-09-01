@@ -54,8 +54,8 @@ export async function canWriteEvent(s: SessionPayload, eventId: string): Promise
 
 // "Managen" ist mehr als schreiben: nur ADMIN, EDITOR und EVENTMANAGER
 // (mit Grant) duerfen Zertifikate anlegen, Feedback verschicken, Fragen
-// beantworten, Wissenstest steuern, Rundmails senden, Agenda/Portal-Inhalte
-// pflegen, Reminder-Tests ausloesen oder das Event absagen.
+// beantworten, Rundmails senden, Agenda/Portal-Inhalte pflegen,
+// Reminder-Tests ausloesen oder das Event absagen.
 // VIEWER mit Grant duerfen NUR die grundlegenden Teilnehmer-Aktionen
 // (eintragen, Anwesenheit, Storno).
 export async function canManageEvent(s: SessionPayload, eventId: string): Promise<boolean> {

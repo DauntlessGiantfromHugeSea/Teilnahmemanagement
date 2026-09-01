@@ -30,7 +30,6 @@ const ADMIN = [
   { id: "kompetenzfelder", href: "/admin/kompetenzfelder", label: "Zertifikat-Texte" },
   { id: "tags", href: "/admin/tags", label: "Tags / Kategorien" },
   { id: "feedback-fragen", href: "/admin/feedback-fragen", label: "Feedback-Fragen" },
-  { id: "wissenstest", href: "/admin/wissenstest", label: "Wissenstest-Fragen" },
   { id: "brief", href: "/admin/brief", label: "Brief drucken" },
 ];
 

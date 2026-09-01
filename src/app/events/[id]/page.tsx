@@ -197,11 +197,6 @@ export default async function EventDetail({
             <Link href={`/events/${ev.id}/questions`} className="btn-secondary">Fragen</Link>
           )}
           {canManage && (
-            <Link href={`/events/${ev.id}/wissenstest`} className="btn-secondary">
-              Wissenstest{ev.offlineMode ? " (offline)" : ""}
-            </Link>
-          )}
-          {canManage && (
             <Link href={`/events/${ev.id}/mailing`} className="btn-secondary">Rundmail</Link>
           )}
           {canManage && (
