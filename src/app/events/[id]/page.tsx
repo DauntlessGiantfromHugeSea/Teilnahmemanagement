@@ -197,6 +197,9 @@ export default async function EventDetail({
             <Link href={`/events/${ev.id}/questions`} className="btn-secondary">Fragen</Link>
           )}
           {canManage && (
+            <Link href={`/events/${ev.id}/einladungen`} className="btn-secondary">Einladungen</Link>
+          )}
+          {canManage && (
             <Link href={`/events/${ev.id}/mailing`} className="btn-secondary">Rundmail</Link>
           )}
           {canManage && (
