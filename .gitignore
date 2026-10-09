@@ -13,3 +13,9 @@ coverage
 prisma/dev.db*
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# Lokal installierte Agent-Skills (Analyse-Werkzeuge, nicht Teil der Anwendung).
+# Installation: npx skills add <repo> --skill <name>
+.agents/
+.claude/skills/
+skills-lock.json
