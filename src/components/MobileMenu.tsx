@@ -135,6 +135,13 @@ export function MobileMenu({ name, role, active, nav, admin, isAdmin }: Props) {
                 Mein Konto
               </Link>
               <Link
+                href="/account/signatur"
+                onClick={() => setOpen(false)}
+                className="block px-3 py-3 rounded-xl text-[15px] text-slate-700 hover:bg-slate-100"
+              >
+                Meine E-Mail-Signatur
+              </Link>
+              <Link
                 href="/hilfe"
                 onClick={() => setOpen(false)}
                 className="block px-3 py-3 rounded-xl text-[15px] text-slate-700 hover:bg-slate-100"

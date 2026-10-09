@@ -69,6 +69,13 @@ export async function canManageEvent(s: SessionPayload, eventId: string): Promis
   return false;
 }
 
+// Posteingang / Tickets: Kundenanfragen bearbeiten duerfen ADMIN, EDITOR und
+// EVENTMANAGER. Buchhaltung und Betrachter haben damit nichts zu tun - sie
+// sehen den Menuepunkt gar nicht erst.
+export function canUseTickets(s: SessionPayload | null) {
+  return s?.role === Role.ADMIN || s?.role === Role.EDITOR || s?.role === Role.EVENTMANAGER;
+}
+
 export async function requireSessionOrThrow(): Promise<SessionPayload> {
   const s = await getSession();
   if (!s) throw new Response("Unauthorized", { status: 401 });

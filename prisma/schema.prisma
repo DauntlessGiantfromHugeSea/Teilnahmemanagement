@@ -17,7 +17,7 @@ datasource db {
 enum Role {
   ADMIN
   EDITOR
-  EVENTMANAGER   // darf Veranstaltungen + Agenda + Event-Portal bearbeiten, keine Buchhaltung
+  EVENTMANAGER // darf Veranstaltungen + Agenda + Event-Portal bearbeiten, keine Buchhaltung
   ACCOUNTING
   VIEWER
 }
@@ -44,15 +44,15 @@ enum InvoiceStatus {
 }
 
 enum EventFormat {
-  PRESENCE  // Praesenz-Schulung vor Ort
-  WEBINAR   // Online-Webinar
+  PRESENCE // Praesenz-Schulung vor Ort
+  WEBINAR // Online-Webinar
 }
 
 enum NewsletterStatus {
-  PENDING       // Double-Opt-In ausstehend (Bestaetigungsmail verschickt)
-  SUBSCRIBED    // bestaetigt, erhaelt Newsletter
-  UNSUBSCRIBED  // abgemeldet
-  BOUNCED       // Zustellung dauerhaft fehlgeschlagen
+  PENDING // Double-Opt-In ausstehend (Bestaetigungsmail verschickt)
+  SUBSCRIBED // bestaetigt, erhaelt Newsletter
+  UNSUBSCRIBED // abgemeldet
+  BOUNCED // Zustellung dauerhaft fehlgeschlagen
 }
 
 enum CampaignStatus {
@@ -68,40 +68,57 @@ enum EmailStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  passwordHash  String
-  role          Role      @default(VIEWER)
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  passwordHash       String
+  role               Role      @default(VIEWER)
   // 2FA
-  totpSecret    String?   // verschluesselt
-  totpEnabled   Boolean   @default(false)
-  totpRequired  Boolean   @default(true)  // false = Login auch ohne 2FA erlaubt
+  totpSecret         String? // verschluesselt
+  totpEnabled        Boolean   @default(false)
+  totpRequired       Boolean   @default(true) // false = Login auch ohne 2FA erlaubt
   // Microsoft / Entra ID Single-Sign-On
-  msOid         String?   @unique  // stabile MS Object-ID nach erstem Login
-  msTenantId    String?   // MS Tenant-ID (Whitelist via MS_TENANT_ID)
+  msOid              String?   @unique // stabile MS Object-ID nach erstem Login
+  msTenantId         String? // MS Tenant-ID (Whitelist via MS_TENANT_ID)
   // Digitale Unterschrift fuer Anmeldebestaetigungen u.a. (Pfad auf
   // hochgeladenes PNG in public/uploads/signatures/)
-  signatureUrl  String?
-  recoveryCodes String?   // verschluesselt, JSON-Array
+  signatureUrl       String?
+  recoveryCodes      String? // verschluesselt, JSON-Array
   // 2FA per E-Mail (Code)
-  emailCodeEnabled  Boolean   @default(false)
-  loginCodeHash     String?
+  emailCodeEnabled   Boolean   @default(false)
+  loginCodeHash      String?
   loginCodeExpiresAt DateTime?
   // Einladung / Passwort-Reset (token-basiert)
-  pwTokenHash     String?   // sha256-Hex des Token
-  pwTokenExpiresAt DateTime?
+  pwTokenHash        String? // sha256-Hex des Token
+  pwTokenExpiresAt   DateTime?
   // Meta
-  active        Boolean   @default(true)
-  lastLoginAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  active             Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  eventGrants   EventAccess[]
-  comments      Comment[]
-  auditEntries  AuditLog[]
-  createdEvents Event[]   @relation("EventCreatedBy")
-  createdCerts  Certificate[] @relation("CertCreatedBy")
+  // --- E-Mail-Signatur (pro Benutzer, fuer Ticket-Antworten) ---
+  // Alle Klartextfelder; es sind Geschaeftskontaktdaten, keine Kunden-PII.
+  sigEnabled  Boolean @default(true)
+  sigName     String? // abweichender Anzeigename (Default: User.name)
+  sigTitle    String? // z.B. "Marketing Manager"
+  sigCompany  String? // z.B. "Flüssigboden Akademie UG"
+  sigPhone    String?
+  sigMobile   String? // auch als WhatsApp-Nummer verwendet
+  sigFax      String?
+  sigEmail    String? // abweichende Kontaktadresse (Default: User.email)
+  sigWeb      String?
+  sigAddress  String?
+  sigLinkedIn String?
+  sigGreeting String? // Grussformel, Default: "Mit besten Grüßen aus Leipzig"
+
+  eventGrants     EventAccess[]
+  comments        Comment[]
+  auditEntries    AuditLog[]
+  createdEvents   Event[]         @relation("EventCreatedBy")
+  createdCerts    Certificate[]   @relation("CertCreatedBy")
+  ticketsAssigned Ticket[]        @relation("TicketAssignee")
+  ticketMessages  TicketMessage[] @relation("TicketMessageAuthor")
 }
 
 model Training {
@@ -116,80 +133,80 @@ model Training {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  events      Event[]
+  events Event[]
 
   // Defaults fuer die Zertifikatserstellung (JSON, siehe lib/certificates.ts)
   certDefaults String?
 }
 
 model Event {
-  id          String      @id @default(cuid())
-  externalId  String?     @unique // z.B. "#260603" aus Anmeldeformular - fuer CSV-Import-Dedup
-  trainingId  String
-  training    Training    @relation(fields: [trainingId], references: [id])
-  title       String      // z. B. "Crashkurs Maerz 2026"
-  format      EventFormat @default(PRESENCE)
-  description String?     // optionale Kurzbeschreibung (unverschluesselt, intern)
+  id                String      @id @default(cuid())
+  externalId        String?     @unique // z.B. "#260603" aus Anmeldeformular - fuer CSV-Import-Dedup
+  trainingId        String
+  training          Training    @relation(fields: [trainingId], references: [id])
+  title             String // z. B. "Crashkurs Maerz 2026"
+  format            EventFormat @default(PRESENCE)
+  description       String? // optionale Kurzbeschreibung (unverschluesselt, intern)
   // Praesenz
-  location    String?
+  location          String?
   // Webinar
-  meetingUrl  String?
+  meetingUrl        String?
   // Termin
-  day1Date    DateTime?
-  day2Date    DateTime?
+  day1Date          DateTime?
+  day2Date          DateTime?
   // Zusaetzliche Termine ab Tag 3 (JSON-Array von YYYY-MM-DD-Strings)
-  extraDays   String?
-  startTime   String?     // HH:MM
-  endTime     String?     // HH:MM
+  extraDays         String?
+  startTime         String? // HH:MM
+  endTime           String? // HH:MM
   // Kapazitaet
-  capacity    Int?
+  capacity          Int?
   // Customizing fuer die oeffentliche Anmeldeseite (alles optional)
-  subtitle        String?   // kurzer Untertitel / Kicker
-  longDescription String?   // ausfuehrliche Beschreibung (Plaintext, Zeilenumbrueche werden gerendert)
-  agenda          String?   // Programmpunkte / Bullets, je Zeile ein Punkt
-  heroImageUrl    String?   // Bild oben auf der Anmeldeseite (https-URL)
-  logoUrl         String?   // optional ein eigenes Logo pro Event
-  pageBlocks      String?   // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
+  subtitle          String? // kurzer Untertitel / Kicker
+  longDescription   String? // ausfuehrliche Beschreibung (Plaintext, Zeilenumbrueche werden gerendert)
+  agenda            String? // Programmpunkte / Bullets, je Zeile ein Punkt
+  heroImageUrl      String? // Bild oben auf der Anmeldeseite (https-URL)
+  logoUrl           String? // optional ein eigenes Logo pro Event
+  pageBlocks        String? // JSON-Array von Inhalts-Bloecken fuer den Page-Builder
   // Optionaler Override fuer den Fliesstext der Teilnahmebescheinigung dieses Events.
   // Wenn leer, wird Training.certDefaults.tnBody verwendet.
-  certTnBody      String?   // Body Tag 1 / Eintagesseminar
-  certTnBodyDay2  String?   // Body Tag 2 (bei 2-Tages-Schulungen)
+  certTnBody        String? // Body Tag 1 / Eintagesseminar
+  certTnBodyDay2    String? // Body Tag 2 (bei 2-Tages-Schulungen)
   // Wurde die 24h-Erinnerungsmail (mit Portal-Link) verschickt?
   reminder24hSentAt DateTime?
   // Im Mitarbeiter-Portal (/portal/staff/<token>) sichtbar?
-  showInStaffPortal Boolean @default(true)
+  showInStaffPortal Boolean     @default(true)
   // Pro-Event-Override fuer den Feedback-Fragebogen (JSON-Array). Wenn leer,
   // gilt der globale Standard aus AppSetting 'feedbackQuestions'.
   feedbackQuestions String?
   // Status
-  cancelled   Boolean     @default(false)
+  cancelled         Boolean     @default(false)
   // Interne Notizen (verschluesselt)
-  notes       String?
-  createdById String
-  createdBy   User        @relation("EventCreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  notes             String?
+  createdById       String
+  createdBy         User        @relation("EventCreatedBy", fields: [createdById], references: [id])
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
-  participants Participant[]
-  grants       EventAccess[]
+  participants    Participant[]
+  grants          EventAccess[]
   feedbackInvites FeedbackInvite[]
-  agendaItems EventAgendaItem[]
-  portalBlocks EventPortalBlock[]
-  questions    EventQuestion[]
+  agendaItems     EventAgendaItem[]
+  portalBlocks    EventPortalBlock[]
+  questions       EventQuestion[]
 }
 
 // Fragen, die Teilnehmer ueber das oeffentliche Schulungs-Portal einreichen.
 model EventQuestion {
-  id           String   @id @default(cuid())
-  eventId      String
-  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  text         String   // Frage (Plaintext)
-  answer       String?  // gespeicherte Antwort (fuer Sammelversand)
-  name         String?  // optional: wer hat gefragt
-  status       String   @default("OPEN") // OPEN | ANSWERED | HIDDEN
-  adminNote    String?  // interner Vermerk
-  createdAt    DateTime @default(now())
-  answeredAt   DateTime?
+  id         String    @id @default(cuid())
+  eventId    String
+  event      Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  text       String // Frage (Plaintext)
+  answer     String? // gespeicherte Antwort (fuer Sammelversand)
+  name       String? // optional: wer hat gefragt
+  status     String    @default("OPEN") // OPEN | ANSWERED | HIDDEN
+  adminNote  String? // interner Vermerk
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
 
   @@index([eventId])
   @@index([createdAt])
@@ -198,22 +215,22 @@ model EventQuestion {
 // Agenda-Eintrag fuer eine Schulung. Sortierung ueber 'position'; aktuell
 // laufender Eintrag wird im Portal hervorgehoben.
 model EventAgendaItem {
-  id          String   @id @default(cuid())
-  eventId     String
-  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  day         Int      @default(1)        // 1 oder 2
-  startTime   String                       // "09:00" - berechnet aus Anker + Summe der Dauern (oder manuell gesetzt)
-  endTime     String?                      // "10:30" - berechnet aus startTime + durationMin
-  durationMin Int      @default(30)        // Dauer in Minuten (Quelle der Wahrheit)
+  id              String   @id @default(cuid())
+  eventId         String
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  day             Int      @default(1) // 1 oder 2
+  startTime       String // "09:00" - berechnet aus Anker + Summe der Dauern (oder manuell gesetzt)
+  endTime         String? // "10:30" - berechnet aus startTime + durationMin
+  durationMin     Int      @default(30) // Dauer in Minuten (Quelle der Wahrheit)
   // Wenn true: Startzeit wurde manuell ueberschrieben (z.B. wegen Verzoegerung).
   // Die Cascade behandelt diesen Eintrag als neuen Anker.
-  startTimeManual Boolean @default(false)
-  title       String
-  description String?                      // Mehrzeilig moeglich
-  speaker     String?
-  position    Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  startTimeManual Boolean  @default(false)
+  title           String
+  description     String? // Mehrzeilig moeglich
+  speaker         String?
+  position        Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([eventId])
 }
@@ -224,9 +241,9 @@ model EventPortalBlock {
   id        String   @id @default(cuid())
   eventId   String
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  icon      String?                       // optionaler Icon-Key (wifi, food, info, contact, ...)
+  icon      String? // optionaler Icon-Key (wifi, food, info, contact, ...)
   title     String
-  body      String                         // Plaintext, Absaetze durch Leerzeilen
+  body      String // Plaintext, Absaetze durch Leerzeilen
   position  Int      @default(0)
   visible   Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -250,32 +267,32 @@ model EventAccess {
 }
 
 model Participant {
-  id           String   @id @default(cuid())
-  eventId      String
-  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   // PII - alle Base64-Ciphertexte
-  firstName    String
-  lastName     String
-  email        String
-  emailHash    String   // SHA-256 fuer Suche/Dedupe
+  firstName       String
+  lastName        String
+  email           String
+  emailHash       String // SHA-256 fuer Suche/Dedupe
   // Hash der E-Mail-Domain fuer Auto-Tag-Vergabe (z.B. "fb-eng.de").
   emailDomainHash String?
   // Hash der Firma fuer Auto-Tag-Vergabe (HMAC-SHA-256 ueber normalisierten
   // Firmennamen). Erlaubt Lookups ohne Klartext.
-  companyHash  String?
-  phone        String?
-  company      String?
-  street       String?
-  zip          String?
-  city         String?
-  country      String?
-  notes        String?
+  companyHash     String?
+  phone           String?
+  company         String?
+  street          String?
+  zip             String?
+  city            String?
+  country         String?
+  notes           String?
 
-  dayOption    DayOption @default(BOTH)
+  dayOption   DayOption         @default(BOTH)
   // Rabatt in Prozent (0-100), zwei Nachkommastellen via *100
-  discountBps  Int       @default(0) // basis points: 1000 = 10.00%
-  status       ParticipantStatus @default(REGISTERED)
+  discountBps Int               @default(0) // basis points: 1000 = 10.00%
+  status      ParticipantStatus @default(REGISTERED)
 
   // Rechnungsanschrift (verschluesselt) - kann von der Teilnehmer-Anschrift abweichen
   billingCompany String?
@@ -286,20 +303,20 @@ model Participant {
   costCenter     String?
 
   // Buchhaltung
-  invoiceStatus InvoiceStatus @default(OPEN)
-  invoiceNumber String?
+  invoiceStatus   InvoiceStatus @default(OPEN)
+  invoiceNumber   String?
   invoiceIssuedAt DateTime?
   invoicePaidAt   DateTime?
   invoiceNotes    String? // verschluesselt
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  comments     Comment[]
-  history      AuditLog[]
-  certificates Certificate[]
+  comments        Comment[]
+  history         AuditLog[]
+  certificates    Certificate[]
   feedbackInvites FeedbackInvite[]
-  tagLinks     ParticipantTagLink[]
+  tagLinks        ParticipantTagLink[]
 
   @@index([emailHash])
   @@index([eventId])
@@ -309,20 +326,20 @@ model Participant {
 
 // Tag/Kategorie fuer Teilnehmer (Planer, Baugrundgutachter, Baufirma, ...)
 model Tag {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  color       String?  // Hex z.B. #0f766e
-  position    Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String               @id @default(cuid())
+  name         String               @unique
+  color        String? // Hex z.B. #0f766e
+  position     Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
   participants ParticipantTagLink[]
 }
 
 model ParticipantTagLink {
   participantId String
   tagId         String
-  autoAssigned  Boolean  @default(false)   // true: per Firma-Match automatisch vergeben
-  createdAt     DateTime @default(now())
+  autoAssigned  Boolean     @default(false) // true: per Firma-Match automatisch vergeben
+  createdAt     DateTime    @default(now())
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   tag           Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
@@ -331,14 +348,14 @@ model ParticipantTagLink {
 }
 
 enum CertificateType {
-  ZERTIFIKAT          // mit Kompetenzfeldern (bestanden)
+  ZERTIFIKAT // mit Kompetenzfeldern (bestanden)
   TEILNAHMEBESCHEINIGUNG
 }
 
 enum CertificateStatus {
-  DRAFT       // erzeugt, noch nicht freigegeben (nicht gueltig)
-  RELEASED    // freigegeben, oeffentlich abrufbar, verschickbar
-  REVOKED     // widerrufen
+  DRAFT // erzeugt, noch nicht freigegeben (nicht gueltig)
+  RELEASED // freigegeben, oeffentlich abrufbar, verschickbar
+  REVOKED // widerrufen
 }
 
 // Globale Konfiguration als simpler Key/Value-Store (JSON-Werte).
@@ -346,89 +363,89 @@ enum CertificateStatus {
 // angepasst werden koennen.
 model AppSetting {
   key       String   @id
-  value     String   // JSON
+  value     String // JSON
   updatedAt DateTime @updatedAt
 }
 
 model Certificate {
-  id            String   @id @default(cuid())
+  id     String @id @default(cuid())
   // menschenlesbare Nummer (z.B. 26-TN-LM-26/230) - eindeutig
-  number        String   @unique
+  number String @unique
   // URL-sicherer Slug fuer /zertifikat/<slug> (Nummer mit / -> -)
-  slug          String   @unique
+  slug   String @unique
 
   participantId String?
   participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
 
-  type          CertificateType
-  status        CertificateStatus @default(DRAFT)
+  type   CertificateType
+  status CertificateStatus @default(DRAFT)
 
   // Snapshot der Daten zum Zeitpunkt der Erstellung (entkoppelt vom Event)
-  data          String   // JSON: { firstName, lastName, company, eventTitle, eventDate, location, ... }
+  data String // JSON: { firstName, lastName, company, eventTitle, eventDate, location, ... }
 
   // PDF-Hash fuer Integritaetscheck (optional)
-  pdfHash       String?
+  pdfHash String?
 
   // Wenn vom Tool generiert: NULL. Wenn importiert: Pfad zum hochgeladenen Original.
-  importedPath  String?
+  importedPath String?
 
   // Bei TN-Bescheinigungen: 1 oder 2 fuer den Schulungstag (bzw. NULL bei
   // Eintages-Event/Zertifikaten). Wird fuer den Duplikats-Check benutzt.
-  day           Int?
+  day             Int?
   // Bei Zertifikaten: ID des Kompetenzfelds (fuer Duplikats-Check).
   kompetenzfeldId String?
 
-  issuedAt      DateTime?
-  releasedAt    DateTime?
-  revokedAt     DateTime?
-  revokeReason  String?
+  issuedAt     DateTime?
+  releasedAt   DateTime?
+  revokedAt    DateTime?
+  revokeReason String?
 
-  sentAt        DateTime?
-  sentTo        String?
+  sentAt DateTime?
+  sentTo String?
 
-  createdById   String
-  createdBy     User     @relation("CertCreatedBy", fields: [createdById], references: [id])
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdById String
+  createdBy   User     @relation("CertCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  views         CertificateView[]
+  views CertificateView[]
 
   @@index([participantId])
   @@index([status])
 }
 
 model Comment {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   participantId String
   participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
   authorId      String
-  author        User     @relation(fields: [authorId], references: [id])
-  body          String   // verschluesselt
-  createdAt     DateTime @default(now())
+  author        User        @relation(fields: [authorId], references: [id])
+  body          String // verschluesselt
+  createdAt     DateTime    @default(now())
 }
 
 // Newsletter-Abonnent. E-Mail/Name verschluesselt (PII), Lookup ueber emailHash.
 model NewsletterSubscriber {
-  id             String   @id @default(cuid())
-  email          String   // verschluesselt
-  emailHash      String   @unique // HMAC-SHA-256 fuer Dedup/Lookup
-  firstName      String?  // verschluesselt
-  lastName       String?  // verschluesselt
-  company        String?  // verschluesselt
-  status         NewsletterStatus @default(PENDING)
-  source         String   @default("manual") // cf7 | webhook | manual | import | <formname>
-  tags           String?  // JSON-Array von Strings (Segmentierung)
+  id               String           @id @default(cuid())
+  email            String // verschluesselt
+  emailHash        String           @unique // HMAC-SHA-256 fuer Dedup/Lookup
+  firstName        String? // verschluesselt
+  lastName         String? // verschluesselt
+  company          String? // verschluesselt
+  status           NewsletterStatus @default(PENDING)
+  source           String           @default("manual") // cf7 | webhook | manual | import | <formname>
+  tags             String? // JSON-Array von Strings (Segmentierung)
   // Double-Opt-In / Abmeldung
-  confirmToken     String?  @unique
-  unsubscribeToken String   @unique
-  consentAt        DateTime?  // Zeitpunkt der (Webhook-)Einwilligung
-  confirmedAt      DateTime?  // Zeitpunkt der Double-Opt-In-Bestaetigung
+  confirmToken     String?          @unique
+  unsubscribeToken String           @unique
+  consentAt        DateTime? // Zeitpunkt der (Webhook-)Einwilligung
+  confirmedAt      DateTime? // Zeitpunkt der Double-Opt-In-Bestaetigung
   unsubscribedAt   DateTime?
   // DSGVO-Nachweis
   consentIp        String?
-  consentSource    String?  // Roh-Info zur Herkunft (z.B. Formular-URL)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  consentSource    String? // Roh-Info zur Herkunft (z.B. Formular-URL)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   emails EmailLog[]
 
@@ -437,20 +454,20 @@ model NewsletterSubscriber {
 }
 
 model Campaign {
-  id          String   @id @default(cuid())
-  subject     String
-  bodyHtml    String   // HTML-Inhalt (Platzhalter erlaubt: {{firstName}}, {{unsubscribe}})
-  bodyText    String?  // optionaler Text-Fallback
-  status      CampaignStatus @default(DRAFT)
+  id             String         @id @default(cuid())
+  subject        String
+  bodyHtml       String // HTML-Inhalt (Platzhalter erlaubt: {{firstName}}, {{unsubscribe}})
+  bodyText       String? // optionaler Text-Fallback
+  status         CampaignStatus @default(DRAFT)
   // Segmentierung: leeres tagFilter = an alle SUBSCRIBED
-  tagFilter   String?  // JSON-Array von Tags (mind. einer muss matchen)
-  createdById String?
-  sentAt      DateTime?
-  recipientCount Int   @default(0)
-  sentCount      Int   @default(0)
-  failedCount    Int   @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  tagFilter      String? // JSON-Array von Tags (mind. einer muss matchen)
+  createdById    String?
+  sentAt         DateTime?
+  recipientCount Int            @default(0)
+  sentCount      Int            @default(0)
+  failedCount    Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   emails EmailLog[]
 
@@ -458,17 +475,17 @@ model Campaign {
 }
 
 model EmailLog {
-  id           String   @id @default(cuid())
-  toHash       String   // emailHash des Empfaengers (kein Klartext)
+  id           String                @id @default(cuid())
+  toHash       String // emailHash des Empfaengers (kein Klartext)
   subject      String
-  kind         String   // TRANSACTIONAL | OPTIN | CAMPAIGN
+  kind         String // TRANSACTIONAL | OPTIN | CAMPAIGN
   status       EmailStatus
   error        String?
   campaignId   String?
-  campaign     Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaign     Campaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   subscriberId String?
   subscriber   NewsletterSubscriber? @relation(fields: [subscriberId], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  createdAt    DateTime              @default(now())
 
   @@index([campaignId])
   @@index([toHash])
@@ -476,16 +493,16 @@ model EmailLog {
 }
 
 model AuditLog {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   participantId String?
   participant   Participant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
   actorId       String?
-  actor         User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
-  action        String   // CREATE | UPDATE | DELETE | LOGIN | GRANT | INVOICE_STATUS | ...
-  entityType    String   // Participant | Event | User | EventAccess | Auth
+  actor         User?        @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action        String // CREATE | UPDATE | DELETE | LOGIN | GRANT | INVOICE_STATUS | ...
+  entityType    String // Participant | Event | User | EventAccess | Auth
   entityId      String?
-  diff          String?  // JSON, ggf. verschluesselt bei PII
-  createdAt     DateTime @default(now())
+  diff          String? // JSON, ggf. verschluesselt bei PII
+  createdAt     DateTime     @default(now())
 
   @@index([participantId])
   @@index([actorId])
@@ -496,14 +513,14 @@ model AuditLog {
 // Aus Sicht des Teilnehmers ist das Feedback "anonym" beschriftet, technisch
 // wissen wir aber, wer geantwortet hat (Token -> Invite -> Participant).
 model FeedbackInvite {
-  id            String   @id @default(cuid())
-  token         String   @unique
+  id            String            @id @default(cuid())
+  token         String            @unique
   eventId       String
-  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event         Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
   participantId String
-  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  participant   Participant       @relation(fields: [participantId], references: [id], onDelete: Cascade)
   sentAt        DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime          @default(now())
   response      FeedbackResponse?
 
   @@unique([eventId, participantId])
@@ -511,19 +528,19 @@ model FeedbackInvite {
 }
 
 model FeedbackResponse {
-  id          String   @id @default(cuid())
-  inviteId    String   @unique
+  id          String         @id @default(cuid())
+  inviteId    String         @unique
   invite      FeedbackInvite @relation(fields: [inviteId], references: [id], onDelete: Cascade)
-  answers     String   // JSON
-  submittedAt DateTime @default(now())
+  answers     String // JSON
+  submittedAt DateTime       @default(now())
 }
 
 // OTP-Codes fuer das Teilnehmer-Portal /meine-zertifikate.
 // Code wird per Mail an die hinterlegte Adresse geschickt; einmalig einlösbar.
 model CertificateOtp {
   id        String   @id @default(cuid())
-  emailHash String   // SHA-256-HMAC der E-Mail
-  codeHash  String   // SHA-256 des 6-stelligen Codes
+  emailHash String // SHA-256-HMAC der E-Mail
+  codeHash  String // SHA-256 des 6-stelligen Codes
   expiresAt DateTime
   consumed  Boolean  @default(false)
   attempts  Int      @default(0)
@@ -541,9 +558,9 @@ model CertificateView {
   certificateId String
   certificate   Certificate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
   viewedAt      DateTime    @default(now())
-  userAgent     String?     // gekuerzt auf 200 Zeichen
-  referer       String?     // gekuerzt auf 300 Zeichen
-  seenAt        DateTime?   // vom Admin als gelesen markiert
+  userAgent     String? // gekuerzt auf 200 Zeichen
+  referer       String? // gekuerzt auf 300 Zeichen
+  seenAt        DateTime? // vom Admin als gelesen markiert
 
   @@index([certificateId])
   @@index([viewedAt])
@@ -556,10 +573,161 @@ model Staff {
   id        String   @id @default(cuid())
   firstName String
   lastName  String
-  company   String   // Anzeige unter dem Namen (Firma)
-  subtitle  String?  // optionaler Override (z.B. "Geschäftsführer")
+  company   String // Anzeige unter dem Namen (Firma)
+  subtitle  String? // optionaler Override (z.B. "Geschäftsführer")
   active    Boolean  @default(true)
   position  Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ===========================================================================
+// Ticket-System / Posteingang
+// ---------------------------------------------------------------------------
+// Eingehende Kundenmails aus einem oder mehreren Postfaechern (IMAP) werden
+// zu Tickets mit einer menschenlesbaren Referenz (z.B. FBA-7K2M9-4XQ1P).
+// Antworten gehen aus dem Tool raus und tragen die Referenz in Betreff +
+// Footer, damit Rueckantworten automatisch wieder demselben Ticket zugeordnet
+// werden. Alle Inhalte (Betreff, Body, Adressen) sind feldverschluesselt;
+// fromEmailHash ist der Blind-Index fuer Suche und fuer das Matching auf
+// Teilnehmer/Newsletter-Abonnenten.
+
+enum TicketStatus {
+  NEW // ungelesen / unbearbeitet
+  OPEN // in Bearbeitung
+  WAITING // wartet auf Rueckmeldung des Kunden
+  CLOSED // erledigt
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum TicketMsgDirection {
+  INBOUND // vom Kunden empfangen
+  OUTBOUND // aus dem Tool verschickt
+  NOTE // interne Notiz, wird nie verschickt
+}
+
+// Ein ueberwachtes Postfach (IMAP lesen, SMTP antworten).
+model Mailbox {
+  id       String  @id @default(cuid())
+  address  String  @unique // schulung@fb-akademie.de
+  label    String // Anzeigename, z.B. "Schulung"
+  fromName String? // Absender-Anzeigename fuer Antworten
+  color    String? // Hex fuer die Kennzeichnung in Listen
+
+  // IMAP (Abholen)
+  imapHost   String
+  imapPort   Int     @default(993)
+  imapSecure Boolean @default(true)
+  imapUser   String
+  imapPass   String // verschluesselt
+  imapFolder String  @default("INBOX")
+
+  // SMTP (Antworten). Leer => globale SMTP_*-Config aus der .env.
+  smtpHost   String?
+  smtpPort   Int?
+  smtpSecure Boolean?
+  smtpUser   String?
+  smtpPass   String? // verschluesselt
+
+  active      Boolean   @default(true)
+  // Letzte verarbeitete IMAP-UID je Ordner - verhindert Doppelimporte auch
+  // dann, wenn Mails zwischendurch von Hand gelesen wurden.
+  lastUid     Int       @default(0)
+  uidValidity String?
+  lastPollAt  DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tickets  Ticket[]
+  messages TicketMessage[]
+}
+
+model Ticket {
+  id        String   @id @default(cuid())
+  reference String   @unique // FBA-7K2M9-4XQ1P
+  mailboxId String?
+  mailbox   Mailbox? @relation(fields: [mailboxId], references: [id], onDelete: SetNull)
+
+  subject  String // verschluesselt
+  status   TicketStatus   @default(NEW)
+  priority TicketPriority @default(NORMAL)
+
+  // Absender des urspruenglichen Anliegens
+  fromEmail     String // verschluesselt
+  fromEmailHash String // Blind-Index (HMAC) fuer Matching
+  fromName      String? // verschluesselt
+  fromCompany   String? // verschluesselt, aus Teilnehmer-Match
+
+  assigneeId String?
+  assignee   User?   @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  lastMessageAt   DateTime  @default(now())
+  lastInboundAt   DateTime?
+  firstResponseAt DateTime?
+  closedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages TicketMessage[]
+
+  @@index([status])
+  @@index([fromEmailHash])
+  @@index([lastMessageAt])
+  @@index([assigneeId])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  mailboxId String?
+  mailbox   Mailbox? @relation(fields: [mailboxId], references: [id], onDelete: SetNull)
+
+  direction TicketMsgDirection
+
+  fromEmail String? // verschluesselt
+  fromName  String? // verschluesselt
+  toEmails  String? // verschluesselt, JSON-Array
+  ccEmails  String? // verschluesselt, JSON-Array
+  subject   String? // verschluesselt
+  bodyText  String? // verschluesselt (Plaintext)
+  bodyHtml  String? // verschluesselt (HTML, sanitisiert)
+
+  // RFC-5322-Header fuer das Threading
+  messageId  String? @unique
+  inReplyTo  String?
+  references String? // Space-separierte Message-IDs
+  imapUid    Int?
+
+  authorId String? // User, der geantwortet / notiert hat
+  author   User?   @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  sentAt    DateTime @default(now()) // Versand-/Empfangszeit laut Mail
+  createdAt DateTime @default(now())
+
+  attachments TicketAttachment[]
+
+  @@index([ticketId])
+  @@index([inReplyTo])
+}
+
+model TicketAttachment {
+  id          String        @id @default(cuid())
+  messageId   String
+  message     TicketMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  filename    String // verschluesselt
+  contentType String?
+  size        Int           @default(0)
+  storagePath String // relativer Pfad unter uploads/tickets/
+  createdAt   DateTime      @default(now())
+
+  @@index([messageId])
 }

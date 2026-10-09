@@ -17,6 +17,12 @@ Kommentaren, Audit-Log und Buchhaltungs-Dashboard.
   Inline-Statuswechsel, Summen-KPIs.
 - **Kommentare** pro Teilnehmer (verschluesselt).
 - **Audit-Log/Verlauf**: pro Teilnehmer und global, mit verschluesselten Diffs.
+- **Posteingang / Tickets**: Kundenmails aus mehreren Postfaechern (IMAP) werden zu Tickets mit
+  eigener Referenz (`FBA-7K2M9-4XQ1P`); Antworten gehen aus dem Tool raus und tragen die Referenz
+  in Betreff und Fussnote, Rueckantworten landen automatisch im selben Vorgang. Pro Ticket sieht
+  man die Schulungshistorie des Absenders. Details: [POSTEINGANG.md](POSTEINGANG.md).
+- **Persoenliche E-Mail-Signatur** je Benutzer (Titel, Name, Kontaktdaten) mit zentralen
+  Rechtsangaben und Vertraulichkeitshinweis.
 - **Branding**: FB-Akademie-Logo eingebunden.
 
 ## Schnellstart

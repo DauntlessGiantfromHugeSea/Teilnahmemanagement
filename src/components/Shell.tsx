@@ -14,6 +14,7 @@ interface Props {
 const PRIMARY = [
   { id: "dashboard", href: "/dashboard", label: "Dashboard", roles: ["ADMIN", "EDITOR", "ACCOUNTING", "VIEWER"] },
   { id: "events", href: "/events", label: "Veranstaltungen", roles: ["ADMIN", "EDITOR", "ACCOUNTING", "VIEWER"] },
+  { id: "posteingang", href: "/posteingang", label: "Posteingang", roles: ["ADMIN", "EDITOR", "EVENTMANAGER"] },
   { id: "accounting", href: "/accounting", label: "Buchhaltung", roles: ["ADMIN", "ACCOUNTING"] },
   { id: "exports", href: "/exports/participants", label: "Export", roles: ["ADMIN", "EDITOR", "ACCOUNTING"] },
   { id: "newsletter", href: "/admin/newsletter", label: "Newsletter", roles: ["ADMIN"] },
@@ -24,6 +25,8 @@ const ADMIN = [
   { id: "media", href: "/admin/media", label: "Media-Library" },
   { id: "audit", href: "/admin/audit", label: "Verlauf" },
   { id: "import", href: "/admin/import", label: "Import (CSV)" },
+  { id: "postfaecher", href: "/admin/postfaecher", label: "Postfächer" },
+  { id: "mail-design", href: "/admin/mail-design", label: "Mail-Design" },
   { id: "settings", href: "/admin/settings", label: "Einstellungen" },
   { id: "zertifikate", href: "/admin/zertifikate", label: "Alle Zertifikate" },
   { id: "staff-badges", href: "/admin/staff-badges", label: "Mitarbeiter-Badges" },
@@ -159,6 +162,9 @@ export function Shell({ session, active, children }: Props) {
               </div>
               <Link href="/account" className="block px-3 py-2 text-sm hover:bg-slate-50">
                 Mein Konto
+              </Link>
+              <Link href="/account/signatur" className="block px-3 py-2 text-sm hover:bg-slate-50">
+                Meine E-Mail-Signatur
               </Link>
               <Link href="/hilfe" className="block px-3 py-2 text-sm hover:bg-slate-50">
                 Hilfe &amp; Anleitung

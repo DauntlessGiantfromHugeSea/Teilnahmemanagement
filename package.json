@@ -21,7 +21,9 @@
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.1",
     "exceljs": "^4.4.0",
+    "imapflow": "^2.3.0",
     "jose": "^5.9.6",
+    "mailparser": "^3.9.37",
     "next": "14.2.18",
     "nodemailer": "^6.10.1",
     "otplib": "^12.0.1",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/mailparser": "^3.9.0",
     "@types/node": "^22.9.0",
     "@types/nodemailer": "^6.4.23",
     "@types/qrcode": "^1.5.5",
