@@ -19,7 +19,7 @@ Docker + Docker Compose betreibst, inklusive HTTPS via Reverse-Proxy.
 ```bash
 git clone <DEIN_REPO_URL> /opt/teilnahmemanagement
 cd /opt/teilnahmemanagement
-git checkout claude/training-invitation-platform-4e1MM
+git checkout main
 ```
 
 ## 3. .env anlegen
@@ -50,7 +50,7 @@ docker compose logs -f app
 
 Beim ersten Hochfahren:
 1. Postgres startet und ist nach ein paar Sekunden bereit.
-2. Der App-Container fuehrt `prisma migrate deploy` aus (Schema anlegen).
+2. Der App-Container fuehrt `prisma db push` aus (Schema anlegen/aktualisieren).
 3. Bei `RUN_SEED_ON_START=1` wird der Initial-Admin angelegt.
 4. Der Server lauscht auf 127.0.0.1:3000.
 
@@ -113,11 +113,30 @@ docker compose up -d
 
 ```bash
 cd /opt/teilnahmemanagement
-git pull
+git pull origin main
 docker compose build app
-docker compose up -d app
+docker compose up -d app cron
+docker compose logs -f app      # "[entrypoint] Datenbank-Schema aktuell."
 ```
-Migrationen werden beim Start automatisch angewendet.
+
+Das Schema wird beim Start automatisch angeglichen (`prisma db push` im Entrypoint) —
+neue Tabellen wie die des Posteingangs entstehen also ohne manuellen Schritt.
+
+**Beim Update auf den Posteingang zusaetzlich:**
+
+1. In der `.env` `CRON_TOKEN` setzen (falls noch nicht vorhanden):
+   ```bash
+   echo "CRON_TOKEN=$(openssl rand -hex 32)" >> .env
+   ```
+   Der Cron-Container holt damit alle 2 Minuten die Postfaecher ab und loest alle
+   16 Minuten die Erinnerungsmails aus.
+2. Fuer Microsoft-365-Postfaecher `MS_TENANT_ID`, `MS_CLIENT_ID` und `MS_CLIENT_SECRET`
+   setzen (konkrete Tenant-GUID, nicht `common`) — oder die Zugangsdaten spaeter je
+   Postfach in der Oberflaeche eintragen.
+3. `APP_URL` muss auf die oeffentliche Domain zeigen, sonst fehlt in verschickten Mails
+   das hochgeladene Logo.
+4. Danach unter **Administration → Postfaecher** die Postfaecher anlegen und
+   „Verbindung testen" druecken. Einrichtung im Detail: `POSTEINGANG.md`.
 
 ## 7. Backups
 
@@ -150,6 +169,13 @@ docker compose exec app npx prisma studio
 
 # Container neu starten
 docker compose restart app
+
+# Posteingang von Hand abholen (statt auf den Cron zu warten)
+docker compose exec app sh -c \
+  'curl -s -H "Authorization: Bearer $CRON_TOKEN" http://localhost:3000/api/cron/mail-ingest'
+
+# Cron-Logs (Postfach-Abruf + Erinnerungsmails)
+docker compose logs -f cron
 ```
 
 ## 9. Sicherheits-Checkliste

@@ -83,6 +83,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     cc,
     inReplyTo,
     references,
+    replyToGraphId: lastInbound?.graphId ?? null,
   });
 
   if (!result.ok) return back({ error: `Versand fehlgeschlagen: ${result.error ?? "unbekannt"}` });

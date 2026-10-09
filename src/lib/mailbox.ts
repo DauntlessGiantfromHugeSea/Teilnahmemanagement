@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import type { Mailbox } from "@prisma/client";
+import { MailboxProvider, type Mailbox } from "@prisma/client";
 import { prisma } from "./db";
 import { encryptField, safeDecrypt } from "./crypto";
 
@@ -20,6 +20,7 @@ export interface MailboxCredentials {
 }
 
 export function mailboxImapCredentials(mb: Mailbox): MailboxCredentials | null {
+  if (mb.provider !== MailboxProvider.IMAP) return null;
   const pass = safeDecrypt(mb.imapPass);
   if (!mb.imapHost || !mb.imapUser || !pass) return null;
   return {
@@ -38,6 +39,8 @@ export function mailboxImapCredentials(mb: Mailbox): MailboxCredentials | null {
  * dann aber mit der Postfach-Adresse als Absender.
  */
 export function mailboxTransport(mb: Mailbox): Transporter | null {
+  // Microsoft-365-Postfaecher verschicken ueber Graph, nicht ueber SMTP.
+  if (mb.provider !== MailboxProvider.IMAP) return null;
   const host = mb.smtpHost || process.env.SMTP_HOST;
   const user = mb.smtpUser || mb.imapUser || process.env.SMTP_USER;
   const pass = mb.smtpHost
@@ -68,14 +71,19 @@ export function mailboxFrom(mb: Mailbox): string {
 export interface MailboxInput {
   address: string;
   label: string;
+  provider: MailboxProvider;
   fromName?: string | null;
   color?: string | null;
-  imapHost: string;
+  graphTenantId?: string | null;
+  graphClientId?: string | null;
+  graphClientSecret?: string | null; // leer = unveraendert lassen
+  graphFolder?: string | null;
+  imapHost?: string | null;
   imapPort: number;
   imapSecure: boolean;
-  imapUser: string;
+  imapUser?: string | null;
   imapPass?: string | null; // leer = unveraendert lassen
-  imapFolder: string;
+  imapFolder?: string | null;
   smtpHost?: string | null;
   smtpPort?: number | null;
   smtpSecure?: boolean | null;
@@ -85,25 +93,14 @@ export interface MailboxInput {
 }
 
 export async function createMailbox(input: MailboxInput) {
-  if (!input.imapPass) throw new Error("IMAP-Passwort ist beim Anlegen Pflicht.");
+  if (input.provider === MailboxProvider.IMAP && !input.imapPass) {
+    throw new Error("IMAP-Passwort ist beim Anlegen Pflicht.");
+  }
   return prisma.mailbox.create({
     data: {
-      address: input.address.trim().toLowerCase(),
-      label: input.label.trim(),
-      fromName: input.fromName?.trim() || null,
-      color: input.color?.trim() || null,
-      imapHost: input.imapHost.trim(),
-      imapPort: input.imapPort,
-      imapSecure: input.imapSecure,
-      imapUser: input.imapUser.trim(),
-      imapPass: encryptField(input.imapPass)!,
-      imapFolder: input.imapFolder.trim() || "INBOX",
-      smtpHost: input.smtpHost?.trim() || null,
-      smtpPort: input.smtpPort ?? null,
-      smtpSecure: input.smtpSecure ?? null,
-      smtpUser: input.smtpUser?.trim() || null,
-      smtpPass: input.smtpPass ? encryptField(input.smtpPass) : null,
-      active: input.active,
+      ...commonFields(input),
+      ...(input.imapPass ? { imapPass: encryptField(input.imapPass) } : {}),
+      ...(input.graphClientSecret ? { graphClientSecret: encryptField(input.graphClientSecret) } : {}),
     },
   });
 }
@@ -112,24 +109,38 @@ export async function updateMailbox(id: string, input: MailboxInput) {
   return prisma.mailbox.update({
     where: { id },
     data: {
-      address: input.address.trim().toLowerCase(),
-      label: input.label.trim(),
-      fromName: input.fromName?.trim() || null,
-      color: input.color?.trim() || null,
-      imapHost: input.imapHost.trim(),
-      imapPort: input.imapPort,
-      imapSecure: input.imapSecure,
-      imapUser: input.imapUser.trim(),
-      ...(input.imapPass ? { imapPass: encryptField(input.imapPass)! } : {}),
-      imapFolder: input.imapFolder.trim() || "INBOX",
-      smtpHost: input.smtpHost?.trim() || null,
-      smtpPort: input.smtpPort ?? null,
-      smtpSecure: input.smtpSecure ?? null,
-      smtpUser: input.smtpUser?.trim() || null,
-      ...(input.smtpPass ? { smtpPass: encryptField(input.smtpPass) } : {}),
-      active: input.active,
+      ...commonFields(input),
+      // Leeres Passwortfeld laesst den gespeicherten Wert unveraendert.
+      ...(input.imapPass ? { imapPass: encryptField(input.imapPass) } : {}),
+      ...(input.graphClientSecret ? { graphClientSecret: encryptField(input.graphClientSecret) } : {}),
     },
   });
+}
+
+// Alle Felder ausser den Geheimnissen - die werden nur gesetzt, wenn im
+// Formular tatsaechlich etwas eingetragen wurde.
+function commonFields(input: MailboxInput) {
+  return {
+    address: input.address.trim().toLowerCase(),
+    label: input.label.trim(),
+    provider: input.provider,
+    fromName: input.fromName?.trim() || null,
+    color: input.color?.trim() || null,
+    imapHost: input.imapHost?.trim() || null,
+    imapPort: input.imapPort,
+    imapSecure: input.imapSecure,
+    imapUser: input.imapUser?.trim() || null,
+    imapFolder: input.imapFolder?.trim() || "INBOX",
+    graphTenantId: input.graphTenantId?.trim() || null,
+    graphClientId: input.graphClientId?.trim() || null,
+    graphFolder: input.graphFolder?.trim() || "inbox",
+    smtpHost: input.smtpHost?.trim() || null,
+    smtpPort: input.smtpPort ?? null,
+    smtpSecure: input.smtpSecure ?? null,
+    smtpUser: input.smtpUser?.trim() || null,
+    ...(input.smtpPass ? { smtpPass: encryptField(input.smtpPass) } : {}),
+    active: input.active,
+  };
 }
 
 /** Liest das Postfach-Formular aus der Admin-Oberflaeche. */
@@ -139,6 +150,14 @@ export function parseMailboxForm(f: FormData): MailboxInput {
   return {
     address: String(f.get("address") ?? "").trim(),
     label: String(f.get("label") ?? "").trim(),
+    provider:
+      String(f.get("provider") ?? "") === MailboxProvider.MS_GRAPH
+        ? MailboxProvider.MS_GRAPH
+        : MailboxProvider.IMAP,
+    graphTenantId: String(f.get("graphTenantId") ?? "").trim() || null,
+    graphClientId: String(f.get("graphClientId") ?? "").trim() || null,
+    graphClientSecret: String(f.get("graphClientSecret") ?? "").trim() || null,
+    graphFolder: String(f.get("graphFolder") ?? "inbox").trim() || "inbox",
     fromName: String(f.get("fromName") ?? "").trim() || null,
     color: String(f.get("color") ?? "").trim() || null,
     imapHost: String(f.get("imapHost") ?? "").trim(),
@@ -158,6 +177,10 @@ export function parseMailboxForm(f: FormData): MailboxInput {
 
 /** Sinnvolle Defaults fuer All-Inkl/Kasserver-Postfaecher. */
 export function defaultImapHost(): string {
-  const smtp = process.env.SMTP_HOST ?? "";
-  return smtp || "";
+  return process.env.SMTP_HOST ?? "";
 }
+
+export const PROVIDER_LABEL: Record<MailboxProvider, string> = {
+  IMAP: "IMAP (Benutzer + Passwort)",
+  MS_GRAPH: "Microsoft 365 (Graph)",
+};

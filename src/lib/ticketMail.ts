@@ -1,4 +1,4 @@
-import type { Mailbox, Ticket, User } from "@prisma/client";
+import { MailboxProvider, type Mailbox, type Ticket, type User } from "@prisma/client";
 import { escapeHtml } from "./email-templates";
 import {
   absoluteMailUrl,
@@ -11,6 +11,7 @@ import { mailboxFrom, mailboxTransport } from "./mailbox";
 import { plainToHtml } from "./mailHtml";
 import { htmlToText } from "./mailer";
 import { subjectWithReference } from "./ticketRef";
+import { graphCredentials, graphSendReply } from "./msGraphMail";
 
 // Aufbau und Versand einer Ticket-Antwort.
 //
@@ -123,6 +124,8 @@ export interface SendReplyInput extends ReplyBuildInput {
   cc?: string[];
   inReplyTo?: string | null;
   references?: string | null;
+  /** Graph-ID der letzten eingehenden Nachricht (nur Microsoft-365-Postfaecher). */
+  replyToGraphId?: string | null;
 }
 
 export interface SendReplyResult {
@@ -131,15 +134,46 @@ export interface SendReplyResult {
   error?: string;
 }
 
-/** Verschickt die Antwort ueber das SMTP des Postfachs. */
+/**
+ * Verschickt die Antwort - ueber Microsoft Graph bei M365-Postfaechern,
+ * sonst ueber das SMTP des Postfachs.
+ */
 export async function sendTicketReply(input: SendReplyInput): Promise<SendReplyResult> {
+  const built = await buildReply(input);
+  const subject = subjectWithReference(input.subject, input.ticket.reference);
+
+  if (input.mailbox.provider === MailboxProvider.MS_GRAPH) {
+    const creds = graphCredentials(input.mailbox);
+    if (!creds) {
+      return {
+        ok: false,
+        error: "Microsoft-Zugangsdaten für dieses Postfach fehlen (Tenant/Client/Secret).",
+      };
+    }
+    try {
+      const sent = await graphSendReply({
+        mailbox: input.mailbox,
+        creds,
+        to: input.to,
+        cc: input.cc,
+        subject,
+        html: built.html,
+        text: built.text,
+        ticketReference: input.ticket.reference,
+        replyToGraphId: input.replyToGraphId,
+      });
+      return { ok: true, messageId: sent.messageId };
+    } catch (e) {
+      const message = (e as Error).message;
+      console.error(`[ticketMail] Graph-Versand fehlgeschlagen (${input.ticket.reference}): ${message}`);
+      return { ok: false, error: message };
+    }
+  }
+
   const transport = mailboxTransport(input.mailbox);
   if (!transport) {
     return { ok: false, error: "Für dieses Postfach ist kein SMTP-Versand konfiguriert." };
   }
-
-  const built = await buildReply(input);
-  const subject = subjectWithReference(input.subject, input.ticket.reference);
 
   const headers: Record<string, string> = { "X-Ticket-Ref": input.ticket.reference };
   if (input.inReplyTo) headers["In-Reply-To"] = input.inReplyTo;

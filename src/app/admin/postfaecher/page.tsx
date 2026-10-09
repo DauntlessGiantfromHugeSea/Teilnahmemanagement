@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import type { Mailbox } from "@prisma/client";
+import { MailboxProvider, type Mailbox } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
@@ -21,6 +21,23 @@ function fmt(d: Date | null): string {
 function MailboxFields({ mb }: { mb?: Mailbox }) {
   return (
     <>
+      <div>
+        <label className="block text-xs text-slate-500 mb-1">Postfach-Typ *</label>
+        <select
+          name="provider"
+          defaultValue={mb?.provider ?? MailboxProvider.MS_GRAPH}
+          className="input text-sm w-full sm:w-80"
+        >
+          <option value={MailboxProvider.MS_GRAPH}>Microsoft 365 (Graph)</option>
+          <option value={MailboxProvider.IMAP}>IMAP (Benutzer + Passwort)</option>
+        </select>
+        <p className="text-xs text-slate-400 mt-1">
+          Microsoft 365 hat Basic Auth für IMAP/SMTP abgeschaltet — für M365-Postfächer
+          funktioniert nur der Graph-Zugang. Ausgefüllt wird dann nur der Microsoft-Block,
+          die IMAP/SMTP-Felder bleiben leer.
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div>
           <label className="block text-xs text-slate-500 mb-1">E-Mail-Adresse *</label>
@@ -62,14 +79,70 @@ function MailboxFields({ mb }: { mb?: Mailbox }) {
         </div>
       </div>
 
+      <fieldset className="rounded-lg border border-slate-200 p-3 space-y-3">
+        <legend className="px-1 text-xs font-semibold text-slate-600">
+          Microsoft 365 (nur bei Typ „Microsoft 365")
+        </legend>
+        <p className="text-xs text-slate-500">
+          Leer lassen, um die App-Registrierung des Entra-SSO aus der <code>.env</code> zu
+          verwenden (<code>MS_TENANT_ID</code>, <code>MS_CLIENT_ID</code>,{" "}
+          <code>MS_CLIENT_SECRET</code>). Die App braucht die{" "}
+          <strong>Anwendungsberechtigungen</strong> <code>Mail.ReadWrite</code> und{" "}
+          <code>Mail.Send</code> mit Administrator-Zustimmung.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Tenant-ID</label>
+            <input
+              name="graphTenantId"
+              defaultValue={mb?.graphTenantId ?? ""}
+              placeholder="aus der .env"
+              className="input text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Client-ID</label>
+            <input
+              name="graphClientId"
+              defaultValue={mb?.graphClientId ?? ""}
+              placeholder="aus der .env"
+              className="input text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">
+              Client-Secret {mb?.graphClientSecret ? "(leer = unverändert)" : ""}
+            </label>
+            <input
+              name="graphClientSecret"
+              type="password"
+              autoComplete="new-password"
+              placeholder={mb?.graphClientSecret ? "••••••••" : "aus der .env"}
+              className="input text-sm w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1">Ordner</label>
+            <input
+              name="graphFolder"
+              defaultValue={mb?.graphFolder ?? "inbox"}
+              className="input text-sm w-full"
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="rounded-lg border border-slate-200 p-3 space-y-3">
+        <legend className="px-1 text-xs font-semibold text-slate-600">
+          IMAP / SMTP (nur bei Typ „IMAP")
+        </legend>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div className="lg:col-span-2">
-          <label className="block text-xs text-slate-500 mb-1">IMAP-Server *</label>
+          <label className="block text-xs text-slate-500 mb-1">IMAP-Server</label>
           <input
             name="imapHost"
             defaultValue={mb?.imapHost ?? ""}
             placeholder="w020deb9.kasserver.com"
-            required
             className="input text-sm w-full"
           />
         </div>
@@ -117,18 +190,17 @@ function MailboxFields({ mb }: { mb?: Mailbox }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-slate-500 mb-1">IMAP-Benutzer *</label>
+          <label className="block text-xs text-slate-500 mb-1">IMAP-Benutzer</label>
           <input
             name="imapUser"
             defaultValue={mb?.imapUser ?? ""}
             placeholder="m07f3b68 oder schulung@fb-akademie.de"
-            required
             className="input text-sm w-full"
           />
         </div>
         <div>
           <label className="block text-xs text-slate-500 mb-1">
-            IMAP-Passwort {mb ? "(leer = unverändert)" : "*"}
+            IMAP-Passwort {mb ? "(leer = unverändert)" : ""}
           </label>
           <input
             name="imapPass"
@@ -192,6 +264,7 @@ function MailboxFields({ mb }: { mb?: Mailbox }) {
           </div>
         </div>
       </details>
+      </fieldset>
     </>
   );
 }
@@ -224,9 +297,9 @@ export default async function PostfaecherPage({
         </div>
       </div>
       <p className="text-sm text-slate-500 mb-5 max-w-3xl">
-        Diese Postfächer werden per IMAP überwacht. Gelesen wird nur — es werden keine Mails
-        verschoben oder als gelesen markiert, das Postfach bleibt also parallel ganz normal
-        nutzbar. Der Abruf läuft über den Cron-Endpunkt{" "}
+        Diese Postfächer werden überwacht — Microsoft 365 über die Graph-API, klassische
+        Postfächer über IMAP. Gelesen wird nur: es werden keine Mails verschoben oder als
+        gelesen markiert, das Postfach bleibt also parallel ganz normal nutzbar. Der Abruf läuft über den Cron-Endpunkt{" "}
         <code className="text-xs">/api/cron/mail-ingest</code>; „Jetzt abholen“ stößt denselben
         Vorgang von Hand an.
       </p>
@@ -262,7 +335,11 @@ export default async function PostfaecherPage({
                 )}
               </h2>
               <div className="text-xs text-slate-500">
-                {mb._count.tickets} Tickets · zuletzt abgeholt {fmt(mb.lastPollAt)} · UID {mb.lastUid}
+                {mb.provider === MailboxProvider.MS_GRAPH ? "Microsoft 365" : "IMAP"} ·{" "}
+                {mb._count.tickets} Tickets · zuletzt abgeholt {fmt(mb.lastPollAt)} ·{" "}
+                {mb.provider === MailboxProvider.MS_GRAPH
+                  ? `Stand ${fmt(mb.lastSyncAt)}`
+                  : `UID ${mb.lastUid}`}
               </div>
             </div>
 

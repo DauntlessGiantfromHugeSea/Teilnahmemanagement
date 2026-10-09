@@ -605,6 +605,16 @@ enum TicketPriority {
   HIGH
 }
 
+// Woher ein Postfach seine Mails bezieht.
+//   IMAP     - klassisches Postfach mit Benutzer/Passwort (z.B. All-Inkl)
+//   MS_GRAPH - Microsoft 365 ueber die Graph-API (App-Only, OAuth2).
+//              Microsoft hat Basic Auth fuer IMAP/SMTP abgeschaltet, fuer
+//              M365-Postfaecher ist das also der einzig gangbare Weg.
+enum MailboxProvider {
+  IMAP
+  MS_GRAPH
+}
+
 enum TicketMsgDirection {
   INBOUND // vom Kunden empfangen
   OUTBOUND // aus dem Tool verschickt
@@ -619,13 +629,23 @@ model Mailbox {
   fromName String? // Absender-Anzeigename fuer Antworten
   color    String? // Hex fuer die Kennzeichnung in Listen
 
-  // IMAP (Abholen)
-  imapHost   String
+  provider MailboxProvider @default(IMAP)
+
+  // IMAP (Abholen) - nur bei provider = IMAP
+  imapHost   String?
   imapPort   Int     @default(993)
   imapSecure Boolean @default(true)
-  imapUser   String
-  imapPass   String // verschluesselt
+  imapUser   String?
+  imapPass   String? // verschluesselt
   imapFolder String  @default("INBOX")
+
+  // Microsoft Graph (App-Only) - nur bei provider = MS_GRAPH.
+  // Leer => Fallback auf MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET aus
+  // der .env (dieselbe App-Registrierung wie der Entra-SSO).
+  graphTenantId     String?
+  graphClientId     String?
+  graphClientSecret String? // verschluesselt
+  graphFolder       String  @default("inbox") // "inbox" oder eine Graph-Folder-ID
 
   // SMTP (Antworten). Leer => globale SMTP_*-Config aus der .env.
   smtpHost   String?
@@ -639,6 +659,8 @@ model Mailbox {
   // dann, wenn Mails zwischendurch von Hand gelesen wurden.
   lastUid     Int       @default(0)
   uidValidity String?
+  // Fortschrittsmarker fuer Graph: letzte verarbeitete Empfangszeit.
+  lastSyncAt  DateTime?
   lastPollAt  DateTime?
   lastError   String?
 
@@ -706,6 +728,7 @@ model TicketMessage {
   inReplyTo  String?
   references String? // Space-separierte Message-IDs
   imapUid    Int?
+  graphId    String? // Microsoft-Graph-Message-ID (fuer createReply)
 
   authorId String? // User, der geantwortet / notiert hat
   author   User?   @relation("TicketMessageAuthor", fields: [authorId], references: [id], onDelete: SetNull)

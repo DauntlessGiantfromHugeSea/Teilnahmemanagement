@@ -168,6 +168,7 @@ export interface NewMessageInput {
   inReplyTo?: string | null;
   references?: string | null;
   imapUid?: number | null;
+  graphId?: string | null;
   authorId?: string | null;
   sentAt?: Date;
 }
@@ -190,6 +191,7 @@ export async function addMessage(input: NewMessageInput) {
       inReplyTo: input.inReplyTo ?? null,
       references: input.references ?? null,
       imapUid: input.imapUid ?? null,
+      graphId: input.graphId ?? null,
       authorId: input.authorId ?? null,
       sentAt,
     },

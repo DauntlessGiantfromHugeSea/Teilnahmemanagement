@@ -1,13 +1,26 @@
 import { ImapFlow } from "imapflow";
 import { simpleParser, type ParsedMail, type AddressObject } from "mailparser";
-import { TicketMsgDirection, type Mailbox } from "@prisma/client";
+import { MailboxProvider, TicketMsgDirection, type Mailbox } from "@prisma/client";
 import { prisma } from "./db";
 import { mailboxImapCredentials } from "./mailbox";
 import { addMessage, createTicket, enrichTicketFromParticipants } from "./tickets";
 import { findTicketReference } from "./ticketRef";
 import { sanitizeIncomingHtml, stripQuotedReply } from "./mailHtml";
+import {
+  graphCredentials,
+  graphFetchMime,
+  graphLatestReceivedAt,
+  graphListMessages,
+} from "./msGraphMail";
 
-// Abholen der Kundenmails per IMAP.
+// Abholen der Kundenmails.
+//
+// Zwei Wege, je nach Postfach-Typ:
+//   IMAP      - klassisches Postfach mit Benutzer/Passwort
+//   MS_GRAPH  - Microsoft 365 ueber die Graph-API (App-Only, OAuth2)
+//
+// Beide Wege enden in importParsedMail(): Graph liefert die Nachricht als
+// MIME-Rohdaten, sodass Parsing, Zuordnung und Filterung identisch sind.
 //
 // Pro Postfach werden alle Nachrichten mit einer UID groesser als der zuletzt
 // verarbeiteten geholt. Der UID-Zaehler (plus uidValidity) ist der einzige
@@ -104,6 +117,80 @@ async function findTicketForMail(parsed: ParsedMail, bodyText: string): Promise<
 
 /** Holt neue Mails eines Postfachs ab und legt Tickets/Nachrichten an. */
 export async function ingestMailbox(mb: Mailbox): Promise<IngestResult> {
+  return mb.provider === MailboxProvider.MS_GRAPH
+    ? ingestGraphMailbox(mb)
+    : ingestImapMailbox(mb);
+}
+
+/** Microsoft 365: Nachrichten ueber die Graph-API holen. */
+async function ingestGraphMailbox(mb: Mailbox): Promise<IngestResult> {
+  const result: IngestResult = {
+    mailbox: mb.address,
+    fetched: 0,
+    created: 0,
+    appended: 0,
+    skipped: 0,
+  };
+
+  const creds = graphCredentials(mb);
+  if (!creds) {
+    result.error =
+      "Microsoft-Zugangsdaten unvollständig (Tenant/Client/Secret bzw. MS_*-Variablen).";
+    await prisma.mailbox.update({
+      where: { id: mb.id },
+      data: { lastPollAt: new Date(), lastError: result.error },
+    });
+    return result;
+  }
+
+  let lastSyncAt = mb.lastSyncAt;
+  try {
+    // Neu angelegtes Postfach: ab jetzt mitlesen statt das Archiv zu importieren.
+    if (!lastSyncAt) {
+      const newest = await graphLatestReceivedAt(mb, creds);
+      await prisma.mailbox.update({
+        where: { id: mb.id },
+        data: { lastSyncAt: newest ?? new Date(), lastPollAt: new Date(), lastError: null },
+      });
+      return result;
+    }
+
+    const heads = await graphListMessages(mb, creds, lastSyncAt, MAX_PER_RUN);
+    result.fetched = heads.length;
+
+    for (const head of heads) {
+      try {
+        const mime = await graphFetchMime(mb, creds, head.id);
+        const outcome = await importParsedMail(mb, await simpleParser(mime), undefined, head.id);
+        if (outcome === "created") result.created++;
+        else if (outcome === "appended") result.appended++;
+        else result.skipped++;
+      } catch (e) {
+        console.error(`[graph] ${mb.address} ${head.id}: ${(e as Error).message}`);
+        result.skipped++;
+      }
+      const received = new Date(head.receivedDateTime);
+      if (!lastSyncAt || received > lastSyncAt) lastSyncAt = received;
+    }
+
+    await prisma.mailbox.update({
+      where: { id: mb.id },
+      data: { lastSyncAt, lastPollAt: new Date(), lastError: null },
+    });
+  } catch (e) {
+    result.error = (e as Error).message;
+    console.error(`[graph] ${mb.address}: ${result.error}`);
+    await prisma.mailbox.update({
+      where: { id: mb.id },
+      data: { lastSyncAt, lastPollAt: new Date(), lastError: result.error.slice(0, 500) },
+    });
+  }
+
+  return result;
+}
+
+/** Klassisches IMAP-Postfach. */
+async function ingestImapMailbox(mb: Mailbox): Promise<IngestResult> {
   const result: IngestResult = { mailbox: mb.address, fetched: 0, created: 0, appended: 0, skipped: 0 };
   const creds = mailboxImapCredentials(mb);
   if (!creds) {
@@ -206,7 +293,8 @@ type Outcome = "created" | "appended" | "skipped";
 export async function importParsedMail(
   mb: Mailbox,
   parsed: ParsedMail,
-  uid?: number
+  uid?: number,
+  graphId?: string
 ): Promise<Outcome> {
   const messageId = parsed.messageId?.trim() || null;
   if (messageId) {
@@ -257,6 +345,7 @@ export async function importParsedMail(
     inReplyTo: parsed.inReplyTo?.trim() || null,
     references: threadCandidates(parsed).join(" ") || null,
     imapUid: uid ?? null,
+    graphId: graphId ?? null,
     sentAt,
   });
 

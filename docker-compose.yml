@@ -69,9 +69,12 @@ services:
       MS_TENANT_ID: ${MS_TENANT_ID:-}
       MS_CLIENT_ID: ${MS_CLIENT_ID:-}
       MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
-      # Cron-Token fuer /api/cron/reminders (24h-Erinnerungsmail). Beliebige
-      # lange Zeichenkette, wird vom Cron-Container als Bearer-Token gesendet.
+      # Cron-Token fuer /api/cron/reminders (24h-Erinnerungsmail) und
+      # /api/cron/mail-ingest (Postfach-Abruf). Beliebige lange Zeichenkette,
+      # wird vom Cron-Container als Bearer-Token gesendet.
       CRON_TOKEN: ${CRON_TOKEN:-}
+      # Praefix der Ticket-Referenz im Posteingang (Default FBA -> FBA-7K2M9-4XQ1P)
+      TICKET_REF_PREFIX: ${TICKET_REF_PREFIX:-FBA}
       # Iframe-Embedding der oeffentlichen Anmeldeseiten
       IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de}
       NODE_ENV: production
@@ -87,8 +90,9 @@ services:
       # Persistenter Storage fuer hochgeladene Bilder (ueberlebt Rebuilds)
       - uploads_data:/app/public/uploads
 
-  # Stuendlicher Cron, der die 24h-Erinnerungsmail ausloest. Laeuft als
-  # eigener Container und ruft den Cron-Endpoint per HTTP gegen den App-Service auf.
+  # Cron-Container: holt die Postfaecher ab (alle 2 Minuten) und loest die
+  # 24h-Erinnerungsmail aus (alle 16 Minuten). Ruft die Cron-Endpoints per
+  # HTTP gegen den App-Service auf.
   cron:
     image: alpine:3.20
     restart: unless-stopped
@@ -102,10 +106,19 @@ services:
       - |
         apk add --no-cache curl > /dev/null
         echo "[cron] gestartet"
+        tick=0
         while true; do
-          # alle 15 Minuten
-          sleep 900
-          if [ -n "$$CRON_TOKEN" ]; then
+          sleep 120
+          tick=$$((tick + 1))
+          if [ -z "$$CRON_TOKEN" ]; then
+            continue
+          fi
+          # Posteingang: jeden Durchlauf (alle 2 Minuten)
+          curl -s -m 110 -H "Authorization: Bearer $$CRON_TOKEN" \
+            "http://app:3000/api/cron/mail-ingest" > /tmp/ingest.out 2>&1 || true
+          echo "[cron] mail-ingest: $$(cat /tmp/ingest.out)"
+          # Erinnerungsmails: jeder 8. Durchlauf (alle 16 Minuten)
+          if [ $$((tick % 8)) -eq 0 ]; then
             curl -s -m 60 -H "Authorization: Bearer $$CRON_TOKEN" \
               "http://app:3000/api/cron/reminders" > /tmp/cron.out 2>&1 || true
             echo "[cron] reminders: $$(cat /tmp/cron.out)"

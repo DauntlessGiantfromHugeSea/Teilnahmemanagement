@@ -171,6 +171,35 @@ async function main() {
   const second = safeDecrypt(msgs[1].bodyText) ?? "";
   check("Zitat gekuerzt", second.trim() === "Danke!", JSON.stringify(second));
 
+  // --- 10. Microsoft-365-Postfach: gleicher Weg, zusaetzlich Graph-ID ---
+  const m365 = await prisma.mailbox.create({
+    data: {
+      address: "info@fb-akademie.de",
+      label: "Info",
+      provider: "MS_GRAPH",
+      graphTenantId: "11111111-2222-3333-4444-555555555555",
+      graphClientId: "66666666-7777-8888-9999-000000000000",
+      graphClientSecret: encryptField("dummy-secret")!,
+    },
+  });
+  const m7 = await simpleParser(raw({
+    from: `Maria Schmidt <${kundeMail}>`, to: "info@fb-akademie.de",
+    subject: "Rechnung zur Dezember-Schulung",
+    body: "Können Sie mir die Rechnung noch einmal schicken?",
+    messageId: "kunde-m365@bau-mueller.de", date: new Date("2026-02-02T09:00:00Z"),
+  }));
+  check("M365-Mail legt Ticket an", (await importParsedMail(m365, m7, undefined, "AAMkAGI2graph==")) === "created");
+  const graphMsg = await prisma.ticketMessage.findFirst({ where: { graphId: "AAMkAGI2graph==" } });
+  check("Graph-ID gespeichert", graphMsg !== null);
+  check("M365-Ticket haengt am richtigen Postfach",
+    (await prisma.ticket.count({ where: { mailboxId: m365.id } })) === 1);
+  check("M365-Postfach hat keine IMAP-Daten", m365.imapHost === null && m365.imapUser === null);
+  // Kontaktprofil greift postfachuebergreifend auf denselben Absender zu
+  const p3 = await loadContactProfile(kundeMail);
+  check("Historie auch im M365-Ticket", p3.registrations.length === 2);
+  check("zwei Tickets derselben Adresse",
+    (await prisma.ticket.count({ where: { fromEmailHash: blindIndex(kundeMail) } })) === 2);
+
   console.log(fails === 0 ? "\nE2E: ALLE TESTS OK" : `\nE2E: ${fails} FEHLER`);
   await prisma.$disconnect();
   process.exit(fails === 0 ? 0 : 1);

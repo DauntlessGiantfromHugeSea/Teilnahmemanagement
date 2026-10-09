@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
+import { MailboxProvider } from "@prisma/client";
 import { parseMailboxForm, updateMailbox } from "@/lib/mailbox";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +17,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       headers: { Location: `/admin/postfaecher?${new URLSearchParams(q).toString()}` },
     });
 
-  if (!input.address || !input.label || !input.imapHost || !input.imapUser) {
-    return back({ error: "Adresse, Bezeichnung, IMAP-Server und IMAP-Benutzer sind Pflicht." });
+  if (!input.address || !input.label) {
+    return back({ error: "Adresse und Bezeichnung sind Pflicht." });
+  }
+  if (input.provider === MailboxProvider.IMAP && (!input.imapHost || !input.imapUser)) {
+    return back({ error: "Für ein IMAP-Postfach sind Server und Benutzer Pflicht." });
   }
 
   try {

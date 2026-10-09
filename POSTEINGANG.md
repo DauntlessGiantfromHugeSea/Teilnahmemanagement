@@ -12,7 +12,7 @@ angemeldet ist oder war**, inklusive Rechnungsstatus und Zertifikaten.
 ## 1. Überblick
 
 ```
-   Kunde                IMAP                  Tool                      SMTP
+   Kunde              Graph / IMAP              Tool                 Graph / SMTP
   ────────   ──────────────────────   ──────────────────────   ───────────────────
   schreibt → schulung@fb-akademie.de → /api/cron/mail-ingest → Ticket FBA-XXXXX-XXXXX
              info@fb-akademie.de        (alle 2 Min.)           ↓
@@ -21,6 +21,17 @@ angemeldet ist oder war**, inklusive Rechnungsstatus und Zertifikaten.
   erhält   ←──────────────────────────────────────────────── Betreff "… [FBA-…]"
   antwortet → zurück ins selbe Ticket (Message-ID oder Referenz)
 ```
+
+Zwei Postfach-Typen werden unterstützt:
+
+| Typ | wofür | Zugang |
+| --- | --- | --- |
+| **Microsoft 365 (Graph)** | Exchange Online / M365 | App-Registrierung in Entra, OAuth2 App-Only |
+| **IMAP** | klassische Postfächer (z. B. All-Inkl) | Benutzer + Passwort |
+
+> **Microsoft 365 braucht Graph.** Microsoft hat Basic Authentication für IMAP und SMTP in
+> Exchange Online abgeschaltet — Postfach-Passwörter funktionieren dort nicht mehr. Für
+> M365-Postfächer ist der Graph-Zugang deshalb der einzig gangbare Weg, auch für den Versand.
 
 Gelesen wird **nur** — es werden keine Mails verschoben, gelöscht oder als gelesen
 markiert. Die Postfächer bleiben parallel in Outlook/Webmail ganz normal nutzbar.
@@ -38,12 +49,70 @@ Beim Import wird in dieser Reihenfolge geprüft:
 (eigene Antwortkopien) sowie Automaten-Mails (Abwesenheitsnotizen, Bounces,
 `Auto-Submitted`-Header, `no-reply@…`).
 
+Beide Postfach-Typen landen im selben Code: Graph liefert die Nachricht als MIME-Rohdaten
+(`/messages/{id}/$value`), sodass Parsing, Zuordnung und Filterung identisch sind.
+
 ## 3. Postfächer einrichten
 
-**Administration → Postfächer** (`/admin/postfaecher`).
+**Administration → Postfächer** (`/admin/postfaecher`), Feld **Postfach-Typ**.
+
+### 3a. Microsoft 365 (Graph)
+
+**Einmalig im Entra Admin Center** (https://entra.microsoft.com):
+
+1. **App-Registrierung** öffnen. Die vorhandene Registrierung des Entra-SSO lässt sich
+   weiterverwenden — oder lege eine eigene „Teilnahmemanagement Mail" an.
+2. **API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph →
+   _Anwendungsberechtigungen_** (nicht „delegiert"!):
+   - `Mail.ReadWrite` — Postfächer lesen und Antwort-Entwürfe anlegen
+   - `Mail.Send` — Antworten verschicken
+3. **„Administratorzustimmung erteilen"** klicken. Ohne diesen Schritt bleibt der Zugriff aus.
+4. **Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel**. Den **Wert** kopieren
+   (nicht die Secret-ID) — er ist nur einmal sichtbar.
+5. Tenant-ID und Client-ID aus der Übersichtsseite notieren.
+
+**Zugriff eingrenzen (dringend empfohlen).** Die Anwendungsberechtigung gilt sonst für
+*alle* Postfächer des Tenants. Mit einer Application Access Policy wird sie auf die beiden
+Service-Postfächer begrenzt — in Exchange Online PowerShell:
+
+```powershell
+Connect-ExchangeOnline
+# Sicherheitsgruppe mit genau den beiden Postfächern anlegen (einmalig, z.B. im Admin Center):
+#   tm-mail-zugriff@fb-akademie.de  ->  schulung@…, info@…
+New-ApplicationAccessPolicy `
+  -AppId "<CLIENT_ID>" `
+  -PolicyScopeGroupId "tm-mail-zugriff@fb-akademie.de" `
+  -AccessRight RestrictAccess `
+  -Description "Teilnahmemanagement: nur Service-Postfaecher"
+
+# Prüfen:
+Test-ApplicationAccessPolicy -Identity schulung@fb-akademie.de -AppId "<CLIENT_ID>"   # AccessCheckResult: Granted
+Test-ApplicationAccessPolicy -Identity chef@fb-akademie.de    -AppId "<CLIENT_ID>"   # AccessCheckResult: Denied
+```
+
+**Im Tool** je Postfach eintragen:
+
+| Feld | Wert |
+| --- | --- |
+| Postfach-Typ | Microsoft 365 (Graph) |
+| E-Mail-Adresse | `schulung@fb-akademie.de` bzw. `info@fb-akademie.de` |
+| Bezeichnung | `Schulung` / `Info` |
+| Tenant-ID / Client-ID / Client-Secret | leer lassen, wenn `MS_TENANT_ID`, `MS_CLIENT_ID` und `MS_CLIENT_SECRET` in der `.env` schon die richtige App sind — sonst hier eintragen |
+| Ordner | `inbox` |
+
+IMAP- und SMTP-Felder bleiben leer. Der Versand läuft ebenfalls über Graph: Antworten
+werden per `createReply` erzeugt, dadurch setzt Exchange `In-Reply-To` und `References`
+selbst und die Mail landet beim Kunden im richtigen Thread. Die verschickte Antwort liegt
+anschließend automatisch in „Gesendete Elemente" des Postfachs.
+
+> `MS_TENANT_ID=common` funktioniert bei App-Only **nicht** — dort muss die konkrete
+> Tenant-GUID stehen. Wenn der SSO auf `common` läuft, trag die GUID direkt am Postfach ein.
+
+### 3b. IMAP (klassisches Postfach)
 
 | Feld | Beispiel (All-Inkl/Kasserver) |
 | --- | --- |
+| Postfach-Typ | IMAP |
 | E-Mail-Adresse | `schulung@fb-akademie.de` |
 | Bezeichnung | `Schulung` |
 | Absendername | `FB-Akademie Schulung` |
@@ -56,13 +125,17 @@ Beim Import wird in dieser Reihenfolge geprüft:
 SMTP bleibt leer, wenn über dieselben Zugangsdaten bzw. die globale `SMTP_*`-Konfiguration
 verschickt werden soll. Absender ist in jedem Fall die Adresse des Postfachs.
 
-Mit **„Verbindung testen"** werden IMAP-Login (und falls konfiguriert SMTP) direkt geprüft.
+### 3c. Beide Typen
 
-> Beim ersten Abruf wird **nicht** das ganze Archiv importiert: Das Postfach startet bei der
-> aktuellen UID und liest ab diesem Zeitpunkt mit. Bestehende Mails bleiben unangetastet.
+Mit **„Verbindung testen"** wird der Zugang direkt geprüft — bei Microsoft 365 Token und
+Postfachzugriff, bei IMAP der Login (und SMTP, falls konfiguriert).
 
-Passwörter liegen mit `FIELD_ENCRYPTION_KEY` verschlüsselt in der Datenbank und werden
-nie an den Browser ausgeliefert.
+> Beim ersten Abruf wird **nicht** das ganze Archiv importiert: Das Postfach startet beim
+> aktuellen Stand (Graph: Empfangszeit der neuesten Mail, IMAP: aktuelle UID) und liest ab
+> diesem Zeitpunkt mit. Bestehende Mails bleiben unangetastet.
+
+Passwörter und Client-Secrets liegen mit `FIELD_ENCRYPTION_KEY` verschlüsselt in der
+Datenbank und werden nie an den Browser ausgeliefert.
 
 ## 4. Abruf einrichten (Cron)
 
@@ -152,7 +225,11 @@ HTML, das verschickt wird — keine Nachbildung.
 | `CRON_TOKEN` | ja | Bearer-Token für `/api/cron/mail-ingest` |
 | `TICKET_REF_PREFIX` | nein | Präfix der Referenz, Default `FBA` |
 | `FIELD_ENCRYPTION_KEY` | ja | verschlüsselt Inhalte und Postfach-Passwörter |
-| `SMTP_*` | nein | Fallback-Versand, wenn ein Postfach kein eigenes SMTP hat |
+| `SMTP_*` | nein | Fallback-Versand für IMAP-Postfächer ohne eigenes SMTP |
+| `MS_TENANT_ID` | für M365 | Tenant-GUID (nicht `common`), wenn das Postfach keine eigene trägt |
+| `MS_CLIENT_ID` | für M365 | Client-ID der App-Registrierung |
+| `MS_CLIENT_SECRET` | für M365 | Client-Secret der App-Registrierung |
+| `APP_URL` | ja | Basis für absolute Logo-URLs in Mails |
 
 Nach dem Update einmalig das Schema aktualisieren:
 
