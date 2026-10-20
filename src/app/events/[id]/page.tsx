@@ -2,11 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canViewEvent, canWriteEvent, isAdmin } from "@/lib/rbac";
+import { canViewEvent, canWriteEvent, isAdmin, canSeeContactData } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { DeleteEventButton } from "@/components/DeleteEventButton";
-import { PrivateValue } from "@/components/PrivateValue";
 import { BADGE_TEMPLATES } from "@/lib/badgeTemplates";
 import { formatEventDates, getEventLastDate } from "@/lib/eventDates";
 import { basePriceCents, finalPriceCents, formatEUR, formatPct } from "@/lib/pricing";
@@ -36,6 +35,8 @@ export default async function EventDetail({ params }: { params: { id: string } }
   if (!ev) notFound();
 
   const canWrite = await canWriteEvent(s, ev.id);
+  // Viewer bekommen Kontaktdaten gar nicht erst gerendert (kein Blur-Platzhalter).
+  const showContact = canSeeContactData(s);
   const participants = ev.participants
     .map(decryptParticipant)
     .sort((a, b) => {
@@ -285,9 +286,11 @@ export default async function EventDetail({ params }: { params: { id: string } }
                     <span className="font-medium truncate">{p.lastName}, {p.firstName}</span>
                   </div>
                   {p.company && <div className="text-xs text-slate-500 truncate">{p.company}</div>}
-                  <div className="text-[11px] text-slate-500 font-mono mt-1 truncate">
-                    <PrivateValue value={p.email} reveal={isAdmin(s)} />
-                  </div>
+                  {showContact && p.email && (
+                    <div className="text-[11px] text-slate-500 font-mono mt-1 truncate">
+                      {p.email}
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-1.5 mt-2 text-[11px]">
                     <span className="badge bg-slate-100 text-slate-700">{dayLabel(p.dayOption)}</span>
                     <span className="badge bg-slate-100 text-slate-700">{STATUS_LABELS[p.status]}</span>
@@ -312,7 +315,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
           <thead>
             <tr>
               <th>Teilnehmer</th>
-              <th>Kontakt</th>
+              {showContact && <th>Kontakt</th>}
               <th>Buchung</th>
               <th className="text-right">Endbetrag</th>
               <th>Status</th>
@@ -348,16 +351,14 @@ export default async function EventDetail({ params }: { params: { id: string } }
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 text-xs">
-                    <div className="font-mono">
-                      <PrivateValue value={p.email} reveal={isAdmin(s)} />
-                    </div>
-                    {p.phone && (
-                      <div className="text-slate-500 mt-0.5">
-                        <PrivateValue value={p.phone} reveal={isAdmin(s)} />
-                      </div>
-                    )}
-                  </td>
+                  {showContact && (
+                    <td className="py-3 text-xs">
+                      <div className="font-mono">{p.email || "-"}</div>
+                      {p.phone && (
+                        <div className="text-slate-500 mt-0.5">{p.phone}</div>
+                      )}
+                    </td>
+                  )}
                   <td className="py-3">
                     <div>{dayLabel(p.dayOption)}</div>
                     {p.discountBps > 0 && (
@@ -380,7 +381,7 @@ export default async function EventDetail({ params }: { params: { id: string } }
               );
             })}
             {participants.length === 0 && (
-              <tr><td colSpan={7} className="text-center text-slate-500 py-6">Noch keine Teilnehmer.</td></tr>
+              <tr><td colSpan={showContact ? 7 : 6} className="text-center text-slate-500 py-6">Noch keine Teilnehmer.</td></tr>
             )}
           </tbody>
         </table>

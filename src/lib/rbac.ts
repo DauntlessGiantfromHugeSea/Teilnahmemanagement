@@ -11,6 +11,11 @@ export function canWriteGlobal(s: SessionPayload | null) {
 export function isAccounting(s: SessionPayload | null) {
   return s?.role === Role.ADMIN || s?.role === Role.ACCOUNTING;
 }
+// Kontaktdaten (E-Mail/Telefon) der Teilnehmer: fuer Viewer komplett ausgeblendet,
+// alle anderen Rollen brauchen sie fuer Pflege, Rechnungen oder Rueckfragen.
+export function canSeeContactData(s: SessionPayload | null) {
+  return !!s && s.role !== Role.VIEWER;
+}
 
 export async function listAccessibleEventIds(s: SessionPayload): Promise<string[] | "ALL"> {
   if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return "ALL";

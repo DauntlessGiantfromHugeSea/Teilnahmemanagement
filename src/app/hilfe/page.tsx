@@ -189,7 +189,7 @@ export default async function HilfePage() {
               <li><strong>Administrator</strong> sieht alles, kann alles ändern.</li>
               <li><strong>Schreibrechte (Editor)</strong> kann Veranstaltungen und Teilnehmer pflegen, sieht aber nur freigegebene Events.</li>
               <li><strong>Buchhaltung</strong> sieht alle Events und Rechnungen.</li>
-              <li><strong>Leserechte (Viewer)</strong> sieht nur freigegebene Events ohne Bearbeiten.</li>
+              <li><strong>Leserechte (Viewer)</strong> sieht nur freigegebene Events ohne Bearbeiten. Kontaktdaten (E-Mail, Telefon) werden Viewern weder in der Teilnehmerliste noch im Teilnehmer-Datensatz angezeigt.</li>
             </ul>
             <p>
               <strong>Verlauf:</strong> unter

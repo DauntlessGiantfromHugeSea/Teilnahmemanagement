@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canViewEvent, canWriteEvent, isAccounting } from "@/lib/rbac";
+import { canViewEvent, canWriteEvent, isAccounting, canSeeContactData } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { safeDecrypt } from "@/lib/crypto";
@@ -29,6 +29,8 @@ export default async function ParticipantDetail({
   if (!p || p.eventId !== params.id) notFound();
   const dec = decryptParticipant(p);
   const canWrite = await canWriteEvent(s, p.eventId);
+  // Viewer sehen Kontaktdaten auch im Datensatz nicht - die Felder entfallen komplett.
+  const showContact = canSeeContactData(s);
   const base = basePriceCents(p.event.training, p.dayOption);
   const final = finalPriceCents(base, p.discountBps);
 
@@ -106,8 +108,8 @@ export default async function ParticipantDetail({
               <h2 className="font-semibold mb-4">Daten</h2>
               <dl className="grid grid-cols-2 gap-3 text-sm">
                 <Row label="Name" value={`${dec.firstName} ${dec.lastName}`} />
-                <Row label="E-Mail" value={dec.email} />
-                <Row label="Telefon" value={dec.phone} />
+                {showContact && <Row label="E-Mail" value={dec.email} />}
+                {showContact && <Row label="Telefon" value={dec.phone} />}
                 <Row label="Firma" value={dec.company} />
                 <Row label="Anschrift" value={[dec.street, [dec.zip, dec.city].filter(Boolean).join(" "), dec.country].filter(Boolean).join(", ")} />
                 <Row label="Buchung" value={p.dayOption === "DAY_1" ? "Tag 1" : p.dayOption === "DAY_2" ? "Tag 2" : "Beide Tage"} />
