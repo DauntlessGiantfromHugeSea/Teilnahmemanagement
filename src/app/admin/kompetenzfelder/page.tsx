@@ -120,11 +120,24 @@ export default async function KompetenzfelderPage({
         (beginnt sinnvoll mit „wird bestätigt, die theoretischen Kenntnisse …").
       </p>
       <form method="post" action="/api/admin/kompetenzfelder" className="space-y-4">
-        <input type="hidden" name="count" value={items.length} />
+        {/* Eine Zeile mehr als vorhanden: die letzte ist der Platz fuer ein
+            neues Kompetenzfeld. Bleibt sie leer, wird sie beim Speichern
+            uebergangen - es braucht also kein Client-JavaScript zum
+            Hinzufuegen von Zeilen. */}
+        <input type="hidden" name="count" value={items.length + 1} />
         {items.map((k, i) => (
           <div key={k.id} className="card p-4">
             <div className="flex items-baseline justify-between gap-3 mb-3">
               <span className="text-xs font-mono text-slate-500">ID: {k.id}</span>
+              <button
+                name="deleteId"
+                value={k.id}
+                formNoValidate
+                className="text-xs text-rose-700 hover:underline"
+                title="Dieses Kompetenzfeld entfernen (bereits ausgestellte Zertifikate bleiben unverändert)"
+              >
+                entfernen
+              </button>
             </div>
             <input type="hidden" name={`id_${i}`} value={k.id} />
             <div className="grid gap-3">
@@ -133,6 +146,34 @@ export default async function KompetenzfelderPage({
             </div>
           </div>
         ))}
+
+        <div className="card p-4 border-dashed border-2 border-slate-300 bg-slate-50/60">
+          <h3 className="text-sm font-semibold text-slate-700 mb-1">Neues Kompetenzfeld</h3>
+          <p className="text-xs text-slate-500 mb-3">
+            Alle drei Felder ausfüllen und speichern. Leer lassen, wenn nichts hinzukommen soll.
+            Die ID darf noch nicht vergeben sein — sie legt die Reihenfolge nicht fest, sondern
+            dient der internen Zuordnung (z.&nbsp;B. <code>V.IX</code>).
+          </p>
+          <div className="grid gap-3">
+            <Input
+              name={`id_${items.length}`}
+              label="ID"
+              placeholder="z. B. V.IX"
+            />
+            <Input
+              name={`label_${items.length}`}
+              label="Bezeichnung"
+              placeholder="z. B. V. IX. Personal Anwendung (Erdkabel)"
+            />
+            <Textarea
+              name={`text_${items.length}`}
+              label="Bestätigungstext"
+              rows={3}
+              placeholder="wird bestätigt, die theoretischen Kenntnisse zum Einbau von RSS Flüssigboden …"
+            />
+          </div>
+        </div>
+
         <button className="btn-primary">Kompetenzfelder speichern</button>
       </form>
       <form method="post" action="/api/admin/kompetenzfelder/reset" className="mt-3">
@@ -142,7 +183,13 @@ export default async function KompetenzfelderPage({
   );
 }
 
-function Input(props: { name: string; label: string; defaultValue?: string; type?: string }) {
+function Input(props: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  type?: string;
+  placeholder?: string;
+}) {
   return (
     <div>
       <label className="label">{props.label}</label>
@@ -150,13 +197,20 @@ function Input(props: { name: string; label: string; defaultValue?: string; type
         name={props.name}
         type={props.type ?? "text"}
         defaultValue={props.defaultValue ?? ""}
+        placeholder={props.placeholder}
         className="input"
       />
     </div>
   );
 }
 
-function Textarea(props: { name: string; label: string; defaultValue?: string; rows?: number }) {
+function Textarea(props: {
+  name: string;
+  label: string;
+  defaultValue?: string;
+  rows?: number;
+  placeholder?: string;
+}) {
   return (
     <div>
       <label className="label">{props.label}</label>
@@ -164,6 +218,7 @@ function Textarea(props: { name: string; label: string; defaultValue?: string; r
         name={props.name}
         defaultValue={props.defaultValue ?? ""}
         rows={props.rows ?? 3}
+        placeholder={props.placeholder}
         className="input"
       />
     </div>

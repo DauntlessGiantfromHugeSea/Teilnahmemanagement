@@ -141,3 +141,74 @@ export async function bumpSequenceTo(type: "ZERTIFIKAT" | "TEILNAHMEBESCHEINIGUN
     });
   }
 }
+
+// --- Formularauswertung -----------------------------------------------------
+// Bewusst als reine Funktion ohne Datenbank- oder Request-Bezug, damit sie
+// unabhaengig von Next.js geprueft werden kann.
+
+export interface KompetenzfeldFormRow {
+  id: string;
+  label: string;
+  text: string;
+}
+
+// Erlaubt sind Buchstaben, Ziffern, Punkt, Bindestrich und Unterstrich.
+// Anfang und Ende muessen Buchstabe oder Ziffer sein.
+const ID_PATTERN = /^[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?$/;
+
+/**
+ * Macht aus den Formularzeilen die zu speichernde Liste.
+ *
+ * - Vollstaendig leere Zeilen werden uebersprungen (das ist der Platz fuer
+ *   ein neues Feld, wenn er nicht benutzt wurde).
+ * - `deleteId` entfernt genau diese Zeile; die uebrigen behalten ihre im
+ *   Formular stehenden Werte, damit gleichzeitige Textaenderungen erhalten
+ *   bleiben.
+ * - Halb ausgefuellte Zeilen, ungueltige oder doppelte IDs sind Fehler.
+ */
+export function parseKompetenzfelderForm(
+  rows: KompetenzfeldFormRow[],
+  deleteId?: string | null
+): { items: Kompetenzfeld[] } | { error: string } {
+  const items: Kompetenzfeld[] = [];
+  const seen = new Map<string, number>();
+  const del = (deleteId ?? "").trim();
+
+  for (let i = 0; i < rows.length; i++) {
+    const id = (rows[i].id ?? "").trim();
+    const label = (rows[i].label ?? "").trim();
+    const text = (rows[i].text ?? "").trim();
+
+    if (!id && !label && !text) continue;
+    if (del && id === del) continue;
+
+    if (!id || !label || !text) {
+      const wo = id ? `„${id}"` : `Zeile ${i + 1}`;
+      return {
+        error:
+          `${wo}: ID, Bezeichnung und Bestätigungstext sind alle drei Pflicht. ` +
+          `Zum Anlegen bitte alle drei ausfüllen, zum Überspringen alle drei leer lassen.`,
+      };
+    }
+    if (!ID_PATTERN.test(id)) {
+      return {
+        error:
+          `„${id}" ist keine gültige ID. Erlaubt sind Buchstaben, Ziffern, Punkt, ` +
+          `Bindestrich und Unterstrich; Anfang und Ende müssen Buchstabe oder Ziffer sein.`,
+      };
+    }
+    const vorher = seen.get(id.toLowerCase());
+    if (vorher !== undefined) {
+      return {
+        error: `Die ID „${id}" ist doppelt vergeben (Zeile ${vorher + 1} und ${i + 1}). IDs müssen eindeutig sein.`,
+      };
+    }
+    seen.set(id.toLowerCase(), i);
+    items.push({ id, label, text });
+  }
+
+  if (items.length === 0) {
+    return { error: "Es muss mindestens ein Kompetenzfeld übrig bleiben." };
+  }
+  return { items };
+}
