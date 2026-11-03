@@ -4,16 +4,28 @@
 // HTTP-Watchdog). Authentifizierung per Bearer-Token aus env CRON_TOKEN.
 //
 // Logik:
-//   - Finde alle Events, deren day1Date in (jetzt + 18h ... jetzt + 30h)
-//     liegt UND deren reminder24hSentAt noch null ist.
-//   - Verschicke an alle nicht-stornierten Teilnehmer eine Reminder-Mail.
-//   - Setze reminder24hSentAt = jetzt, damit es nicht erneut laeuft.
+//   - Kandidaten grob per SQL vorfiltern (day1Date in den naechsten Tagen,
+//     reminder24hSentAt noch null).
+//   - Fuer jeden Kandidaten den ECHTEN Startzeitpunkt bestimmen: Kalendertag
+//     aus day1Date plus startTime als Ortszeit (APP_TIMEZONE). Nur dadurch
+//     stimmt die Frist auch ueber die Sommer-/Winterzeit-Umstellung hinweg.
+//   - Verschicken, sobald dieser Start weniger als REMINDER_LEAD_HOURS
+//     entfernt, aber noch nicht erreicht ist.
+//   - reminder24hSentAt setzen, damit es nicht erneut laeuft.
+//
+// Frueher wurde gegen day1Date selbst gefiltert - also gegen UTC-Mitternacht
+// des Veranstaltungstags statt gegen den Beginn. Die "24h"-Mail ging dadurch
+// je nach Jahreszeit 38 bis 39 Stunden vorher raus.
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { isMailingConfigured } from "@/lib/mailer";
 import { sendReminderMail } from "@/lib/reminderMail";
+import { APP_TIMEZONE, eventStartInstant, formatDateTimeLocal } from "@/lib/timezone";
+
+// Vorlaufzeit der Erinnerung in Stunden. Ueber die .env anpassbar.
+const LEAD_HOURS = Math.max(1, Number(process.env.REMINDER_LEAD_HOURS ?? 24) || 24);
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -38,16 +50,30 @@ async function run(req: Request): Promise<NextResponse> {
   if (!isMailingConfigured()) return NextResponse.json({ error: "SMTP nicht konfiguriert" }, { status: 503 });
 
   const now = new Date();
-  const from = new Date(now.getTime() + 18 * 3600_000);
-  const to = new Date(now.getTime() + 30 * 3600_000);
 
-  const events = await prisma.event.findMany({
+  // Grobe Vorauswahl in SQL. Grosszuegig gewaehlt, weil der genaue Zeitpunkt
+  // erst aus day1Date + startTime in Ortszeit entsteht und in SQL nicht
+  // berechenbar ist; die Feinauswahl passiert gleich darunter.
+  const coarseFrom = new Date(now.getTime() - 24 * 3600_000);
+  const coarseTo = new Date(now.getTime() + (LEAD_HOURS + 48) * 3600_000);
+
+  const candidates = await prisma.event.findMany({
     where: {
       cancelled: false,
       reminder24hSentAt: null,
-      day1Date: { gte: from, lte: to },
+      day1Date: { gte: coarseFrom, lte: coarseTo },
     },
     include: { participants: true },
+  });
+
+  // Feinauswahl: faellig, sobald der echte Beginn innerhalb der Vorlaufzeit
+  // liegt. Bereits begonnene Veranstaltungen fallen heraus - fuer die waere
+  // eine Erinnerung sinnlos.
+  const events = candidates.filter((ev) => {
+    if (!ev.day1Date) return false;
+    const start = eventStartInstant(ev.day1Date, ev.startTime);
+    const msUntilStart = start.getTime() - now.getTime();
+    return msUntilStart > 0 && msUntilStart <= LEAD_HOURS * 3600_000;
   });
 
   let eventsHandled = 0;
@@ -87,5 +113,20 @@ async function run(req: Request): Promise<NextResponse> {
     eventsHandled++;
   }
 
-  return NextResponse.json({ ok: true, eventsHandled, mailsSent, mailsFailed, errors });
+  return NextResponse.json({
+    ok: true,
+    timezone: APP_TIMEZONE,
+    leadHours: LEAD_HOURS,
+    candidates: candidates.length,
+    due: events.length,
+    dueEvents: events.map((ev) => ({
+      id: ev.id,
+      title: ev.title,
+      start: ev.day1Date ? formatDateTimeLocal(eventStartInstant(ev.day1Date, ev.startTime)) : null,
+    })),
+    eventsHandled,
+    mailsSent,
+    mailsFailed,
+    errors,
+  });
 }

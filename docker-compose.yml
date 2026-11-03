@@ -75,6 +75,14 @@ services:
       CRON_TOKEN: ${CRON_TOKEN:-}
       # Praefix der Ticket-Referenz im Posteingang (Default FBA -> FBA-7K2M9-4XQ1P)
       TICKET_REF_PREFIX: ${TICKET_REF_PREFIX:-FBA}
+      # Zeitzone des Containers: bestimmt, wie Zeitstempel angezeigt werden.
+      TZ: ${TZ:-Europe/Berlin}
+      # Fachliche Zeitzone fuer Fristberechnungen (Erinnerungsmail).
+      # Unabhaengig von TZ, damit die Rechnung auch dann stimmt, wenn der
+      # Container versehentlich anders konfiguriert ist.
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Berlin}
+      # Vorlauf der Erinnerungsmail in Stunden vor dem echten Beginn.
+      REMINDER_LEAD_HOURS: ${REMINDER_LEAD_HOURS:-24}
       # Iframe-Embedding der oeffentlichen Anmeldeseiten
       IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de}
       NODE_ENV: production
@@ -100,6 +108,7 @@ services:
       - app
     environment:
       CRON_TOKEN: ${CRON_TOKEN:-}
+      TZ: ${TZ:-Europe/Berlin}
     command:
       - sh
       - -c

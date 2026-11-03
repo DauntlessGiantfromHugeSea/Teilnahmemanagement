@@ -30,12 +30,16 @@ RUN npm run build
 
 # ---------- Stage 3: runner ----------
 FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat openssl curl
+# tzdata ist Pflicht: ohne die Zonendatenbank ignoriert Alpine die TZ-Variable
+# und der Prozess laeuft in UTC - Zeitstempel waeren dann eine Stunde
+# (Winterzeit) bzw. zwei Stunden (Sommerzeit) daneben.
+RUN apk add --no-cache libc6-compat openssl curl tzdata
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
+ENV TZ=Europe/Berlin
 
 # Non-root User
 RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001

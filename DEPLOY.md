@@ -138,6 +138,46 @@ neue Tabellen wie die des Posteingangs entstehen also ohne manuellen Schritt.
 4. Danach unter **Administration → Postfaecher** die Postfaecher anlegen und
    „Verbindung testen" druecken. Einrichtung im Detail: `POSTEINGANG.md`.
 
+## 6b. Zeitzone
+
+Der Container laeuft auf `Europe/Berlin` (`TZ` im Dockerfile, ueberschreibbar
+per `.env`). Zeitstempel in der Oberflaeche - Ticket-Eingang, Audit-Log,
+letzter Postfach-Abruf - werden damit in deutscher Zeit angezeigt statt in UTC.
+
+Sommer- und Winterzeit ergeben sich automatisch aus der Zonendatenbank. **Es
+ist keine manuelle Umstellung noetig**, weder zweimal im Jahr noch sonst.
+
+Fristen fuer die Erinnerungsmail werden zusaetzlich unabhaengig von `TZ`
+gerechnet, gegen `APP_TIMEZONE` (Default ebenfalls `Europe/Berlin`). Damit
+stimmt der Versandzeitpunkt auch dann, wenn der Container versehentlich anders
+konfiguriert wird.
+
+| Variable | Default | Bedeutung |
+| --- | --- | --- |
+| `TZ` | `Europe/Berlin` | Zeitzone des Containers, bestimmt die **Anzeige** |
+| `APP_TIMEZONE` | `Europe/Berlin` | Zeitzone fuer die **Fristberechnung** |
+| `REMINDER_LEAD_HOURS` | `24` | Vorlauf der Erinnerungsmail vor dem echten Beginn |
+
+Nach einer Aenderung die Container neu starten (`docker compose up -d app cron`) -
+Umgebungsvariablen werden nur beim Start gelesen.
+
+Pruefen laesst sich die Zeitzone so:
+
+```bash
+docker compose exec -T app date
+docker compose exec -T app sh -c 'echo "$TZ / $APP_TIMEZONE"'
+```
+
+**Erinnerungsmail.** Der Versand richtet sich nach dem tatsaechlichen Beginn,
+also nach `day1Date` plus `startTime` in Ortszeit - nicht mehr nach
+UTC-Mitternacht des Veranstaltungstags. Bis einschliesslich Version `b40738b`
+ging die als "24h" bezeichnete Mail dadurch je nach Jahreszeit 38 bis 39
+Stunden vorher raus. Ohne hinterlegte Uhrzeit wird 9 Uhr Ortszeit angenommen.
+
+Welche Veranstaltungen der naechste Lauf als faellig ansieht, zeigt die
+Antwort des Cron-Endpunkts im Feld `dueEvents` mit dem jeweils angenommenen
+Startzeitpunkt in Ortszeit.
+
 ## 7. Backups
 
 Verschluesselte DB (alle PII sind doppelt geschuetzt - per AES im Feld und
