@@ -1,4 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import { graphEnvCredentials, graphSendMail } from "./msGraphMail";
 
 // Stabiles SMTP-Setup mit Connection-Pool, Retry-Logik und List-Unsubscribe.
 //
@@ -13,7 +14,18 @@ import nodemailer, { type Transporter } from "nodemailer";
 //   MAIL_REPLY_TO       Optionaler Reply-To-Header
 //   MAIL_ADMIN          Optionale Empfaengeradresse fuer Admin-Benachrichtigungen
 //
-// Ohne SMTP-Konfiguration werden Mails uebersprungen und nur geloggt - die App
+// Zweiter Versandweg: Microsoft Graph (App-Only), gesteuert ueber
+//   MAIL_TRANSPORT      "graph" | "smtp" | "auto" (Default: auto)
+//   MAIL_GRAPH_SENDER   Postfach, aus dem verschickt wird, z.B. info@fb-akademie.de
+//   MAIL_GRAPH_SAVE_SENT "false" legt die Kopie NICHT in "Gesendete Elemente"
+// "auto" nimmt Graph, sobald Absender und MS_*-Zugangsdaten vorhanden sind,
+// sonst SMTP.
+//
+// Einschraenkung von Graph: internetMessageHeaders erlaubt nur Namen mit dem
+// Praefix "x-". List-Unsubscribe laesst sich darueber NICHT setzen; betroffene
+// Mails werden trotzdem verschickt, der Wegfall wird protokolliert.
+//
+// Ohne jede Konfiguration werden Mails uebersprungen und nur geloggt - die App
 // bleibt damit auch ohne Mailing voll funktionsfaehig.
 
 export interface MailAttachment {
@@ -60,13 +72,40 @@ function configKey(): string {
   ].join("|");
 }
 
-export function isMailingConfigured(): boolean {
+export type MailTransportKind = "graph" | "smtp" | "none";
+
+function graphSender(): string | undefined {
+  const explicit = process.env.MAIL_GRAPH_SENDER?.trim();
+  if (explicit) return explicit;
+  // Rueckfall: die Adresse aus MAIL_FROM, falls dort eine steht.
+  const m = /<([^>]+)>/.exec(mailFrom() ?? "");
+  const bare = (mailFrom() ?? "").trim();
+  const addr = m ? m[1].trim() : bare.includes("@") && !bare.includes(" ") ? bare : "";
+  return addr || undefined;
+}
+
+function smtpConfigured(): boolean {
   return Boolean(
-    process.env.SMTP_HOST &&
-      process.env.SMTP_USER &&
-      process.env.SMTP_PASS &&
-      mailFrom()
+    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && mailFrom()
   );
+}
+
+function graphConfigured(): boolean {
+  return Boolean(graphEnvCredentials() && graphSender());
+}
+
+/** Welcher Weg wuerde aktuell benutzt? Auch fuer die Diagnose im Admin-Bereich. */
+export function mailTransportKind(): MailTransportKind {
+  const wanted = (process.env.MAIL_TRANSPORT ?? "auto").toLowerCase();
+  if (wanted === "graph") return graphConfigured() ? "graph" : "none";
+  if (wanted === "smtp") return smtpConfigured() ? "smtp" : "none";
+  if (graphConfigured()) return "graph";
+  if (smtpConfigured()) return "smtp";
+  return "none";
+}
+
+export function isMailingConfigured(): boolean {
+  return mailTransportKind() !== "none";
 }
 
 // Alias fuer aelteren Newsletter-Code.
@@ -104,6 +143,17 @@ function getTransporter(): Transporter | null {
   return cachedTransporter;
 }
 
+/** Zerlegt MAIL_FROM in Anzeigename und Adresse. */
+function parseFrom(value: string | undefined): { name?: string; address?: string } {
+  const v = (value ?? "").trim();
+  if (!v) return {};
+  const m = /^(.*?)\s*<([^>]+)>$/.exec(v);
+  if (m) return { name: m[1].replace(/^"|"$/g, "").trim() || undefined, address: m[2].trim() };
+  return v.includes("@") ? { address: v } : {};
+}
+
+let listUnsubscribeWarned = false;
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -127,12 +177,67 @@ function isRetryable(err: any): boolean {
   return false;
 }
 
+/** Versand ueber Microsoft Graph. Siehe Kopfkommentar zu den Einschraenkungen. */
+async function sendViaGraph(opts: MailOptions): Promise<SendResult> {
+  const sender = graphSender();
+  if (!sender) return { ok: false, error: "MAIL_GRAPH_SENDER ist nicht gesetzt." };
+
+  const from = parseFrom(mailFrom());
+  const headers: Record<string, string> = {};
+  if (opts.listUnsubscribe) {
+    // Graph nimmt nur x-Header an. Der Standard-Header geht verloren; das
+    // einmal deutlich melden, statt es stillschweigend zu schlucken.
+    if (!listUnsubscribeWarned) {
+      console.warn(
+        "[mailer] Graph-Versand kann List-Unsubscribe nicht setzen - " +
+          "der Ein-Klick-Abmeldeknopf in Gmail/Outlook entfällt. " +
+          "Für Newsletter MAIL_TRANSPORT=smtp verwenden."
+      );
+      listUnsubscribeWarned = true;
+    }
+  }
+
+  const res = await graphSendMail(sender, {
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text ?? (opts.html ? htmlToText(opts.html) : undefined),
+    to: Array.isArray(opts.to) ? opts.to : [opts.to],
+    cc: undefined,
+    bcc: opts.bcc ? (Array.isArray(opts.bcc) ? opts.bcc : [opts.bcc]) : undefined,
+    replyTo: opts.replyTo ?? process.env.MAIL_REPLY_TO ?? undefined,
+    // Der Absender ist immer das Postfach hinter MAIL_GRAPH_SENDER; ein
+    // abweichender Anzeigename aus MAIL_FROM wird uebernommen.
+    fromName: from.name,
+    fromAddress: from.address && from.address.toLowerCase() === sender.toLowerCase() ? from.address : undefined,
+    headers,
+    attachments: opts.attachments,
+  });
+
+  if (!res.ok) {
+    console.error(`[mailer] Graph-Versand fehlgeschlagen: ${res.error}`);
+    return { ok: false, error: res.error };
+  }
+  return { ok: true };
+}
+
 /**
  * Versendet eine E-Mail. Schlaegt nie hart fehl - gibt stattdessen
  * { ok:false, error } bzw. { ok:false, skipped:true } zurueck, damit Aufrufer
  * den eigentlichen Vorgang (z. B. Anmeldung) auch ohne Mail abschliessen koennen.
  */
 export async function sendMail(opts: MailOptions): Promise<SendResult> {
+  const kind = mailTransportKind();
+
+  if (kind === "none") {
+    console.warn(
+      "[mailer] Kein Versandweg konfiguriert (weder Graph noch SMTP) - überspringe Mail an",
+      Array.isArray(opts.to) ? opts.to.join(",") : opts.to
+    );
+    return { ok: false, skipped: true };
+  }
+
+  if (kind === "graph") return sendViaGraph(opts);
+
   const transporter = getTransporter();
   if (!transporter) {
     console.warn(
@@ -191,8 +296,18 @@ export async function sendMail(opts: MailOptions): Promise<SendResult> {
  * Wirft eine Exception bei Fehlern.
  */
 export async function verifyMailer(): Promise<void> {
+  const kind = mailTransportKind();
+  if (kind === "graph") {
+    const creds = graphEnvCredentials();
+    if (!creds) throw new Error("Microsoft-Zugangsdaten fehlen (MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET)");
+    if (!graphSender()) throw new Error("MAIL_GRAPH_SENDER ist nicht gesetzt");
+    // Token holen genuegt als Nachweis, dass Tenant, App und Secret stimmen.
+    const { graphToken } = await import("./msGraphMail");
+    await graphToken(creds);
+    return;
+  }
   const t = getTransporter();
-  if (!t) throw new Error("SMTP nicht konfiguriert (SMTP_HOST / SMTP_USER / SMTP_PASS / MAIL_FROM fehlen)");
+  if (!t) throw new Error("Kein Versandweg konfiguriert (weder MS_*/MAIL_GRAPH_SENDER noch SMTP_*)");
   await t.verify();
 }
 

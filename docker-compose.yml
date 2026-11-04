@@ -60,6 +60,13 @@ services:
       MAIL_REPLY_TO: ${MAIL_REPLY_TO:-}
       MAIL_ADMIN: ${MAIL_ADMIN:-}
       MAIL_LOGO_URL: ${MAIL_LOGO_URL:-}
+      # Versandweg: "graph" | "smtp" | "auto" (Default auto = Graph, wenn
+      # MS_* und MAIL_GRAPH_SENDER gesetzt sind, sonst SMTP).
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-auto}
+      # Postfach, aus dem ueber Graph verschickt wird.
+      MAIL_GRAPH_SENDER: ${MAIL_GRAPH_SENDER:-}
+      # "false" legt keine Kopie in "Gesendete Elemente" des Postfachs ab.
+      MAIL_GRAPH_SAVE_SENT: ${MAIL_GRAPH_SAVE_SENT:-true}
       MAIL_BRAND_COLOR: ${MAIL_BRAND_COLOR:-#0f766e}
       MAIL_FOOTER_LINE: ${MAIL_FOOTER_LINE:-}
       # Microsoft / Entra ID Single-Sign-On (optional). Wenn alle drei leer

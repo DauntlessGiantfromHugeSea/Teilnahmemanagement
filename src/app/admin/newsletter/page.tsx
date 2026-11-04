@@ -5,7 +5,7 @@ import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptSubscriber } from "@/lib/newsletter";
-import { mailerConfigured } from "@/lib/mailer";
+import { mailerConfigured, mailTransportKind } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +50,18 @@ export default async function NewsletterPage({
 
       {!mailerConfigured() && (
         <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
-          SMTP ist nicht konfiguriert (SMTP_* in der .env fehlt). Es werden keine E-Mails versendet.
+          Kein Versandweg konfiguriert. Es werden keine E-Mails versendet. Erwartet wird entweder
+          Microsoft Graph (<code>MS_*</code> und <code>MAIL_GRAPH_SENDER</code>) oder SMTP
+          (<code>SMTP_*</code> und <code>MAIL_FROM</code>).
+        </div>
+      )}
+      {mailTransportKind() === "graph" && (
+        <div className="mb-4 rounded-lg bg-sky-50 border border-sky-200 px-3 py-2 text-sm text-sky-900">
+          Versand läuft über <strong>Microsoft Graph</strong>. Dabei lässt sich die Kopfzeile
+          <code className="mx-1">List-Unsubscribe</code> nicht setzen — der Ein-Klick-Abmeldeknopf
+          in Gmail und Outlook entfällt, der Abmeldelink in der Fußzeile bleibt. Außerdem drosselt
+          Exchange Online bei etwa 30 Nachrichten pro Minute. Für größere Aussendungen ist
+          <code className="mx-1">MAIL_TRANSPORT=smtp</code> mit einem Versanddienst die bessere Wahl.
         </div>
       )}
       {searchParams.ok && (

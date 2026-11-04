@@ -209,6 +209,66 @@ in der AppSetting `mail.signature.company`; die Standardwerte stehen in
 Die Vorschau („Vorschau im neuen Tab" bzw. „Vorschau" im Antwortfeld) rendert exakt das
 HTML, das verschickt wird — keine Nachbildung.
 
+## 6b. Mailversand über Microsoft statt SMTP
+
+Der gesamte Mailversand der Anwendung — Anmeldebestätigungen, Erinnerungen,
+Zertifikate, Einladungen, Rundmails, Ticket-Antworten — kann über dieselbe
+App-Registrierung laufen wie der Posteingang. SMTP entfällt dann vollständig.
+
+```bash
+MAIL_TRANSPORT=graph
+MAIL_GRAPH_SENDER=info@fb-akademie.de
+MAIL_FROM=FB-Akademie <info@fb-akademie.de>     # nur noch der Anzeigename zählt
+```
+
+`MAIL_TRANSPORT` kennt drei Werte:
+
+| Wert | Verhalten |
+| --- | --- |
+| `graph` | immer über Microsoft; ohne gültige Konfiguration wird nichts verschickt |
+| `smtp` | immer über SMTP |
+| `auto` (Default) | Graph, sobald `MS_*` und `MAIL_GRAPH_SENDER` gesetzt sind, sonst SMTP |
+
+**Voraussetzung:** Die App-Registrierung braucht die *Anwendungsberechtigung*
+`Mail.Send` mit Administrator-Zustimmung — dieselbe, die der Posteingang
+ohnehin benötigt. Das Postfach hinter `MAIL_GRAPH_SENDER` muss ein echtes
+Exchange-Online-Postfach sein.
+
+**Welcher Weg aktiv ist**, zeigt `mailTransportKind()` aus `src/lib/mailer.ts`;
+auf der Newsletter-Seite steht es als Hinweis.
+
+### Zwei Einschränkungen, die Sie kennen sollten
+
+**`List-Unsubscribe` lässt sich nicht setzen.** Graph erlaubt in
+`internetMessageHeaders` nur Namen mit dem Präfix `x-`; Standardkopfzeilen
+werden abgewiesen. Der Ein-Klick-Abmeldeknopf in Gmail und Outlook entfällt
+damit, der Abmeldelink in der Fußzeile bleibt. Für Newsletter ist das ein
+Nachteil bei der Zustellbarkeit — betroffene Mails werden trotzdem verschickt
+und der Wegfall einmal pro Prozess protokolliert.
+
+**Exchange Online drosselt.** Rund 30 Nachrichten pro Minute und 10.000
+Empfänger pro Tag und Postfach. Für Bestätigungen und Erinnerungen
+unproblematisch, für größere Aussendungen nicht. Der Versand beachtet die von
+Exchange gemeldete Wartezeit (HTTP 429) und wiederholt bis zu dreimal.
+
+Für große Rundbriefe empfiehlt sich deshalb weiterhin ein Versanddienst:
+`MAIL_TRANSPORT=smtp` schaltet den gesamten Versand um.
+
+### Anhänge
+
+Zertifikate und Anmeldebestätigungen gehen als PDF mit. Graph begrenzt eine
+Nachricht auf etwa 4 MB; die Anwendung lehnt oberhalb von 3,5 MB mit einer
+klaren Meldung ab, statt still zu scheitern. Ein typisches Zertifikat liegt
+bei etwa 80 KB.
+
+### Absender
+
+Der Absender ist immer das Postfach aus `MAIL_GRAPH_SENDER` — eine fremde
+Adresse lässt sich damit nicht vortäuschen. Ein abweichender Anzeigename aus
+`MAIL_FROM` wird übernommen, solange die Adresse darin dieselbe ist.
+Verschickte Mails landen in „Gesendete Elemente" des Postfachs;
+`MAIL_GRAPH_SAVE_SENT=false` schaltet das ab.
+
 ## 7. Sicherheit
 
 - Betreffe, Mailtexte, Adressen, Anhangsnamen und Postfach-Passwörter sind AES-256-GCM

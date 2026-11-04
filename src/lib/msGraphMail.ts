@@ -247,3 +247,198 @@ export async function graphTestConnection(
   const json = (await res.json()) as { displayName?: string; totalItemCount?: number };
   return { displayName: json.displayName ?? "Posteingang", total: json.totalItemCount ?? 0 };
 }
+
+// --- Allgemeiner Versand ueber Graph ----------------------------------------
+// Nicht nur fuer Ticket-Antworten: hierueber laeuft der gesamte Mailversand
+// der Anwendung, wenn MAIL_TRANSPORT=graph gewaehlt ist.
+
+/**
+ * Zugangsdaten aus der Umgebung, ohne Bezug zu einem Postfach-Datensatz.
+ * Fuer den allgemeinen Versand gibt es keine Mailbox-Zeile in der Datenbank.
+ */
+export function graphEnvCredentials(): GraphCredentials | null {
+  const tenantId = process.env.MS_TENANT_ID ?? "";
+  const clientId = process.env.MS_CLIENT_ID ?? "";
+  const clientSecret = process.env.MS_CLIENT_SECRET ?? "";
+  if (!tenantId || !clientId || !clientSecret) return null;
+  // Bei App-Only muss der konkrete Tenant stehen, "common" funktioniert nicht.
+  if (tenantId === "common" || tenantId === "organizations") return null;
+  return { tenantId, clientId, clientSecret };
+}
+
+export interface GraphRecipient {
+  emailAddress: { address: string; name?: string };
+}
+
+export interface GraphAttachment {
+  "@odata.type": "#microsoft.graph.fileAttachment";
+  name: string;
+  contentType?: string;
+  contentBytes: string;
+}
+
+export interface GraphMessage {
+  subject: string;
+  body: { contentType: "HTML" | "Text"; content: string };
+  toRecipients: GraphRecipient[];
+  ccRecipients?: GraphRecipient[];
+  bccRecipients?: GraphRecipient[];
+  replyTo?: GraphRecipient[];
+  from?: GraphRecipient;
+  internetMessageHeaders?: { name: string; value: string }[];
+  attachments?: GraphAttachment[];
+}
+
+export interface BuildGraphMessageInput {
+  subject: string;
+  html?: string;
+  text?: string;
+  to: string[];
+  cc?: string[];
+  bcc?: string[];
+  replyTo?: string;
+  /** Anzeigename des Absenders; die Adresse bestimmt das verwendete Postfach. */
+  fromName?: string;
+  fromAddress?: string;
+  /** Nur Namen mit Praefix "x-" sind bei Graph zulaessig. */
+  headers?: Record<string, string>;
+  attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string }[];
+}
+
+export function toRecipients(list: string[] | undefined): GraphRecipient[] {
+  return (list ?? [])
+    .map((a) => a.trim())
+    .filter(Boolean)
+    .map((address) => ({ emailAddress: { address } }));
+}
+
+/**
+ * Graph nimmt in internetMessageHeaders ausschliesslich Namen an, die mit
+ * "x-" beginnen. Standardkopfzeilen wie List-Unsubscribe lassen sich damit
+ * NICHT setzen - sie werden hier verworfen und vom Aufrufer protokolliert.
+ */
+export function graphAllowedHeaders(
+  headers: Record<string, string> | undefined
+): { allowed: { name: string; value: string }[]; dropped: string[] } {
+  const allowed: { name: string; value: string }[] = [];
+  const dropped: string[] = [];
+  for (const [name, value] of Object.entries(headers ?? {})) {
+    if (/^x-/i.test(name)) allowed.push({ name, value });
+    else dropped.push(name);
+  }
+  return { allowed, dropped };
+}
+
+/** Baut die Graph-Nachricht. Reine Funktion - ohne Netz pruefbar. */
+export function buildGraphMessage(input: BuildGraphMessageInput): {
+  message: GraphMessage;
+  droppedHeaders: string[];
+  attachmentBytes: number;
+} {
+  const { allowed, dropped } = graphAllowedHeaders(input.headers);
+  const attachments = (input.attachments ?? []).map((a) => {
+    const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(a.content);
+    return {
+      "@odata.type": "#microsoft.graph.fileAttachment" as const,
+      name: a.filename,
+      contentType: a.contentType,
+      contentBytes: buf.toString("base64"),
+    };
+  });
+  const attachmentBytes = attachments.reduce((n, a) => n + a.contentBytes.length, 0);
+
+  const message: GraphMessage = {
+    subject: input.subject,
+    body: input.html
+      ? { contentType: "HTML", content: input.html }
+      : { contentType: "Text", content: input.text ?? "" },
+    toRecipients: toRecipients(input.to),
+  };
+  if (input.cc?.length) message.ccRecipients = toRecipients(input.cc);
+  if (input.bcc?.length) message.bccRecipients = toRecipients(input.bcc);
+  if (input.replyTo) message.replyTo = toRecipients([input.replyTo]);
+  if (input.fromAddress) {
+    message.from = {
+      emailAddress: input.fromName
+        ? { address: input.fromAddress, name: input.fromName }
+        : { address: input.fromAddress },
+    };
+  }
+  if (allowed.length) message.internetMessageHeaders = allowed;
+  if (attachments.length) message.attachments = attachments;
+
+  return { message, droppedHeaders: dropped, attachmentBytes };
+}
+
+/** Graph lehnt sendMail oberhalb von etwa 4 MB Gesamtgroesse ab. */
+export const GRAPH_SEND_LIMIT_BYTES = 3_500_000;
+
+export interface GraphSendMailResult {
+  ok: boolean;
+  error?: string;
+  droppedHeaders?: string[];
+}
+
+/**
+ * Verschickt eine Nachricht ueber /users/{sender}/sendMail.
+ * Bei Drosselung (429) wird die von Exchange genannte Wartezeit beachtet.
+ */
+export async function graphSendMail(
+  sender: string,
+  input: BuildGraphMessageInput,
+  creds?: GraphCredentials | null
+): Promise<GraphSendMailResult> {
+  const c = creds ?? graphEnvCredentials();
+  if (!c) return { ok: false, error: "Microsoft-Zugangsdaten fehlen (MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET)." };
+
+  const built = buildGraphMessage(input);
+  if (built.attachmentBytes > GRAPH_SEND_LIMIT_BYTES) {
+    return {
+      ok: false,
+      error:
+        `Anhaenge zu gross fuer den Graph-Versand (${Math.round(built.attachmentBytes / 1024)} KB, ` +
+        `Grenze ${Math.round(GRAPH_SEND_LIMIT_BYTES / 1024)} KB).`,
+      droppedHeaders: built.droppedHeaders,
+    };
+  }
+
+  const saveToSentItems = process.env.MAIL_GRAPH_SAVE_SENT !== "false";
+  const body = JSON.stringify({ message: built.message, saveToSentItems });
+  const path = `/users/${encodeURIComponent(sender)}/sendMail`;
+
+  const delays = [0, 2_000, 5_000];
+  let lastError = "";
+  for (let i = 0; i < delays.length; i++) {
+    if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+    try {
+      const token = await graphToken(c);
+      const res = await fetch(`${GRAPH}${path}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body,
+      });
+      if (res.ok) return { ok: true, droppedHeaders: built.droppedHeaders };
+
+      let detail = `${res.status} ${res.statusText}`;
+      try {
+        const err = (await res.json()) as { error?: { code?: string; message?: string } };
+        if (err.error) detail = `${err.error.code ?? res.status}: ${err.error.message ?? ""}`;
+      } catch {
+        /* keine JSON-Antwort */
+      }
+      lastError = detail;
+
+      // 429 = Drosselung, 5xx = voruebergehend. Alles andere ist endgueltig.
+      if (res.status === 429) {
+        const retryAfter = Number(res.headers.get("retry-after") ?? 0);
+        if (retryAfter > 0 && retryAfter <= 60) await new Promise((r) => setTimeout(r, retryAfter * 1000));
+        continue;
+      }
+      if (res.status >= 500) continue;
+      break;
+    } catch (e) {
+      lastError = (e as Error).message;
+    }
+  }
+  return { ok: false, error: lastError, droppedHeaders: built.droppedHeaders };
+}
