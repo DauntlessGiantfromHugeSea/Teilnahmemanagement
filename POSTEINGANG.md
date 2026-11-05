@@ -215,10 +215,31 @@ Der gesamte Mailversand der Anwendung — Anmeldebestätigungen, Erinnerungen,
 Zertifikate, Einladungen, Rundmails, Ticket-Antworten — kann über dieselbe
 App-Registrierung laufen wie der Posteingang. SMTP entfällt dann vollständig.
 
+**Einrichten mit einem Befehl** (wiederholbar, legt keine Dubletten an und
+sichert die bestehende `.env` vorher):
+
+```bash
+bash scripts/setup-mail-graph.sh info@fb-akademie.de
+docker compose up -d app cron
+bash scripts/check-mail-graph.sh
+```
+
+`check-mail-graph.sh` prüft im laufenden Container, ob das Token zustande
+kommt, ob `Mail.Send` tatsächlich erteilt wurde und ob das Absenderpostfach
+erreichbar ist. Mit einer Adresse als Argument verschickt es zusätzlich eine
+Testmail:
+
+```bash
+bash scripts/check-mail-graph.sh d.model@fb-eng.de
+```
+
+Von Hand gesetzt sieht dieselbe Konfiguration so aus:
+
 ```bash
 MAIL_TRANSPORT=graph
 MAIL_GRAPH_SENDER=info@fb-akademie.de
 MAIL_FROM=FB-Akademie <info@fb-akademie.de>     # nur noch der Anzeigename zählt
+MAIL_REPLY_TO=info@fb-akademie.de
 ```
 
 `MAIL_TRANSPORT` kennt drei Werte:
