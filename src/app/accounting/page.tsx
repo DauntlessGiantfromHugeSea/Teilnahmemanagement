@@ -7,38 +7,62 @@ import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { basePriceCents, finalPriceCents, formatEUR } from "@/lib/pricing";
 
+const PAGE_SIZE = 50;
+
 export default async function AccountingPage({
   searchParams,
 }: {
-  searchParams: { eventId?: string };
+  searchParams: { eventId?: string; page?: string };
 }) {
   const s = await getSession();
   if (!s) redirect("/login");
   if (!isAccounting(s)) redirect("/dashboard");
 
   const eventId = searchParams.eventId && searchParams.eventId !== "ALL" ? searchParams.eventId : null;
-  const events = await prisma.event.findMany({
-    orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
-    include: { training: true },
-  });
-  const parts = await prisma.participant.findMany({
-    where: {
-      status: { not: "CANCELLED" },
-      ...(eventId ? { eventId } : {}),
-    },
-    include: { event: { include: { training: true } } },
-    orderBy: [{ event: { day1Date: "desc" } }, { createdAt: "desc" }],
-  });
+  const page = Math.max(1, Number(searchParams.page ?? 1) || 1);
 
+  const where = {
+    status: { not: "CANCELLED" as const },
+    ...(eventId ? { eventId } : {}),
+  };
+
+  // Die Kennzahlen kommen aus der Datenbank, nicht aus den geladenen Zeilen.
+  // invoiceStatus ist unverschluesselt, also zaehlbar ohne jede Entschluesselung.
+  // Frueher wurden dafuer ALLE Teilnehmer geladen und entschluesselt - bei
+  // 25.000 Datensaetzen rund zwei Sekunden reine Rechenzeit pro Seitenaufruf.
+  const [events, total, offen, parts] = await Promise.all([
+    prisma.event.findMany({
+      orderBy: [{ day1Date: "desc" }, { createdAt: "desc" }],
+      include: { training: true },
+    }),
+    prisma.participant.count({ where }),
+    prisma.participant.count({ where: { ...where, invoiceStatus: "OPEN" } }),
+    prisma.participant.findMany({
+      where,
+      include: { event: { include: { training: true } } },
+      orderBy: [{ event: { day1Date: "desc" } }, { createdAt: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+  ]);
+
+  const erledigt = total - offen;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Entschluesselt wird nur, was auch angezeigt wird.
   const rows = parts.map((p) => {
     const dec = decryptParticipant(p);
     const cents = finalPriceCents(basePriceCents(p.event.training, p.dayOption), p.discountBps);
     return { p, dec, cents, done: p.invoiceStatus !== "OPEN" };
   });
 
-  const total = rows.length;
-  const offen = rows.filter((r) => !r.done).length;
-  const erledigt = total - offen;
+  const seitenLink = (ziel: number) => {
+    const q = new URLSearchParams();
+    if (eventId) q.set("eventId", eventId);
+    if (ziel > 1) q.set("page", String(ziel));
+    const qs = q.toString();
+    return qs ? `/accounting?${qs}` : "/accounting";
+  };
 
   return (
     <Shell session={s} active="accounting">
@@ -376,6 +400,26 @@ export default async function AccountingPage({
           </tbody>
         </table>
       </div>
+
+      {pages > 1 && (
+        <div className="flex items-center justify-between mt-4 text-sm">
+          <div className="text-slate-500">
+            Seite {page} von {pages} · {total} Teilnehmer
+          </div>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link href={seitenLink(page - 1)} className="btn-secondary text-sm">
+                ← zurück
+              </Link>
+            )}
+            {page < pages && (
+              <Link href={seitenLink(page + 1)} className="btn-secondary text-sm">
+                weiter →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </Shell>
   );
 }
