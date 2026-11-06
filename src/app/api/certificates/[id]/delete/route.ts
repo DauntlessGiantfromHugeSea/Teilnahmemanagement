@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { canWriteEvent, isAdmin } from "@/lib/rbac";
+import { canManageEvent, isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   });
   if (!cert) return new NextResponse("Not found", { status: 404 });
   if (cert.participant) {
-    if (!(await canWriteEvent(s, cert.participant.eventId))) {
+    if (!(await canManageEvent(s, cert.participant.eventId))) {
       return new NextResponse("Forbidden", { status: 403 });
     }
   } else if (!isAdmin(s)) {

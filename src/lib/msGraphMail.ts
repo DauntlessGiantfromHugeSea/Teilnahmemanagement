@@ -26,14 +26,56 @@ export interface GraphCredentials {
   clientSecret: string;
 }
 
+/**
+ * Postfaecher, fuer die die tenantweite App-Registrierung (MS_*) verwendet
+ * werden darf. Leere Liste heisst: gar keine.
+ *
+ * Hintergrund: Die App-Berechtigung Mail.ReadWrite gilt im Tenant fuer ALLE
+ * Postfaecher. Wer im Werkzeug ein Postfach anlegen darf, koennte sonst eine
+ * beliebige Adresse der Organisation eintragen und deren Mails mitlesen -
+ * die Adresse ist ein freies Textfeld. Microsofts Gegenmassnahme ist die
+ * Application Access Policy im Tenant; die steht aber ausserhalb dieser
+ * Anwendung und laesst sich von hier aus nicht nachpruefen. Diese Liste ist
+ * die Absicherung, die die Anwendung selbst durchsetzen kann.
+ */
+export function graphEnvMailboxAllowlist(): string[] {
+  return (process.env.MS_GRAPH_MAILBOXES ?? "")
+    .split(/[\s,;]+/)
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function graphEnvFallbackAllowed(address: string): boolean {
+  const list = graphEnvMailboxAllowlist();
+  if (list.length === 0) return false;
+  return list.includes((address ?? "").trim().toLowerCase());
+}
+
+/**
+ * Zugangsdaten fuer ein Postfach. Entweder das Postfach bringt einen
+ * vollstaendigen eigenen Satz mit, oder es greift - sofern freigegeben -
+ * auf die tenantweite Registrierung zurueck. Gemischt wird nicht.
+ */
 export function graphCredentials(mb: Mailbox): GraphCredentials | null {
-  const tenantId = mb.graphTenantId || process.env.MS_TENANT_ID || "";
-  const clientId = mb.graphClientId || process.env.MS_CLIENT_ID || "";
-  const clientSecret = safeDecrypt(mb.graphClientSecret) || process.env.MS_CLIENT_SECRET || "";
-  if (!tenantId || !clientId || !clientSecret) return null;
-  // "common" funktioniert bei App-Only nicht - dort braucht es den Tenant.
-  if (tenantId === "common" || tenantId === "organizations") return null;
-  return { tenantId, clientId, clientSecret };
+  // 1) Eigene Zugangsdaten des Postfachs.
+  if (mb.graphClientSecret) {
+    const clientSecret = safeDecrypt(mb.graphClientSecret);
+    // Hinterlegt, aber nicht entschluesselbar (falscher oder getauschter
+    // FIELD_ENCRYPTION_KEY): Das ist ein Fehler und darf nicht still auf
+    // die tenantweiten Zugangsdaten zurueckfallen - sonst liefe das
+    // Postfach unbemerkt mit weiterreichenden Rechten.
+    if (!clientSecret) return null;
+    const tenantId = mb.graphTenantId || "";
+    const clientId = mb.graphClientId || "";
+    if (!tenantId || !clientId) return null;
+    if (tenantId === "common" || tenantId === "organizations") return null;
+    return { tenantId, clientId, clientSecret };
+  }
+
+  // 2) Rueckfall auf die tenantweite App-Registrierung, nur fuer
+  //    ausdruecklich freigegebene Adressen.
+  if (!graphEnvFallbackAllowed(mb.address)) return null;
+  return graphEnvCredentials();
 }
 
 // Token-Cache je Credential-Satz. Graph-Tokens laufen nach ca. 1h ab; wir

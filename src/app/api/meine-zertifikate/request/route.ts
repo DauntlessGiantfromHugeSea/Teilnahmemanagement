@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { createOtp, emailHashOf } from "@/lib/certPortal";
+import { createOtp, emailHashOf, OtpRateLimited } from "@/lib/certPortal";
 import { sendMail, isMailingConfigured } from "@/lib/mailer";
 import { htmlShell } from "@/lib/mailTemplates";
 
@@ -23,7 +23,21 @@ export async function POST(req: Request) {
   // Wir geben immer denselben "Wir haben einen Code geschickt"-Hinweis aus,
   // unabhaengig davon, ob die Adresse existiert (Datenschutz).
   if (participant) {
-    const { code } = await createOtp(email);
+    let code: string;
+    try {
+      ({ code } = await createOtp(email));
+    } catch (e) {
+      // Bremse erreicht. Nach aussen sieht das genauso aus wie der
+      // Normalfall - sonst waere an der Antwort ablesbar, ob zu der
+      // Adresse ueberhaupt Zertifikate existieren.
+      if (e instanceof OtpRateLimited) {
+        return new NextResponse(null, {
+          status: 303,
+          headers: { Location: `/meine-zertifikate/code?email=${encodeURIComponent(email)}` },
+        });
+      }
+      throw e;
+    }
     const appName = process.env.APP_NAME ?? "Flüssigboden Akademie";
     const inner = `
 <h1 style="margin:0 0 16px 0;font-size:20px;color:#111827;font-weight:600;">Ihr Anmelde-Code</h1>

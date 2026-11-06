@@ -39,9 +39,12 @@ echo 'DATABASE_URL="postgresql://user:pass@localhost:5432/teilnahmemanagement"' 
 # 3) Datenbank aufsetzen
 npx prisma migrate dev --name init
 
-# 4) Admin anlegen (optional via ENV ueberschreiben)
+# 4) Admin anlegen. Das Passwort wird hier erzeugt und einmal angezeigt -
+#    sofort in den Passwortmanager uebernehmen. Ohne gesetztes Passwort
+#    legt das Seeding bewusst kein Konto an.
+ADMIN_PW="$(openssl rand -base64 24)"; echo "Admin-Passwort: $ADMIN_PW"
 SEED_ADMIN_EMAIL=admin@fb-akademie.de \
-SEED_ADMIN_PASSWORD='ChangeMe!2026' \
+SEED_ADMIN_PASSWORD="$ADMIN_PW" \
   npm run db:seed
 
 # 5) Starten

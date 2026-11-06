@@ -246,6 +246,12 @@ export interface ContactProfile {
   past: ContactRegistration[];
   newsletter: { status: string; since: Date | null } | null;
   otherTicketCount: number;
+  /**
+   * Anmeldungen zu Veranstaltungen, fuer die der Aufrufer keine Freigabe
+   * hat. Nur die Anzahl, keine Details - damit im Vorgang sichtbar bleibt,
+   * dass es weitere Beruehrungspunkte gibt, ohne die Daten preiszugeben.
+   */
+  hiddenRegistrationCount: number;
 }
 
 /**
@@ -258,7 +264,15 @@ export interface ContactProfile {
  */
 export async function loadContactProfile(
   email: string,
-  excludeTicketId?: string
+  excludeTicketId: string | undefined,
+  /**
+   * Veranstaltungen, die der Aufrufer sehen darf ("ALL" oder Liste von IDs,
+   * siehe listAccessibleEventIds). Bewusst ein Pflichtparameter: ueberall
+   * sonst schuetzt canViewEvent dieselben Daten (Anmeldungen, Rechnungs-
+   * status, Zertifikate). Dass der Posteingang sie ungefiltert zeigte, war
+   * die einzige Stelle ohne diese Bindung.
+   */
+  scope: string[] | "ALL"
 ): Promise<ContactProfile> {
   const hash = blindIndex(email);
 
@@ -280,7 +294,11 @@ export async function loadContactProfile(
     }),
   ]);
 
-  const registrations: ContactRegistration[] = participants.map((p) => ({
+  const visible =
+    scope === "ALL" ? participants : participants.filter((p) => scope.includes(p.eventId));
+  const hiddenRegistrationCount = participants.length - visible.length;
+
+  const registrations: ContactRegistration[] = visible.map((p) => ({
     participantId: p.id,
     eventId: p.eventId,
     eventTitle: p.event.title,
@@ -331,6 +349,7 @@ export async function loadContactProfile(
       ? { status: subscriber.status, since: subscriber.confirmedAt ?? subscriber.createdAt }
       : null,
     otherTicketCount,
+    hiddenRegistrationCount,
   };
 }
 

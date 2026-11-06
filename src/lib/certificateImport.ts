@@ -23,7 +23,7 @@
 import { prisma } from "./db";
 import {
   buildCertificateNumber,
-  numberToSlug,
+  newCertificateSlug,
   type CertificateData,
   type CertificateType,
 } from "./certificateContent";
@@ -217,7 +217,7 @@ export async function importFromCsv(args: {
             .create({
               data: {
                 number: num,
-                slug: numberToSlug(num),
+                slug: newCertificateSlug(num),
                 participantId: null,
                 type: "ZERTIFIKAT",
                 status: "RELEASED",
@@ -284,7 +284,7 @@ export async function importFromCsv(args: {
             .create({
               data: {
                 number: num,
-                slug: numberToSlug(num),
+                slug: newCertificateSlug(num),
                 participantId: null,
                 type: "TEILNAHMEBESCHEINIGUNG",
                 status: "RELEASED",

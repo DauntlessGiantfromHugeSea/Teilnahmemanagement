@@ -91,6 +91,20 @@ model User {
   // Einladung / Passwort-Reset (token-basiert)
   pwTokenHash        String? // sha256-Hex des Token
   pwTokenExpiresAt   DateTime?
+  // --- Sitzungssteuerung ---
+  // Wird hochgezaehlt, wenn alle bestehenden Sitzungen dieses Kontos
+  // ungueltig werden sollen (Passwortwechsel, Sperre, Rollenentzug).
+  // Das Session-Cookie traegt den Stand, mit dem es ausgestellt wurde.
+  sessionEpoch       Int       @default(0)
+  // --- Versuchsbegrenzung zweiter Faktor ---
+  // Gilt gemeinsam fuer TOTP, E-Mail-Code und Recovery-Codes, damit der
+  // Wechsel des Verfahrens den Zaehler nicht zuruecksetzt.
+  twoFaFailedCount   Int       @default(0)
+  twoFaLockedUntil   DateTime?
+  // Kandidat fuer eine neue TOTP-Einrichtung (verschluesselt). Wird erst
+  // nach bestaetigtem Code nach totpSecret uebernommen, damit das blosse
+  // Aufrufen der Einrichtungsseite keinen bestehenden Faktor abschaltet.
+  totpPendingSecret  String?
   // Meta
   active             Boolean   @default(true)
   lastLoginAt        DateTime?

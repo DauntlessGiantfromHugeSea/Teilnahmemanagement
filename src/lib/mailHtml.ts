@@ -27,15 +27,41 @@ const BLOCKED_TAGS = [
   "noscript",
 ];
 
-export function sanitizeIncomingHtml(html: string): string {
-  let out = html;
+/**
+ * Obergrenze fuer den zu bereinigenden Text.
+ *
+ * Der Inhalt stammt von Dritten und ist in der Groesse nicht begrenzt -
+ * Exchange nimmt Mails bis in den zweistelligen Megabyte-Bereich an. Die
+ * Bereinigung laeuft als Regex-Kette ueber die gesamte Zeichenkette; bei
+ * einer 20-MB-Mail blockiert das die Event-Loop und damit die ganze
+ * Anwendung, nicht nur den Postfachabruf. Was darueber liegt, wird
+ * abgeschnitten: Die Originalmail bleibt im Postfach, im Vorgang steht ein
+ * sichtbarer Hinweis.
+ */
+export const MAX_SANITIZE_CHARS = 512 * 1024;
 
-  // Komplette Elemente inkl. Inhalt entfernen.
-  for (const tag of BLOCKED_TAGS) {
-    out = out.replace(new RegExp(`<${tag}\\b[^>]*>[\\s\\S]*?<\\/${tag}\\s*>`, "gi"), "");
-    // Selbstschliessende / nicht geschlossene Varianten.
-    out = out.replace(new RegExp(`<\\/?${tag}\\b[^>]*>`, "gi"), "");
-  }
+const TAG_ALTERNATION = BLOCKED_TAGS.join("|");
+// Ein Durchlauf statt einer je Tag: die Rueckwaertsreferenz \1 sorgt dafuer,
+// dass oeffnendes und schliessendes Tag zusammenpassen.
+const BLOCKED_ELEMENTS = new RegExp(
+  `<(${TAG_ALTERNATION})\\b[^>]*>[\\s\\S]*?<\\/\\1\\s*>`,
+  "gi"
+);
+const BLOCKED_SINGLE_TAGS = new RegExp(`<\\/?(?:${TAG_ALTERNATION})\\b[^>]*>`, "gi");
+
+export const TRUNCATED_NOTE =
+  '<p style="margin:12px 0;color:#b45309;font-size:13px;">[Nachricht gekürzt – die vollständige Mail liegt im Postfach.]</p>';
+
+export function sanitizeIncomingHtml(html: string): string {
+  if (!html) return "";
+  const truncated = html.length > MAX_SANITIZE_CHARS;
+  let out = truncated ? html.slice(0, MAX_SANITIZE_CHARS) : html;
+
+  // Komplette Elemente inkl. Inhalt entfernen, dann uebrig gebliebene
+  // einzelne Tags. Zwei Durchlaeufe insgesamt, unabhaengig von der Anzahl
+  // der gesperrten Tags.
+  out = out.replace(BLOCKED_ELEMENTS, "");
+  out = out.replace(BLOCKED_SINGLE_TAGS, "");
 
   // Kommentare (koennen Conditional Comments mit Markup enthalten).
   out = out.replace(/<!--[\s\S]*?-->/g, "");
@@ -51,7 +77,7 @@ export function sanitizeIncomingHtml(html: string): string {
     ' $1="#"'
   );
 
-  return out.trim();
+  return truncated ? out.trim() + TRUNCATED_NOTE : out.trim();
 }
 
 /**
@@ -61,7 +87,13 @@ export function sanitizeIncomingHtml(html: string): string {
  */
 export function stripQuotedReply(text: string): string {
   if (!text) return "";
-  const lines = text.split(/\r?\n/);
+  // Gleiche Begruendung wie bei sanitizeIncomingHtml: fremder Inhalt ohne
+  // Groessengrenze darf die Event-Loop nicht blockieren.
+  const capped =
+    text.length > MAX_SANITIZE_CHARS
+      ? text.slice(0, MAX_SANITIZE_CHARS) + "\n\n[Nachricht gekürzt – vollständige Mail im Postfach.]"
+      : text;
+  const lines = capped.split(/\r?\n/);
   const markers: RegExp[] = [
     /^-{2,}\s*Urspr(ü|ue)ngliche Nachricht\s*-{2,}/i,
     /^-{2,}\s*Original Message\s*-{2,}/i,
@@ -90,7 +122,7 @@ export function stripQuotedReply(text: string): string {
     if (line === "" || line.startsWith(">")) end--;
     else break;
   }
-  return lines.slice(0, end).join("\n").trim() || text.trim();
+  return lines.slice(0, end).join("\n").trim() || capped.trim();
 }
 
 /** Plaintext aus dem Antwort-Editor in schlichtes HTML wandeln. */

@@ -7,7 +7,16 @@ const bcrypt = require("bcryptjs");
 async function main() {
   const prisma = new PrismaClient();
   const email = (process.env.SEED_ADMIN_EMAIL || "admin@fb-akademie.de").toLowerCase();
-  const password = process.env.SEED_ADMIN_PASSWORD || "ChangeMe!2026";
+  // Kein Standardpasswort: ein eingechecktes Passwort waere oeffentlich
+  // bekannt. Ohne gesetzte Variable wird kein Konto angelegt.
+  const password = process.env.SEED_ADMIN_PASSWORD || "";
+  if (password.length < 12) {
+    console.error(
+      "[create-admin] SEED_ADMIN_PASSWORD fehlt oder ist kuerzer als 12 Zeichen - kein Admin angelegt."
+    );
+    process.exitCode = 1;
+    return;
+  }
   try {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {

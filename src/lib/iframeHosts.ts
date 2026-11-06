@@ -9,7 +9,10 @@
 // app.fb-eng.de) - dafuer erzeugen wir pro Host einen Wildcard-Eintrag
 // in der CSP frame-ancestors-Direktive.
 
-const DEFAULT_HOSTS = ["fb-eng.de", "fb-stage.de", "fi-fb.de"];
+// fb-akademie.de stand frueher fest in next.config.mjs. Seit die
+// Sicherheits-Header nur noch aus der Middleware kommen, gehoert der Host
+// in diese Liste, sonst faellt die Einbettung dort weg.
+const DEFAULT_HOSTS = ["fb-eng.de", "fb-stage.de", "fi-fb.de", "fb-akademie.de"];
 
 export function parseIframeHosts(raw?: string | null): string[] {
   if (!raw || !raw.trim()) return [...DEFAULT_HOSTS];

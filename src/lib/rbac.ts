@@ -16,9 +16,9 @@ export function isEventManager(s: SessionPayload | null) {
 }
 
 export async function listAccessibleEventIds(s: SessionPayload): Promise<string[] | "ALL"> {
-  // Admins und Buchhaltung sehen alles. EVENTMANAGER und EDITOR brauchen
-  // explizite Freigabe pro Veranstaltung (EventAccess).
-  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return "ALL";
+  // Admins, Buchhaltung und Editoren sehen alles (siehe canViewEvent).
+  // EVENTMANAGER und VIEWER brauchen eine Freigabe je Veranstaltung.
+  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING || s.role === Role.EDITOR) return "ALL";
   const grants = await prisma.eventAccess.findMany({
     where: { userId: s.uid },
     select: { eventId: true },
@@ -26,8 +26,12 @@ export async function listAccessibleEventIds(s: SessionPayload): Promise<string[
   return grants.map((g) => g.eventId);
 }
 
+// EDITOR ist im Produkt global zustaendig: canWriteEvent und canManageEvent
+// lassen die Rolle ueberall zu. Dass canViewEvent sie als einzige Funktion
+// ausschloss, war eine Inkonsistenz - ein EDITOR konnte eine Veranstaltung
+// anlegen und ihre Detailseite danach nicht oeffnen. Jetzt einheitlich.
 export async function canViewEvent(s: SessionPayload, eventId: string): Promise<boolean> {
-  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING) return true;
+  if (s.role === Role.ADMIN || s.role === Role.ACCOUNTING || s.role === Role.EDITOR) return true;
   const g = await prisma.eventAccess.findUnique({
     where: { eventId_userId: { eventId, userId: s.uid } },
   });

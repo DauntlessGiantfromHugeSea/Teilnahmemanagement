@@ -19,6 +19,13 @@ export default async function SetupEmailPage({
   const user = await prisma.user.findUnique({ where: { id: uid } });
   if (!user) redirect("/login");
 
+  // Ohne vollwertige Sitzung nur Erst-Einrichtung, nie Austausch eines
+  // bestehenden zweiten Faktors.
+  if (!session) {
+    const hasFactor = user.totpEnabled || user.emailCodeEnabled;
+    if (pending?.stage !== "setup" || hasFactor) redirect("/login");
+  }
+
   const hasPending = !!user.loginCodeHash && !!user.loginCodeExpiresAt && user.loginCodeExpiresAt > new Date();
 
   return (

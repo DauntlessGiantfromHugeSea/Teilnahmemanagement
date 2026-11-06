@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
-import { saveUpload } from "@/lib/uploads";
+import { bodyTooLarge, saveUpload } from "@/lib/uploads";
 import { audit } from "@/lib/audit";
 
 export const runtime = "nodejs";
@@ -17,6 +17,9 @@ function back(params: Record<string, string>): NextResponse {
 export async function POST(req: Request) {
   const s = await getSession();
   if (!s || !isAdmin(s)) return new NextResponse("Forbidden", { status: 403 });
+
+  // Groesse pruefen, bevor der Body gelesen wird.
+  if (bodyTooLarge(req)) return back({ error: "Datei zu groß." });
 
   const f = await req.formData();
   const file = f.get("file");

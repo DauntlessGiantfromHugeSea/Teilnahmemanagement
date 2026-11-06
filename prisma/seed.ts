@@ -5,7 +5,19 @@ const prisma = new PrismaClient();
 
 async function main() {
   const adminEmail = process.env.SEED_ADMIN_EMAIL ?? "admin@fb-akademie.de";
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe!2026";
+  // Kein Standardpasswort. Ein eingechecktes Passwort waere oeffentlich
+  // bekannt und das erste Konto damit uebernehmbar, bevor der erste
+  // Zweitfaktor existiert. Ohne gesetzte Variable wird nicht geseedet.
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD ?? "";
+  if (adminPassword.length < 12) {
+    console.error(
+      "SEED_ADMIN_PASSWORD fehlt oder ist kuerzer als 12 Zeichen.\n" +
+        "Kein Admin angelegt. Passwort erzeugen und setzen, z.B.:\n" +
+        "  SEED_ADMIN_PASSWORD=\"$(openssl rand -base64 24)\" npm run db:seed"
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   const exists = await prisma.user.findUnique({ where: { email: adminEmail } });
   if (exists) {
@@ -21,7 +33,7 @@ async function main() {
       role: Role.ADMIN,
     },
   });
-  console.log(`Admin angelegt: ${adminEmail} / ${adminPassword}`);
+  console.log(`Admin angelegt: ${adminEmail}`);
   console.log("Beim ersten Login wird die 2FA-Einrichtung erzwungen.");
 
   await prisma.training.create({

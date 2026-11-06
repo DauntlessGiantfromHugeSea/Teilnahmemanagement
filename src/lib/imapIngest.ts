@@ -2,6 +2,7 @@ import { ImapFlow } from "imapflow";
 import { simpleParser, type ParsedMail, type AddressObject } from "mailparser";
 import { MailboxProvider, TicketMsgDirection, type Mailbox } from "@prisma/client";
 import { prisma } from "./db";
+import { blindIndex } from "./crypto";
 import { mailboxImapCredentials } from "./mailbox";
 import { addMessage, createTicket, enrichTicketFromParticipants } from "./tickets";
 import { findTicketReference } from "./ticketRef";
@@ -31,6 +32,8 @@ import {
 //   1. In-Reply-To / References treffen eine bekannte Message-ID
 //   2. Ticket-Referenz (FBA-XXXXX-XXXXX) in Betreff oder Body
 //   3. sonst: neues Ticket
+// In beiden Faellen zaehlt der Treffer nur, wenn Absenderadresse und
+// Postfach zum Vorgang passen - siehe findTicketForMail().
 
 export interface IngestResult {
   mailbox: string;
@@ -94,22 +97,52 @@ function threadCandidates(parsed: ParsedMail): string[] {
   return out.map((r) => r.trim()).filter(Boolean).reverse();
 }
 
-async function findTicketForMail(parsed: ParsedMail, bodyText: string): Promise<string | null> {
+/**
+ * Sucht den Vorgang, in den eine eingehende Mail gehoert.
+ *
+ * Entscheidend ist nicht nur, dass ein Vorgang zum Header oder zur Referenz
+ * passt, sondern auch, dass die Mail von der Person kommt, um deren Vorgang
+ * es geht, und im richtigen Postfach eingegangen ist. Ohne diese Bindung
+ * genuegte die Kenntnis einer Referenz - und die steht in jeder Antwortmail
+ * und wird von Kunden weitergeleitet -, um fremde Vorgaenge mit eigenen
+ * Nachrichten zu bestuecken und abgeschlossene wieder zu oeffnen.
+ *
+ * Passt die Bindung nicht, entsteht ein neuer Vorgang. Das ist der sichere
+ * Ausgang: lieber ein Vorgang zu viel als eine fremde Nachricht im falschen.
+ */
+async function findTicketForMail(
+  mb: Mailbox,
+  parsed: ParsedMail,
+  bodyText: string,
+  senderHash: string
+): Promise<string | null> {
+  const accept = (t: { id: string; mailboxId: string | null; fromEmailHash: string }) =>
+    t.mailboxId === mb.id && t.fromEmailHash === senderHash ? t.id : null;
+
   // 1) Header-Threading
   const candidates = threadCandidates(parsed);
   if (candidates.length > 0) {
     const hit = await prisma.ticketMessage.findFirst({
       where: { messageId: { in: candidates } },
-      select: { ticketId: true },
+      select: { ticket: { select: { id: true, mailboxId: true, fromEmailHash: true } } },
     });
-    if (hit) return hit.ticketId;
+    if (hit?.ticket) {
+      const id = accept(hit.ticket);
+      if (id) return id;
+    }
   }
 
   // 2) Referenz im Betreff oder Text
   const ref = findTicketReference(parsed.subject, bodyText);
   if (ref) {
-    const ticket = await prisma.ticket.findUnique({ where: { reference: ref }, select: { id: true } });
-    if (ticket) return ticket.id;
+    const ticket = await prisma.ticket.findUnique({
+      where: { reference: ref },
+      select: { id: true, mailboxId: true, fromEmailHash: true },
+    });
+    if (ticket) {
+      const id = accept(ticket);
+      if (id) return id;
+    }
   }
 
   return null;
@@ -135,7 +168,10 @@ async function ingestGraphMailbox(mb: Mailbox): Promise<IngestResult> {
   const creds = graphCredentials(mb);
   if (!creds) {
     result.error =
-      "Microsoft-Zugangsdaten unvollständig (Tenant/Client/Secret bzw. MS_*-Variablen).";
+      "Microsoft-Zugangsdaten fehlen oder greifen nicht. Entweder Tenant-ID, " +
+      "Client-ID und Secret am Postfach eintragen, oder die Adresse in " +
+      "MS_GRAPH_MAILBOXES freigeben, damit die tenantweite App-Registrierung " +
+      "verwendet werden darf.";
     await prisma.mailbox.update({
       where: { id: mb.id },
       data: { lastPollAt: new Date(), lastError: result.error },
@@ -317,7 +353,7 @@ export async function importParsedMail(
   const subject = (parsed.subject ?? "").trim() || "(ohne Betreff)";
   const sentAt = parsed.date ?? new Date();
 
-  let ticketId = await findTicketForMail(parsed, rawText);
+  let ticketId = await findTicketForMail(mb, parsed, rawText, blindIndex(from.email));
   let outcome: Outcome = "appended";
   if (!ticketId) {
     const ticket = await createTicket({

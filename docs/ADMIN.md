@@ -171,9 +171,13 @@ docker compose logs -f app
 | `BADGE_LOGO_URL` | – | Logo auf Namensschildern |
 | `IFRAME_HOSTS` | – | Whitelist für `?embed=1`-iframe |
 | `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET` | – | Microsoft-SSO (siehe 4.3) |
-| `CRON_TOKEN` | – | Bearer für `/api/cron/reminders`; ohne → kein 24h-Reminder |
+| `MS_LINK_TENANTS` | – | Tenants, aus denen beim ersten Login automatisch mit einem lokalen Konto gleicher Adresse verknüpft werden darf. Leer = `MS_TENANT_ID`, sofern das eine Tenant-GUID ist. Bei `common` findet ohne diesen Eintrag keine automatische Verknüpfung statt. |
+| `MS_GRAPH_MAILBOXES` | – | Postfächer, für die der Posteingang die tenantweite App-Registrierung verwenden darf. Leer = kein Rückfall; jedes Postfach braucht dann eigene Zugangsdaten. |
+| `UPLOADS_MAX_TOTAL_MB` | 2048 | Obergrenze für das gesamte Upload-Verzeichnis |
+| `CRON_TOKEN` | – | Bearer für `/api/cron/reminders` und `/api/cron/mail-ingest`; **nur im `Authorization`-Header**, nicht als `?token=` |
 | `RUN_SEED_ON_START` | – | `1` beim Erst-Start für Initial-Admin |
-| `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | – | Login für Initial-Admin |
+| `SEED_ADMIN_EMAIL` | `admin@fb-akademie.de` | Login für Initial-Admin |
+| `SEED_ADMIN_PASSWORD` | – | **Pflicht**, mindestens 12 Zeichen. Ohne Wert wird kein Admin angelegt – es gibt bewusst kein Standardpasswort. |
 
 ### 3.4 Services in `docker-compose.yml`
 

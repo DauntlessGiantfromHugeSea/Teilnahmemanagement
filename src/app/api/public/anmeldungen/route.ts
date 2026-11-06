@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAnmeldung, AnmeldungInput } from "@/lib/csvImport";
 import { prisma } from "@/lib/db";
@@ -12,21 +13,17 @@ function jsonError(status: number, message: string) {
 function authorized(req: Request): boolean {
   const expected = process.env.WEBHOOK_API_KEY;
   if (!expected || expected.length < 16) return false;
-  const url = new URL(req.url);
+  // Nur Header. Der Schluessel ist ein Dauergeheimnis; im Query-String
+  // stuende er in jedem Zugriffsprotokoll und im Referer der Folgeseite.
   const provided =
     req.headers.get("x-api-key") ??
     req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ??
-    url.searchParams.get("api-key") ??
-    url.searchParams.get("api_key") ??
     "";
   if (!provided) return false;
-  // Constant-time-ish compare
-  if (provided.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < expected.length; i++) {
-    diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
-  }
-  return diff === 0;
+  const a = Buffer.from(provided, "utf8");
+  const b = Buffer.from(expected, "utf8");
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
 }
 
 function s(v: unknown): string {

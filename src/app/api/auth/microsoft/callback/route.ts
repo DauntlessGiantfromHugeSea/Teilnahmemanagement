@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { handleMsCallback } from "@/lib/msAuth";
+import { handleMsCallback, msAutoLinkAllowed } from "@/lib/msAuth";
 import { createSession } from "@/lib/session";
 import { audit } from "@/lib/audit";
 
@@ -39,13 +39,26 @@ export async function GET(req: Request) {
     if (!user.active) {
       return back("Dein Konto ist deaktiviert.");
     }
-    // Einmalig verknuepfen und 2FA-Pflicht deaktivieren (MS macht eigene MFA)
+    // Die Erstverknuepfung stuetzt sich allein auf die Adressgleichheit.
+    // Das traegt nur innerhalb des eigenen Tenants, wo die Adressen von der
+    // Organisation vergeben werden. Ausserhalb - und bei privaten
+    // Microsoft-Konten - ist die Adresse frei waehlbar und waere damit ein
+    // Weg in ein fremdes Konto.
+    if (!msAutoLinkAllowed(result.claims.tid)) {
+      return back(
+        "Diese Microsoft-Anmeldung stammt nicht aus der freigegebenen Organisation und kann nicht automatisch verknüpft werden. Bitte wende dich an deinen Administrator."
+      );
+    }
+    // Einmalig verknuepfen. totpRequired bleibt unangetastet: Microsoft
+    // prueft nur den Microsoft-Weg. Wird die Pflicht hier abgeschaltet,
+    // kommt man anschliessend mit dem lokalen Passwort ganz ohne zweiten
+    // Faktor hinein - der Microsoft-Login haette den Passwortweg also
+    // geschwaecht statt gestaerkt.
     user = await prisma.user.update({
       where: { id: user.id },
       data: {
         msOid: result.claims.oid,
         msTenantId: result.claims.tid,
-        totpRequired: false,
         lastLoginAt: new Date(),
       },
     });

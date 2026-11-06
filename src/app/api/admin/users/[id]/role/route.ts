@@ -12,7 +12,13 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const role = String(f.get("role") ?? "VIEWER") as Role;
   const before = await prisma.user.findUnique({ where: { id: params.id } });
   if (!before) return new NextResponse("Not found", { status: 404 });
-  await prisma.user.update({ where: { id: params.id }, data: { role } });
+  // sessionEpoch hochzaehlen: bestehende Cookies des Kontos verlieren damit
+  // sofort ihre Gueltigkeit. Ohne das wuerde die alte Rolle bis zu acht
+  // Stunden weitergelten.
+  await prisma.user.update({
+    where: { id: params.id },
+    data: { role, sessionEpoch: { increment: 1 } },
+  });
   await audit({ actorId: s.uid, action: "UPDATE", entityType: "User", entityId: params.id, diff: { role: { from: before.role, to: role } } });
   return new NextResponse(null, { status: 303, headers: { Location: `/admin/users?ok=1` } });
 }

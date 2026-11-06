@@ -3,7 +3,7 @@
 
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { canWriteEvent } from "@/lib/rbac";
+import { canManageEvent } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
 import { sendPortalInvite } from "@/lib/sendPortalInvite";
@@ -20,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   if (!cert.participant) {
     return new NextResponse("Importierte Zertifikate können nicht versendet werden.", { status: 400 });
   }
-  if (!(await canWriteEvent(s, cert.participant.eventId))) {
+  if (!(await canManageEvent(s, cert.participant.eventId))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 

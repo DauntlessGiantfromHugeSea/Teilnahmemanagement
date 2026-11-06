@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, stashOneTimeLink } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { issueToken } from "@/lib/pwToken";
@@ -81,7 +81,10 @@ export async function POST(req: Request) {
     );
   }
   if (r.skipped) {
-    return back(`error=${encodeURIComponent("Nutzer angelegt - SMTP ist nicht konfiguriert, bitte Link manuell weitergeben")}&link=${encodeURIComponent(link)}`);
+    // Link ueber ein kurzlebiges httpOnly-Cookie, nicht ueber die URL:
+    // er enthaelt ein Token, mit dem sich ein Passwort setzen laesst.
+    stashOneTimeLink(link);
+    return back(`error=${encodeURIComponent("Nutzer angelegt - Mailversand ist nicht konfiguriert, bitte Link manuell weitergeben")}`);
   }
   return back(`ok=${encodeURIComponent(`Einladung an ${email} gesendet`)}`);
 }

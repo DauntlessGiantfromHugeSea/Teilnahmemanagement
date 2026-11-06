@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getSession, readOneTimeLink } from "@/lib/session";
 import { Shell } from "@/components/Shell";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
@@ -11,12 +11,15 @@ export const dynamic = "force-dynamic";
 export default async function UsersPage({
   searchParams,
 }: {
-  searchParams: { ok?: string; error?: string; link?: string };
+  searchParams: { ok?: string; error?: string };
 }) {
   const s = await getSession();
   if (!s) redirect("/login");
   if (!isAdmin(s)) redirect("/dashboard");
   const users = await prisma.user.findMany({ orderBy: { createdAt: "desc" } });
+  // Einladungs-/Reset-Link aus dem Einmal-Cookie (nur gesetzt, wenn kein
+  // Mailversand konfiguriert ist). Laeuft nach zehn Minuten von selbst ab.
+  const onceLink = readOneTimeLink();
 
   return (
     <Shell session={s} active="users">
@@ -41,10 +44,10 @@ export default async function UsersPage({
           <span>{searchParams.error}</span>
         </div>
       )}
-      {searchParams.link && (
+      {onceLink && (
         <div className="toast-warn mb-4 flex-col items-stretch">
           <div className="font-semibold">Link manuell weitergeben:</div>
-          <div className="font-mono text-xs break-all mt-1">{searchParams.link}</div>
+          <div className="font-mono text-xs break-all mt-1">{onceLink}</div>
         </div>
       )}
 

@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   if (user.totpEnabled) {
-    await createPending(user.id);
+    await createPending(user.id, "totp");
     return new NextResponse(null, { status: 303, headers: { Location: `/login/totp` } });
   }
 
@@ -55,14 +55,15 @@ export async function POST(req: Request) {
       text: tmpl.text,
       html: tmpl.html,
     }).catch((e) => console.error("[login] E-Mail-Code-Mail fehlgeschlagen:", e));
-    await createPending(user.id);
+    await createPending(user.id, "totp");
     return new NextResponse(null, { status: 303, headers: { Location: `/login/email-code` } });
   }
 
   // 2FA noch nicht eingerichtet
   if (user.totpRequired) {
-    // Pflicht: User muss 2FA einrichten
-    await createPending(user.id);
+    // Pflicht: User muss 2FA einrichten. Nur dieser Zwischenstand oeffnet
+    // die Einrichtungsseite - siehe src/middleware.ts.
+    await createPending(user.id, "setup");
     return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/setup` } });
   }
 

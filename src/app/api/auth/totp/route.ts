@@ -4,10 +4,14 @@ import { verifyTotp } from "@/lib/auth";
 import { safeDecrypt } from "@/lib/crypto";
 import { clearPending, createSession, getPending } from "@/lib/session";
 import { audit } from "@/lib/audit";
+import { checkTwoFaGate, clearTwoFaFailures, lockedMessage, registerTwoFaFailure } from "@/lib/twoFactorLimit";
 
 export async function POST(req: Request) {
   const pending = await getPending();
-  if (!pending) return new NextResponse(null, { status: 303, headers: { Location: `/login` } });
+  // Nur der Zwischenstand "totp" (zweiter Faktor vorhanden) gehoert hierher.
+  if (!pending || pending.stage !== "totp") {
+    return new NextResponse(null, { status: 303, headers: { Location: `/login` } });
+  }
 
   const form = await req.formData();
   const code = String(form.get("code") ?? "");
@@ -15,12 +19,28 @@ export async function POST(req: Request) {
   if (!user || !user.totpEnabled || !user.totpSecret) {
     return new NextResponse(null, { status: 303, headers: { Location: `/login` } });
   }
+  // Versuchsbegrenzung vor der Pruefung: ein 6-stelliger Code ist sonst
+  // durchprobierbar.
+  const gate = await checkTwoFaGate(user.id);
+  if (gate.locked) {
+    return new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/login/totp?error=${encodeURIComponent(lockedMessage(gate.until))}` },
+    });
+  }
+
   const secret = safeDecrypt(user.totpSecret);
   if (!secret || !verifyTotp(secret, code)) {
     await audit({ actorId: user.id, action: "TOTP_FAILED", entityType: "Auth", entityId: user.id });
-    return new NextResponse(null, { status: 303, headers: { Location: `/login/totp?error=1` } });
+    const after = await registerTwoFaFailure(user.id);
+    const msg = after.locked ? lockedMessage(after.until) : "Code ungültig.";
+    return new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/login/totp?error=${encodeURIComponent(msg)}` },
+    });
   }
 
+  await clearTwoFaFailures(user.id);
   await clearPending();
   await createSession({
     uid: user.id,

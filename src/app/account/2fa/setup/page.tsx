@@ -19,13 +19,26 @@ export default async function SetupPage({
   const user = await prisma.user.findUnique({ where: { id: uid! } });
   if (!user) redirect("/login");
 
-  // Falls noch kein Secret existiert oder vorheriges nicht enabled -> neu generieren
-  let plainSecret = safeDecrypt(user.totpSecret);
-  if (!plainSecret || user.totpEnabled) {
+  // Ohne vollwertige Sitzung ist nur die Erst-Einrichtung erlaubt. Wer schon
+  // einen zweiten Faktor hat, kommt hier mit dem blossen Passwort-Zwischen-
+  // stand nicht weiter - sonst liesse sich der vorhandene Faktor allein mit
+  // einem erratenen Passwort durch einen eigenen ersetzen.
+  if (!session) {
+    const hasFactor = user.totpEnabled || user.emailCodeEnabled;
+    if (pending?.stage !== "setup" || hasFactor) redirect("/login");
+  }
+
+  // Der angezeigte Schluessel ist nur ein Kandidat. Das aktive Geheimnis und
+  // totpEnabled werden hier bewusst NICHT angefasst: Das blosse Aufrufen
+  // dieser Seite darf einen funktionierenden zweiten Faktor nicht abschalten.
+  // Uebernommen wird der Kandidat erst, wenn /api/account/2fa/enable einen
+  // gueltigen Code dazu gesehen hat.
+  let plainSecret = safeDecrypt(user.totpPendingSecret);
+  if (!plainSecret) {
     plainSecret = generateTotpSecret();
     await prisma.user.update({
       where: { id: user.id },
-      data: { totpSecret: encryptField(plainSecret), totpEnabled: false },
+      data: { totpPendingSecret: encryptField(plainSecret) },
     });
   }
   const uri = totpKeyUri(plainSecret, user.email);

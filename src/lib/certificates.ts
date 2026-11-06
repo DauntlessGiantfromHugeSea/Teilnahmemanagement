@@ -4,7 +4,7 @@ import { prisma } from "./db";
 import { decryptParticipant } from "./participants";
 import {
   buildCertificateNumber,
-  numberToSlug,
+  newCertificateSlug,
   parseDefaults,
   type CertificateType,
   type CertificateData,
@@ -169,7 +169,7 @@ export async function createCertificateDraft(args: {
     firstName: dec.firstName ?? "",
     lastName: dec.lastName ?? "",
   });
-  const slug = numberToSlug(number);
+  const slug = newCertificateSlug(number);
 
   const data = await buildCertificateData({
     participant,

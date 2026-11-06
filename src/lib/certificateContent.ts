@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 // Zertifikats- und Bescheinigungs-Daten + Defaults pro Schulung.
 //
 // Texte basieren auf der bisherigen Word/Excel-Vorlage der FBA. Die Defaults
@@ -189,6 +190,25 @@ export function buildCertificateNumber(args: {
   return `${yy}-${ini}-FBA/${seq}`;
 }
 
+/**
+ * Macht die Zertifikatsnummer URL-tauglich. Rein deterministisch - wird
+ * weiterhin gebraucht, um die Nummer zu einem vorhandenen Slug zu bilden
+ * und fuer Bestandszertifikate, deren Adresse sich nicht aendern darf.
+ */
 export function numberToSlug(num: string): string {
   return num.replace(/\//g, "-");
+}
+
+/**
+ * Adresse der oeffentlichen Pruefseite fuer ein NEUES Zertifikat.
+ *
+ * Die Nummer allein ist fortlaufend und damit erratbar: Wer eine kennt,
+ * kann die Nachbarn durchprobieren und bekommt auf der Pruefseite Vor- und
+ * Nachnamen fremder Teilnehmer zu sehen. Der Zufallsanteil beendet das.
+ *
+ * Bereits ausgestellte Zertifikate behalten ihre Adresse - sie steht als
+ * QR-Code auf gedruckten Urkunden und darf sich nicht aendern.
+ */
+export function newCertificateSlug(num: string): string {
+  return `${numberToSlug(num)}-${crypto.randomBytes(5).toString("hex")}`;
 }

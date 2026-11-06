@@ -45,6 +45,17 @@ Beim Import wird in dieser Reihenfolge geprüft:
    Greift auch dann, wenn jemand eine komplett neue Mail schreibt und die Nummer zitiert.
 3. Sonst → **neues Ticket**.
 
+**Absenderbindung.** Ein Treffer aus 1. oder 2. zählt nur, wenn die Mail *von der
+Adresse des Vorgangs* kommt und *im Postfach des Vorgangs* eingegangen ist. Die
+Referenz steht in jeder Antwortmail und wird von Kunden weitergeleitet; ohne diese
+Bindung könnte jeder, der sie kennt, Nachrichten in fremde Vorgänge hängen und
+abgeschlossene Vorgänge wieder öffnen. Passt die Bindung nicht, entsteht ein neuer
+Vorgang — lieber einer zu viel als eine fremde Nachricht im falschen.
+
+Praktische Folge: Schreibt dieselbe Person von einer *anderen* Adresse (privates
+Postfach, Kollegin im Verteiler), wird daraus ein eigener Vorgang. Im Kontaktfeld
+rechts stehen weiterhin alle Vorgänge derselben Adresse.
+
 Übersprungen werden: bereits importierte Message-IDs, Mails vom eigenen Postfach
 (eigene Antwortkopien) sowie Automaten-Mails (Abwesenheitsnotizen, Bounces,
 `Auto-Submitted`-Header, `no-reply@…`).
@@ -298,18 +309,33 @@ Verschickte Mails landen in „Gesendete Elemente" des Postfachs;
   und `javascript:`-Entfernung) **und** zusätzlich nur in einem `<iframe sandbox>` ohne
   `allow-scripts`/`allow-same-origin` angezeigt.
 - Zitierte Vorgänger-Mails werden beim Import abgeschnitten, damit der Verlauf lesbar bleibt.
+- Mailinhalte werden vor der Bereinigung auf 512 KB begrenzt. Eine sehr große Fremdmail
+  würde die Bereinigung sonst minutenlang beschäftigen und dabei die gesamte Anwendung
+  blockieren, nicht nur den Abruf. Längere Mails erhalten im Vorgang einen sichtbaren
+  Kürzungshinweis; das Original bleibt im Postfach.
+- Das **Kontaktprofil** (Anmeldungen, Rechnungsstatus, Zertifikate) zeigt nur
+  Veranstaltungen, für die der Bearbeiter eine Freigabe hat — dieselbe Grenze wie überall
+  sonst. Weitere Anmeldungen werden nur als Anzahl ausgewiesen. Admin, Buchhaltung und
+  Editoren sehen alles; Veranstaltungsmanager sehen ihre freigegebenen Veranstaltungen.
+- Der Rückfall auf die **tenantweite App-Registrierung** (`MS_*`) gilt nur für Postfächer,
+  die in `MS_GRAPH_MAILBOXES` stehen. Die Graph-Berechtigung `Mail.ReadWrite` wirkt im
+  Tenant für *alle* Postfächer; die Adresse am Postfach ist ein freies Textfeld. Ohne
+  diese Liste könnte darüber jedes Postfach der Organisation mitgelesen werden. Ein
+  hinterlegtes, aber nicht entschlüsselbares Secret führt zu einem Fehler statt zu einem
+  stillen Rückfall.
 
 ## 8. Konfiguration
 
 | Variable | Pflicht | Bedeutung |
 | --- | --- | --- |
-| `CRON_TOKEN` | ja | Bearer-Token für `/api/cron/mail-ingest` |
+| `CRON_TOKEN` | ja | Bearer-Token für `/api/cron/mail-ingest`, **nur im `Authorization`-Header** (`?token=` wird nicht mehr akzeptiert) |
 | `TICKET_REF_PREFIX` | nein | Präfix der Referenz, Default `FBA` |
 | `FIELD_ENCRYPTION_KEY` | ja | verschlüsselt Inhalte und Postfach-Passwörter |
 | `SMTP_*` | nein | Fallback-Versand für IMAP-Postfächer ohne eigenes SMTP |
 | `MS_TENANT_ID` | für M365 | Tenant-GUID (nicht `common`), wenn das Postfach keine eigene trägt |
 | `MS_CLIENT_ID` | für M365 | Client-ID der App-Registrierung |
 | `MS_CLIENT_SECRET` | für M365 | Client-Secret der App-Registrierung |
+| `MS_GRAPH_MAILBOXES` | für M365 | Adressen, die die tenantweiten `MS_*`-Zugangsdaten nutzen dürfen, z.B. `"schulung@fb-akademie.de info@fb-akademie.de"`. Leer = kein Rückfall. |
 | `APP_URL` | ja | Basis für absolute Logo-URLs in Mails |
 
 Nach dem Update einmalig das Schema aktualisieren:

@@ -1,15 +1,19 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getSession, readRecoveryCodes } from "@/lib/session";
 import { Logo } from "@/components/Logo";
 
-export default async function ShowRecovery({
-  searchParams,
-}: {
-  searchParams: { codes?: string };
-}) {
+// Die Codes kommen aus einem kurzlebigen httpOnly-Cookie, nicht aus der URL.
+// Ein Server-Component darf keine Cookies loeschen - das uebernimmt der
+// Bestaetigungs-Button ueber /api/account/2fa/recovery/ack. Faellt der Klick
+// aus, laeuft das Cookie nach zehn Minuten von selbst ab.
+export const dynamic = "force-dynamic";
+
+export default async function ShowRecovery() {
   const s = await getSession();
   if (!s) redirect("/login");
-  const codes = (searchParams.codes ?? "").split(",").filter(Boolean);
+  const codes = readRecoveryCodes();
+  if (codes.length === 0) redirect("/account");
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-10">
       <div className="card w-full max-w-lg p-8">
@@ -28,7 +32,9 @@ export default async function ShowRecovery({
             </code>
           ))}
         </div>
-        <a href="/dashboard" className="btn-primary w-full">Ich habe die Codes gespeichert</a>
+        <form method="post" action="/api/account/2fa/recovery/ack">
+          <button className="btn-primary w-full">Ich habe die Codes gespeichert</button>
+        </form>
       </div>
     </div>
   );

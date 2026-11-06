@@ -12,7 +12,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   }
   const u = await prisma.user.findUnique({ where: { id: params.id } });
   if (!u) return new NextResponse("Not found", { status: 404 });
-  await prisma.user.update({ where: { id: u.id }, data: { active: !u.active } });
+  // Sperre wirkt sofort: bestehende Sitzungen werden mit entwertet.
+  await prisma.user.update({
+    where: { id: u.id },
+    data: { active: !u.active, sessionEpoch: { increment: 1 } },
+  });
   await audit({ actorId: s.uid, action: u.active ? "DEACTIVATE" : "ACTIVATE", entityType: "User", entityId: u.id });
   return new NextResponse(null, { status: 303, headers: { Location: `/admin/users?ok=1` } });
 }

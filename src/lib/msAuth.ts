@@ -165,3 +165,37 @@ export async function handleMsCallback(code: string, state: string): Promise<{ c
     returnTo: expected.returnTo || "/",
   };
 }
+
+// --- Automatische Verknuepfung --------------------------------------------
+// Beim ersten Microsoft-Login gibt es noch keine msOid-Zuordnung. Die
+// Zuordnung allein ueber Adressgleichheit waere nur dann tragfaehig, wenn
+// niemand ausserhalb der eigenen Organisation eine Microsoft-Identitaet mit
+// dieser Adresse anlegen kann. Fuer private Microsoft-Konten gilt das nicht:
+// deren Adresse ist frei waehlbar. Deshalb wird nur im eigenen Tenant
+// automatisch verknuepft.
+
+/** Tenant, unter dem alle privaten Microsoft-Konten laufen. */
+const CONSUMER_TENANT = "9188040d-6c67-4c5b-b112-36a304b66dad";
+
+function isGuid(v: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
+/** Tenants, aus denen eine Erstverknuepfung per Adressgleichheit zulaessig ist. */
+export function msLinkTenants(): string[] {
+  const explicit = (process.env.MS_LINK_TENANTS ?? "")
+    .split(/[\s,;]+/)
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean);
+  if (explicit.length) return explicit;
+  const configured = (process.env.MS_TENANT_ID ?? "").trim().toLowerCase();
+  // "common" ist kein Tenant, sondern "jeder" - daraus laesst sich keine
+  // Erlaubnis ableiten.
+  return isGuid(configured) ? [configured] : [];
+}
+
+export function msAutoLinkAllowed(tid: string): boolean {
+  const t = (tid ?? "").trim().toLowerCase();
+  if (!t || t === CONSUMER_TENANT) return false;
+  return msLinkTenants().includes(t);
+}

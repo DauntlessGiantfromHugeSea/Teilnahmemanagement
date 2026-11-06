@@ -74,6 +74,15 @@ services:
       # Redirect-URI in der Entra App-Registrierung muss exakt
       # APP_URL + "/api/auth/microsoft/callback" sein.
       MS_TENANT_ID: ${MS_TENANT_ID:-}
+      # Tenants, aus denen beim ersten Login automatisch verknuepft werden
+      # darf. Leer = MS_TENANT_ID, sofern das eine Tenant-GUID ist.
+      MS_LINK_TENANTS: ${MS_LINK_TENANTS:-}
+      # Postfaecher, fuer die der Posteingang die tenantweite
+      # App-Registrierung oben verwenden darf. Die Graph-Berechtigung gilt
+      # im Tenant fuer ALLE Postfaecher; diese Liste begrenzt, welche
+      # Adressen die Anwendung damit anfassen darf. Wer hier nicht steht,
+      # braucht eigene Zugangsdaten am Postfach.
+      MS_GRAPH_MAILBOXES: ${MS_GRAPH_MAILBOXES:-schulung@fb-akademie.de info@fb-akademie.de}
       MS_CLIENT_ID: ${MS_CLIENT_ID:-}
       MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
       # Cron-Token fuer /api/cron/reminders (24h-Erinnerungsmail) und
@@ -91,12 +100,14 @@ services:
       # Vorlauf der Erinnerungsmail in Stunden vor dem echten Beginn.
       REMINDER_LEAD_HOURS: ${REMINDER_LEAD_HOURS:-24}
       # Iframe-Embedding der oeffentlichen Anmeldeseiten
-      IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de}
+      IFRAME_HOSTS: ${IFRAME_HOSTS:-fb-eng.de fb-stage.de fi-fb.de fb-akademie.de}
       NODE_ENV: production
       # Beim allerersten Start auf "1" setzen, dann wieder entfernen:
       RUN_SEED_ON_START: ${RUN_SEED_ON_START:-0}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@fb-akademie.de}
-      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-ChangeMe!2026}
+      # Bewusst ohne Vorgabewert: ohne gesetztes Passwort legt das
+      # Seeding kein Konto an, statt ein bekanntes Passwort zu vergeben.
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
     networks:
       - internal       # Verbindung zur DB
       - proxy          # Wird vom externen fbe-caddy erreicht

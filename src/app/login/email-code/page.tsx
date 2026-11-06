@@ -14,7 +14,7 @@ export default async function LoginEmailCodePage({
   const session = await getSession();
   if (session) redirect("/dashboard");
   const pending = await getPending();
-  if (!pending) redirect("/login");
+  if (!pending || pending.stage !== "totp") redirect("/login");
   const user = await prisma.user.findUnique({
     where: { id: pending.uid },
     select: { email: true },
@@ -33,7 +33,7 @@ export default async function LoginEmailCodePage({
         </div>
         {searchParams.error && (
           <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-            {searchParams.error}
+            {searchParams.error.slice(0, 160)}
           </div>
         )}
         <form method="post" action="/api/auth/email-code" className="space-y-4">

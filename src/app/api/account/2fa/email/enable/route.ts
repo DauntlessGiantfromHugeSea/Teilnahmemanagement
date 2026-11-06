@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getPending, getSession, createSession, clearPending } from "@/lib/session";
+import { getPending, getSession, createSession, clearPending, stashRecoveryCodes } from "@/lib/session";
 import { hashLoginCode } from "@/lib/loginCode";
 import { generateRecoveryCodes } from "@/lib/auth";
 import { encryptField } from "@/lib/crypto";
@@ -22,7 +22,19 @@ export async function POST(req: Request) {
   }
 
   const user = await prisma.user.findUnique({ where: { id: uid } });
-  if (!user || !user.loginCodeHash || !user.loginCodeExpiresAt) {
+  if (!user) return new NextResponse(null, { status: 303, headers: { Location: `/login` } });
+
+  // Ohne vollwertige Sitzung nur Erst-Einrichtung (siehe src/lib/session.ts,
+  // PendingPayload.stage). Ein bestehender zweiter Faktor darf nicht allein
+  // mit dem Passwort ausgetauscht werden.
+  if (!session) {
+    const hasFactor = user.totpEnabled || user.emailCodeEnabled;
+    if (pending?.stage !== "setup" || hasFactor) {
+      return new NextResponse(null, { status: 303, headers: { Location: `/login` } });
+    }
+  }
+
+  if (!user.loginCodeHash || !user.loginCodeExpiresAt) {
     return new NextResponse(null, {
       status: 303,
       headers: { Location: `/account/2fa/setup-email?error=Kein+aktiver+Code` },
@@ -56,8 +68,8 @@ export async function POST(req: Request) {
       await createSession({ uid: user.id, role: user.role, name: user.name, email: user.email });
       await clearPending();
     }
-    const params = new URLSearchParams({ codes: recovery.join(",") });
-    return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/recovery?${params}` } });
+    stashRecoveryCodes(recovery);
+    return new NextResponse(null, { status: 303, headers: { Location: `/account/2fa/recovery` } });
   }
 
   await prisma.user.update({ where: { id: user.id }, data: updateData });

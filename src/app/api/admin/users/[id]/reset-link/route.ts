@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { getSession, stashOneTimeLink } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { issueToken } from "@/lib/pwToken";
@@ -54,7 +54,8 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   });
 
   if (r.skipped) {
-    return back(`error=${encodeURIComponent("Link erzeugt - SMTP ist nicht konfiguriert, bitte manuell weitergeben")}&link=${encodeURIComponent(link)}`);
+    stashOneTimeLink(link);
+    return back(`error=${encodeURIComponent("Link erzeugt - Mailversand ist nicht konfiguriert, bitte manuell weitergeben")}`);
   }
   if (!r.ok) {
     return back(`error=${encodeURIComponent(`Mail nicht zugestellt: ${r.error ?? "unbekannt"}`)}`);

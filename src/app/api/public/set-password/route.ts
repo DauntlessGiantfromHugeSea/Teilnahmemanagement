@@ -39,6 +39,8 @@ export async function POST(req: Request) {
       passwordHash: await hashPassword(p1),
       pwTokenHash: null,
       pwTokenExpiresAt: null,
+      // Ein Passwortwechsel beendet alle bestehenden Sitzungen des Kontos.
+      sessionEpoch: { increment: 1 },
     },
   });
 

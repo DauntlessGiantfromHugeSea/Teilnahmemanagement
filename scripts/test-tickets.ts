@@ -109,7 +109,7 @@ async function main() {
   check("weiterhin 1 Ticket", (await prisma.ticket.count()) === 1);
 
   // --- 3. Kontaktprofil: Schulungshistorie ---
-  const profile = await loadContactProfile(kundeMail, t1.id);
+  const profile = await loadContactProfile(kundeMail, t1.id, "ALL");
   check("2 Anmeldungen gefunden", profile.registrations.length === 2, profile.registrations.length);
   check("1 kommend", profile.upcoming.length === 1 && profile.upcoming[0].eventTitle === "Crashkurs Dezember 2026", profile.upcoming.map(r=>r.eventTitle));
   check("1 vergangen", profile.past.length === 1 && profile.past[0].eventTitle === "Crashkurs März 2026", profile.past.map(r=>r.eventTitle));
@@ -154,7 +154,7 @@ async function main() {
   }));
   check("neuer Absender -> neues Ticket", (await importParsedMail(mailbox, m5, 105)) === "created");
   check("jetzt 2 Tickets", (await prisma.ticket.count()) === 2);
-  const p2 = await loadContactProfile("neu@fremd.de");
+  const p2 = await loadContactProfile("neu@fremd.de", undefined, "ALL");
   check("keine Historie fuer Unbekannte", p2.registrations.length === 0);
 
   // --- 8. Eigene Kopie im Postfach wird nicht reimportiert ---
@@ -195,10 +195,77 @@ async function main() {
     (await prisma.ticket.count({ where: { mailboxId: m365.id } })) === 1);
   check("M365-Postfach hat keine IMAP-Daten", m365.imapHost === null && m365.imapUser === null);
   // Kontaktprofil greift postfachuebergreifend auf denselben Absender zu
-  const p3 = await loadContactProfile(kundeMail);
+  const p3 = await loadContactProfile(kundeMail, undefined, "ALL");
   check("Historie auch im M365-Ticket", p3.registrations.length === 2);
   check("zwei Tickets derselben Adresse",
     (await prisma.ticket.count({ where: { fromEmailHash: blindIndex(kundeMail) } })) === 2);
+
+  // --- 10. Absenderbindung: Referenz allein reicht nicht ---
+  // Die Referenz steht in jeder Antwortmail und wird von Kunden
+  // weitergeleitet. Wer sie kennt, darf damit keine Nachricht in einen
+  // fremden Vorgang haengen und keinen erledigten Vorgang wieder oeffnen.
+  const vorher = await prisma.ticketMessage.count({ where: { ticketId: t1.id } });
+  const fremd = await simpleParser(raw({
+    from: "Dritter <dritter@beliebig.example>", to: "schulung@fb-akademie.de",
+    subject: `Re: Frage zur Anreise [${d1.reference}]`,
+    body: "Bitte schicken Sie die Rechnung an mich.",
+    messageId: "fremd-1@beliebig.example", date: new Date("2026-02-02T09:00:00Z"),
+  }));
+  check("fremder Absender mit Referenz -> eigenes Ticket",
+    (await importParsedMail(mailbox, fremd, 110)) === "created");
+  check("fremde Nachricht nicht im Vorgang",
+    (await prisma.ticketMessage.count({ where: { ticketId: t1.id } })) === vorher);
+
+  // Dasselbe ueber die Header-Kette: auch eine echte Message-ID aus dem
+  // Verlauf bindet nur zusammen mit der Absenderadresse.
+  const fremdThread = await simpleParser(raw({
+    from: "Dritter <dritter@beliebig.example>", to: "schulung@fb-akademie.de",
+    subject: "Nachtrag", body: "Noch etwas.",
+    messageId: "fremd-2@beliebig.example", date: new Date("2026-02-02T10:00:00Z"),
+    extra: "In-Reply-To: <kunde-1@bau-mueller.de>",
+  }));
+  check("fremder Absender im Thread -> eigenes Ticket",
+    (await importParsedMail(mailbox, fremdThread, 111)) === "created");
+  check("Vorgang weiterhin unveraendert",
+    (await prisma.ticketMessage.count({ where: { ticketId: t1.id } })) === vorher);
+
+  // Richtiger Absender, aber falsches Postfach: gehoert nicht dazu.
+  const anderesPostfach = await simpleParser(raw({
+    from: `Maria Schmidt <${kundeMail}>`, to: "info@fb-akademie.de",
+    subject: `Re: Frage zur Anreise [${d1.reference}]`,
+    body: "Hier nochmal.", messageId: "kunde-9@bau-mueller.de",
+    date: new Date("2026-02-02T11:00:00Z"),
+  }));
+  check("anderes Postfach -> eigenes Ticket",
+    (await importParsedMail(m365, anderesPostfach, 112)) === "created");
+  check("Vorgang immer noch unveraendert",
+    (await prisma.ticketMessage.count({ where: { ticketId: t1.id } })) === vorher);
+
+  // Der echte Absender im richtigen Postfach kommt weiterhin durch.
+  const echt = await simpleParser(raw({
+    from: `Maria Schmidt <${kundeMail}>`, to: "schulung@fb-akademie.de",
+    subject: `Re: Frage zur Anreise [${d1.reference}]`,
+    body: "Letzte Frage.", messageId: "kunde-10@bau-mueller.de",
+    date: new Date("2026-02-02T12:00:00Z"),
+  }));
+  check("echter Absender wird weiterhin zugeordnet",
+    (await importParsedMail(mailbox, echt, 113)) === "appended");
+  check("jetzt eine Nachricht mehr",
+    (await prisma.ticketMessage.count({ where: { ticketId: t1.id } })) === vorher + 1);
+
+  // --- 11. Kontaktprofil respektiert Veranstaltungsfreigaben ---
+  const ohneFreigabe = await loadContactProfile(kundeMail, undefined, []);
+  check("ohne Freigabe keine Anmeldungen sichtbar", ohneFreigabe.registrations.length === 0,
+    ohneFreigabe.registrations.length);
+  check("verborgene Anmeldungen werden gezaehlt", ohneFreigabe.hiddenRegistrationCount === 2,
+    ohneFreigabe.hiddenRegistrationCount);
+  const einEvent = await loadContactProfile(kundeMail, undefined, [futureEvent.id]);
+  check("mit einer Freigabe genau eine Anmeldung", einEvent.registrations.length === 1,
+    einEvent.registrations.length);
+  check("die andere bleibt als Zahl", einEvent.hiddenRegistrationCount === 1,
+    einEvent.hiddenRegistrationCount);
+  const alle = await loadContactProfile(kundeMail, undefined, "ALL");
+  check("mit ALL nichts verborgen", alle.hiddenRegistrationCount === 0);
 
   console.log(fails === 0 ? "\nE2E: ALLE TESTS OK" : `\nE2E: ${fails} FEHLER`);
   await prisma.$disconnect();

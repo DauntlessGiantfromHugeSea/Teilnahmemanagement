@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
-import { saveUpload } from "@/lib/uploads";
+import { bodyTooLarge, deleteUpload, saveUpload } from "@/lib/uploads";
 import { audit } from "@/lib/audit";
 import {
   DEFAULT_COMPANY_SIGNATURE,
@@ -25,6 +25,8 @@ export async function POST(req: Request) {
       headers: { Location: `/admin/mail-design?${new URLSearchParams(q).toString()}` },
     });
 
+  if (bodyTooLarge(req)) return back({ error: "Datei zu groß." });
+
   const f = await req.formData();
   const current = await getCompanySignature();
 
@@ -35,6 +37,8 @@ export async function POST(req: Request) {
     try {
       const saved = await saveUpload(file);
       if (!saved) return back({ error: "Logo konnte nicht gespeichert werden (Typ oder Größe)." });
+      // Ersetztes Logo entfernen.
+      if (current.logoUrl && current.logoUrl !== saved.url) await deleteUpload(current.logoUrl);
       logoUrl = saved.url;
     } catch (e) {
       return back({ error: (e as Error).message });

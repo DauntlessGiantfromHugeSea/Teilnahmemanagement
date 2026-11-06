@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { canManageEvent } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
-import { saveUpload } from "@/lib/uploads";
+import { bodyTooLarge, deleteUpload, saveUpload } from "@/lib/uploads";
 import { generateEventExternalId } from "@/lib/eventId";
 import { EventFormat } from "@prisma/client";
 
@@ -61,7 +61,12 @@ async function resolveUpload(
   const file = f.get(fileField);
   if (file instanceof File && file.size > 0) {
     const saved = await saveUpload(file);
-    if (saved) return saved.url;
+    if (saved) {
+      // Ersetztes Bild loeschen, sonst bleibt es dauerhaft im Verzeichnis
+      // liegen, ohne dass es noch irgendwo referenziert waere.
+      if (existingUrl && existingUrl !== saved.url) await deleteUpload(existingUrl);
+      return saved.url;
+    }
   }
   return existingUrl;
 }
@@ -70,6 +75,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const s = await getSession();
   if (!s) return new NextResponse("Unauthorized", { status: 401 });
   if (!(await canManageEvent(s, params.id))) return new NextResponse("Forbidden", { status: 403 });
+  if (bodyTooLarge(req, 20 * 1024 * 1024)) {
+    return new NextResponse("Anhänge zu groß", { status: 413 });
+  }
   const f = await req.formData();
   const format = formatOrDefault(f.get("format"));
   const title = String(f.get("title") ?? "").trim();

@@ -4,7 +4,7 @@ import { getSession } from "@/lib/session";
 import { canWriteGlobal } from "@/lib/rbac";
 import { audit } from "@/lib/audit";
 import { encryptField } from "@/lib/crypto";
-import { saveUpload } from "@/lib/uploads";
+import { bodyTooLarge, saveUpload } from "@/lib/uploads";
 import { generateEventExternalId } from "@/lib/eventId";
 import { EventFormat } from "@prisma/client";
 
@@ -56,6 +56,10 @@ function cleanExtraDays(v: FormDataEntryValue | null): string | null {
 export async function POST(req: Request) {
   const s = await getSession();
   if (!s || !canWriteGlobal(s)) return new NextResponse("Forbidden", { status: 403 });
+  // Groesse pruefen, bevor der gesamte Body eingelesen wird.
+  if (bodyTooLarge(req, 20 * 1024 * 1024)) {
+    return new NextResponse("Anhänge zu groß", { status: 413 });
+  }
   const f = await req.formData();
 
   const title = String(f.get("title") ?? "").trim();
@@ -71,13 +75,17 @@ export async function POST(req: Request) {
   let logoUrl = strOrNull(f.get("logoUrl"));
   const heroFile = f.get("heroImageFile");
   const logoFile = f.get("logoFile");
-  if (heroFile instanceof File && heroFile.size > 0) {
-    const saved = await saveUpload(heroFile);
-    if (saved) heroImageUrl = saved.url;
-  }
-  if (logoFile instanceof File && logoFile.size > 0) {
-    const saved = await saveUpload(logoFile);
-    if (saved) logoUrl = saved.url;
+  try {
+    if (heroFile instanceof File && heroFile.size > 0) {
+      const saved = await saveUpload(heroFile);
+      if (saved) heroImageUrl = saved.url;
+    }
+    if (logoFile instanceof File && logoFile.size > 0) {
+      const saved = await saveUpload(logoFile);
+      if (saved) logoUrl = saved.url;
+    }
+  } catch (e) {
+    return new NextResponse((e as Error).message, { status: 400 });
   }
 
   // Training inline mit den übergebenen Preisen anlegen

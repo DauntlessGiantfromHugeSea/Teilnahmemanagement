@@ -42,9 +42,11 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     const creds = graphCredentials(mb);
     if (!creds) {
       return fail(
-        "Microsoft-Zugangsdaten unvollständig. Tenant-ID, Client-ID und Secret am Postfach " +
-          "eintragen oder MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET in der .env setzen " +
-          '("common" ist bei App-Only nicht zulässig).'
+        "Microsoft-Zugangsdaten für dieses Postfach fehlen oder greifen nicht. " +
+          "Entweder Tenant-ID, Client-ID und Secret am Postfach eintragen, " +
+          "oder die Adresse in MS_GRAPH_MAILBOXES freigeben, damit die " +
+          "tenantweite App-Registrierung (MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET) " +
+          'verwendet werden darf ("common" ist bei App-Only nicht zulässig).'
       );
     }
     try {

@@ -1,7 +1,8 @@
 // Cron-Endpoint: 24h-Erinnerungsmail.
 //
 // Wird typischerweise alle 15-60 Minuten extern aufgerufen (Docker-Cron oder
-// HTTP-Watchdog). Authentifizierung per Bearer-Token aus env CRON_TOKEN.
+// HTTP-Watchdog). Authentifizierung ausschliesslich per Bearer-Token im
+// Authorization-Header aus env CRON_TOKEN (nicht im Query-String).
 //
 // Logik:
 //   - Kandidaten grob per SQL vorfiltern (day1Date in den naechsten Tagen,
@@ -17,6 +18,7 @@
 // des Veranstaltungstags statt gegen den Beginn. Die "24h"-Mail ging dadurch
 // je nach Jahreszeit 38 bis 39 Stunden vorher raus.
 
+import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { decryptParticipant } from "@/lib/participants";
@@ -42,10 +44,15 @@ export async function POST(req: Request) {
 async function run(req: Request): Promise<NextResponse> {
   const token = process.env.CRON_TOKEN;
   if (!token) return NextResponse.json({ error: "CRON_TOKEN nicht konfiguriert" }, { status: 503 });
+  // Nur der Authorization-Header. Ein Token im Query-String landet in
+  // Zugriffsprotokollen, Proxy-Logs, der Browser-History und im Referer der
+  // naechsten Anfrage - dort ist ein Dauergeheimnis nicht aufgehoben.
   const auth = req.headers.get("authorization") ?? "";
-  const qToken = new URL(req.url).searchParams.get("token") ?? "";
-  if (auth !== `Bearer ${token}` && qToken !== token) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!timingSafeStringEqual(auth, `Bearer ${token}`)) {
+    return NextResponse.json(
+      { error: "Forbidden", hinweis: 'Token im Header senden: Authorization: Bearer <CRON_TOKEN>' },
+      { status: 403 }
+    );
   }
   if (!isMailingConfigured()) return NextResponse.json({ error: "SMTP nicht konfiguriert" }, { status: 503 });
 
@@ -129,4 +136,12 @@ async function run(req: Request): Promise<NextResponse> {
     mailsFailed,
     errors,
   });
+}
+
+/** Zeichenkettenvergleich in konstanter Zeit. */
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ba.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ba, bb);
 }

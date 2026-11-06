@@ -3,11 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
 import { decryptSubscriber } from "@/lib/newsletter";
-
-function csvCell(v: string): string {
-  if (/[",;\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
-  return v;
-}
+import { toCsv } from "@/lib/csv";
 
 export async function GET() {
   const s = await getSession();
@@ -27,7 +23,7 @@ export async function GET() {
       d.createdAt.toISOString(),
     ]);
   }
-  const csv = "﻿" + rows.map((r) => r.map(csvCell).join(";")).join("\r\n");
+  const csv = toCsv(rows);
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

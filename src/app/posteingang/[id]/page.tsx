@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { TicketMsgDirection, TicketPriority, TicketStatus } from "@prisma/client";
 import { getSession } from "@/lib/session";
 import { Shell } from "@/components/Shell";
-import { canUseTickets } from "@/lib/rbac";
+import { canUseTickets, listAccessibleEventIds } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
 import { safeDecrypt } from "@/lib/crypto";
 import {
@@ -117,8 +117,13 @@ export default async function TicketPage({
   const fromName = safeDecrypt(ticket.fromName);
   const messages = ticket.messages.map(decryptMessage);
 
+  // Das Kontaktprofil zeigt Anmeldungen, Rechnungsstatus und Zertifikate.
+  // Dieselben Daten sind ueberall sonst an eine Veranstaltungsfreigabe
+  // gebunden; hier gilt dieselbe Grenze.
+  const scope = await listAccessibleEventIds(s);
+
   const [contact, users] = await Promise.all([
-    fromEmail ? loadContactProfile(fromEmail, ticket.id) : null,
+    fromEmail ? loadContactProfile(fromEmail, ticket.id, scope) : null,
     prisma.user.findMany({
       where: { active: true, role: { in: ["ADMIN", "EDITOR", "EVENTMANAGER"] } },
       select: { id: true, name: true },
@@ -280,6 +285,15 @@ export default async function TicketPage({
                 <div className="flex justify-between gap-2">
                   <dt>Newsletter</dt>
                   <dd className="text-slate-700">{contact.newsletter.status.toLowerCase()}</dd>
+                </div>
+              )}
+              {contact && contact.hiddenRegistrationCount > 0 && (
+                <div className="flex justify-between gap-2">
+                  <dt>Ohne Freigabe</dt>
+                  <dd className="text-slate-700" title="Anmeldungen zu Veranstaltungen, für die du keine Freigabe hast">
+                    {contact.hiddenRegistrationCount} weitere Anmeldung
+                    {contact.hiddenRegistrationCount === 1 ? "" : "en"}
+                  </dd>
                 </div>
               )}
             </dl>

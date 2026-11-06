@@ -4,13 +4,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { isAdmin } from "@/lib/rbac";
 import { prisma } from "@/lib/db";
-
-function csvEscape(value: string): string {
-  if (/[";\n\r]/.test(value)) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
+import { toCsv } from "@/lib/csv";
 
 export async function GET(req: Request) {
   const s = await getSession();
@@ -24,13 +18,14 @@ export async function GET(req: Request) {
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
 
-  const lines = ["Name;Firma"];
+  const rows: string[][] = [["Name", "Firma"]];
   for (const m of staff) {
-    const name = `${m.firstName} ${m.lastName}`.trim();
-    const firma = m.subtitle?.trim() || m.company || "";
-    lines.push(`${csvEscape(name)};${csvEscape(firma)}`);
+    rows.push([
+      `${m.firstName} ${m.lastName}`.trim(),
+      m.subtitle?.trim() || m.company || "",
+    ]);
   }
-  const csv = "﻿" + lines.join("\r\n") + "\r\n";
+  const csv = toCsv(rows) + "\r\n";
 
   return new NextResponse(csv, {
     status: 200,
