@@ -62,6 +62,34 @@ export function BroadcastComposer({
   const [sending, setSending] = useState(false);
   const firstPreview = useRef(true);
 
+  // Test oder echter Versand?
+  //
+  // Die Angabe steckt in einem versteckten Feld, das React verwaltet
+  // (value aus dem Zustand) - bewusst nicht am Knopf und bewusst nicht
+  // unverwaltet. Zwei Fallen liegen hier dicht beieinander, beide ausgeloest
+  // durch dasselbe setSending(true) beim Absenden:
+  //
+  //   1. Mit name/value am Knopf: setSending deaktiviert die Knoepfe, und
+  //      zwar bevor der Browser das Formular zusammenstellt. Deaktivierte
+  //      Felder werden nicht mitgeschickt - die Angabe fehlte also genau
+  //      dann, wenn sie gebraucht wurde.
+  //   2. Mit einem unverwalteten <input type="hidden" defaultValue="test">:
+  //      Bei einem versteckten Feld ist value laut HTML-Standard dasselbe
+  //      wie defaultValue (es gibt kein "vom Benutzer geaendert"-Merkmal).
+  //      Beim erneuten Rendern schreibt React defaultValue zurueck - und
+  //      ueberschreibt damit das per Klick gesetzte "send".
+  //
+  // Beides endete still bei "Testmail an mich selbst", obwohl auf
+  // "An N Empfaenger senden" geklickt wurde.
+  const [action, setAction] = useState<"test" | "send">("test");
+  const actionField = useRef<HTMLInputElement>(null);
+  const choose = (a: "test" | "send") => {
+    setAction(a);
+    // Zusaetzlich direkt am DOM, damit die Angabe unabhaengig davon stimmt,
+    // wann React die Zustandsaenderung uebernimmt.
+    if (actionField.current) actionField.current.value = a;
+  };
+
   const typed = useMemo(() => countAddresses(addresses), [addresses]);
   const fromEvents = useMemo(
     () => picked.reduce((n, id) => n + (events.find((e) => e.id === id)?.recipientCount ?? 0), 0),
@@ -112,8 +140,7 @@ export function BroadcastComposer({
       action="/api/mailing/send"
       className="grid lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] gap-6 items-start"
       onSubmit={(e) => {
-        const action = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-        if (action?.value === "send") {
+        if (actionField.current?.value === "send") {
           if (overCap) {
             e.preventDefault();
             return;
@@ -348,18 +375,20 @@ export function BroadcastComposer({
             Stille Kopie an mich ({myAddress})
           </label>
 
+          <input type="hidden" name="action" ref={actionField} value={action} readOnly />
+
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <button
-              name="action"
-              value="test"
+              type="submit"
+              onClick={() => choose("test")}
               disabled={sending}
               className="btn-secondary text-sm disabled:opacity-50"
             >
               Testmail an mich
             </button>
             <button
-              name="action"
-              value="send"
+              type="submit"
+              onClick={() => choose("send")}
               disabled={sending || overCap || total === 0}
               className="btn-primary text-sm disabled:opacity-50"
             >

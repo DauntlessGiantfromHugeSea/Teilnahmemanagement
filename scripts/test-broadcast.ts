@@ -3,6 +3,9 @@
 //
 //   npx tsx scripts/test-broadcast.ts
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { chunk, parseAddressList } from "@/lib/broadcast";
 import {
   fillPlaceholders,
@@ -228,6 +231,58 @@ const company: CompanySignature = {
     "relativer Logopfad wird absolut",
     html.includes('src="https://teilnahme.fb-akademie.de/uploads/202601/logo-abc.png"'),
     ""
+  );
+}
+
+// ------------------------------------------- Test oder echter Versand?
+//
+// Hier steckte ein Fehler, der still das Falsche tat: Der Klick auf
+// "An N Empfaenger senden" verschickte eine Testmail an einen selbst.
+// Zwei Ursachen, beide durch setSending(true) beim Absenden ausgeloest:
+//
+//   1. name/value am Knopf - beim erneuten Rendern wird der Knopf
+//      deaktiviert, und deaktivierte Felder schickt der Browser nicht mit.
+//   2. <input type="hidden" defaultValue="test"> - bei einem versteckten
+//      Feld ist value laut HTML-Standard dasselbe wie defaultValue, React
+//      schreibt es beim erneuten Rendern also zurueck.
+//
+// Beides laesst sich ohne Browser nicht nachstellen. Diese Pruefungen sind
+// deshalb bewusst grob: Sie lesen den Quelltext und schlagen an, sobald
+// eine der beiden Schreibweisen zurueckkehrt.
+{
+  const composer = readFileSync(
+    join(process.cwd(), "src", "components", "BroadcastComposer.tsx"),
+    "utf8"
+  );
+  const route = readFileSync(
+    join(process.cwd(), "src", "app", "api", "mailing", "send", "route.ts"),
+    "utf8"
+  );
+
+  check(
+    "Falle 1: kein name=\"action\" am Knopf",
+    !/<button[^>]*name="action"/s.test(composer),
+    "Knopf traegt die Angabe wieder selbst - sie faellt weg, sobald er deaktiviert wird"
+  );
+  check(
+    "Falle 2: verstecktes Feld ist verwaltet",
+    /name="action"[^>]*value=\{action\}/.test(composer),
+    "verstecktes Feld haengt nicht mehr am Zustand - React setzt es beim Rendern zurueck"
+  );
+  check(
+    "Falle 2: kein defaultValue am versteckten Feld",
+    !/name="action"[^>]*defaultValue/.test(composer),
+    "defaultValue wird beim erneuten Rendern zurueckgeschrieben"
+  );
+  check(
+    "Server faellt nicht still auf \"test\" zurueck",
+    !/f\.get\("action"\)\s*\?\?\s*"test"/.test(route),
+    "fehlende Angabe wuerde wieder still zur Testmail werden"
+  );
+  check(
+    "Server weist unbekannte Angabe ab",
+    /action !== "test" && action !== "send"/.test(route),
+    "unbekannte Angabe wird nicht abgewiesen"
   );
 }
 

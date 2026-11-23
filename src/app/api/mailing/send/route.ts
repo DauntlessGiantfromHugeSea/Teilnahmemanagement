@@ -35,12 +35,20 @@ export async function POST(req: Request) {
   const subject = String(f.get("subject") ?? "").trim();
   const body = String(f.get("body") ?? "").trim();
   const mode: BroadcastMode = String(f.get("sendMode") ?? "bcc") === "individual" ? "individual" : "bcc";
-  const action = String(f.get("action") ?? "test");
+  const action = String(f.get("action") ?? "");
   const ctaLabel = String(f.get("ctaLabel") ?? "").trim() || undefined;
   const ctaUrl = String(f.get("ctaUrl") ?? "").trim() || undefined;
   const footerNote = String(f.get("footerNote") ?? "").trim() || undefined;
   const copyToMe = f.get("copyToMe") === "on";
 
+  // Kein stiller Rueckfall auf "test": Fehlt die Angabe, ist unklar, was
+  // gemeint war - und eine stille Testmail statt des erwarteten Versands
+  // faellt niemandem auf. Lieber laut abbrechen.
+  if (action !== "test" && action !== "send") {
+    return back({
+      error: "Es war nicht erkennbar, ob eine Testmail oder der Versand gemeint war. Bitte erneut auf den gewünschten Knopf klicken.",
+    });
+  }
   if (!subject || !body) return back({ error: "Betreff und Nachricht sind Pflicht." });
   if (ctaLabel && !ctaUrl) return back({ error: "Für die Schaltfläche fehlt die Adresse." });
   if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
