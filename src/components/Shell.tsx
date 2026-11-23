@@ -17,6 +17,7 @@ const PRIMARY = [
   { id: "posteingang", href: "/posteingang", label: "Posteingang", roles: ["ADMIN", "EDITOR", "EVENTMANAGER"] },
   { id: "accounting", href: "/accounting", label: "Buchhaltung", roles: ["ADMIN", "ACCOUNTING"] },
   { id: "exports", href: "/exports/participants", label: "Export", roles: ["ADMIN", "EDITOR", "ACCOUNTING"] },
+  { id: "mailing", href: "/mailing", label: "Rundmail", roles: ["ADMIN", "EDITOR"] },
   { id: "newsletter", href: "/admin/newsletter", label: "Newsletter", roles: ["ADMIN"] },
 ];
 

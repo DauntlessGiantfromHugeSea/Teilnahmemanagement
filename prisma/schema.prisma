@@ -133,6 +133,7 @@ model User {
   createdCerts    Certificate[]   @relation("CertCreatedBy")
   ticketsAssigned Ticket[]        @relation("TicketAssignee")
   ticketMessages  TicketMessage[] @relation("TicketMessageAuthor")
+  broadcasts      Broadcast[]     @relation("BroadcastSender")
 }
 
 model Training {
@@ -767,4 +768,39 @@ model TicketAttachment {
   createdAt   DateTime      @default(now())
 
   @@index([messageId])
+}
+
+/// Rundmail an einen frei zusammengestellten Verteiler (nicht der
+/// Newsletter, nicht die Rundmail einer einzelnen Veranstaltung).
+/// Wird aufbewahrt, damit nachvollziehbar bleibt, wer wann was an wen
+/// geschickt hat - bei Terminaenderungen und Zugangslinks ist genau das
+/// die Frage, die hinterher gestellt wird.
+model Broadcast {
+  id   String @id @default(cuid())
+  // Inhalte sind verschluesselt wie alle anderen personenbezogenen Daten.
+  subject String // verschluesselt
+  body    String // verschluesselt, Rohtext mit Auszeichnung
+
+  /// "bcc" = eine Mail je Block mit Blindkopie, "individual" = eine je Person
+  mode String @default("bcc")
+
+  /// Verschluesseltes JSON-Array der Empfaengeradressen.
+  recipients     String?
+  recipientCount Int     @default(0)
+  sentCount      Int     @default(0)
+  failedCount    Int     @default(0)
+
+  /// JSON-Array der Veranstaltungen, aus denen Empfaenger gezogen wurden.
+  eventIds String?
+
+  ctaLabel String?
+  ctaUrl   String?
+
+  senderId String
+  sender   User   @relation("BroadcastSender", fields: [senderId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([senderId])
 }

@@ -20,6 +20,14 @@ export interface CompanySignature {
   /** Breite des Logos in Pixeln (Mailclients brauchen eine feste Angabe). */
   logoWidth: number;
   accentColor: string;
+  /**
+   * Kopfbereich der Rundmail.
+   *   "band"  - farbiges Band in der Akzentfarbe, Logo daraufgesetzt.
+   *             Braucht ein Logo, das auf der Farbe lesbar ist (meist weiss).
+   *   "plain" - weisser Kopf mit duennem Farbstreifen darunter. Funktioniert
+   *             mit jedem Logo.
+   */
+  headerStyle: "band" | "plain";
   /** Firmenname in der Mail-Fusszeile - unabhaengig vom Postfach. */
   footerName: string;
   /** Kontaktadresse in der Fusszeile - unabhaengig vom Antwort-Postfach. */
@@ -35,6 +43,10 @@ export const DEFAULT_COMPANY_SIGNATURE: CompanySignature = {
   logoUrl: "https://fluessigbodenakademie.de/wp-content/uploads/2025/07/FBA_tuerkis.png",
   logoWidth: 150,
   accentColor: "#0f766e",
+  // Voreinstellung bewusst "plain": ein farbiges Logo auf einem farbigen Band
+  // waere unsichtbar. Umstellbar unter /admin/mail-design, die Vorschau zeigt
+  // das Ergebnis sofort.
+  headerStyle: "plain",
   footerName: "Flüssigboden Akademie",
   footerEmail: "info@fb-akademie.de",
   footerPhone: "",

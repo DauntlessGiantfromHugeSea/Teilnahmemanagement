@@ -174,6 +174,7 @@ docker compose logs -f app
 | `MS_LINK_TENANTS` | – | Tenants, aus denen beim ersten Login automatisch mit einem lokalen Konto gleicher Adresse verknüpft werden darf. Leer = `MS_TENANT_ID`, sofern das eine Tenant-GUID ist. Bei `common` findet ohne diesen Eintrag keine automatische Verknüpfung statt. |
 | `MS_GRAPH_MAILBOXES` | – | Postfächer, für die der Posteingang die tenantweite App-Registrierung verwenden darf. Leer = kein Rückfall; jedes Postfach braucht dann eigene Zugangsdaten. |
 | `UPLOADS_MAX_TOTAL_MB` | 2048 | Obergrenze für das gesamte Upload-Verzeichnis |
+| `MAIL_GRAPH_SENDER` | – | Postfach, aus dem verschickt wird. Steht bei Rundmails im To-Feld, die Empfänger stehen im BCC. |
 | `CRON_TOKEN` | – | Bearer für `/api/cron/reminders` und `/api/cron/mail-ingest`; **nur im `Authorization`-Header**, nicht als `?token=` |
 | `RUN_SEED_ON_START` | – | `1` beim Erst-Start für Initial-Admin |
 | `SEED_ADMIN_EMAIL` | `admin@fb-akademie.de` | Login für Initial-Admin |

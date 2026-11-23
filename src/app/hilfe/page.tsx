@@ -21,6 +21,7 @@ export default async function HilfePage() {
     { id: "teilnehmer", label: "Teilnehmer pflegen, umbuchen, exportieren", show: true },
     { id: "anwesenheit", label: "Anwesenheitsliste als PDF", show: true },
     { id: "anmeldung", label: "Öffentliche Anmeldeseite", show: true },
+    { id: "rundmail", label: "Rundmail an viele Adressen", show: canWrite },
     { id: "buchhaltung", label: "Buchhaltung", show: isAccounting },
     { id: "admin", label: "Administration", show: isAdmin },
     { id: "csv", label: "CSV-Import", show: isAdmin },
@@ -150,6 +151,46 @@ export default async function HilfePage() {
             separate PDF erzeugen.
           </p>
         </Section>
+
+        {canWrite && (
+        <Section id="rundmail" title="Rundmail an viele Adressen">
+          <p>
+            Unter <strong>Rundmail</strong> im Hauptmenü verschickst du eine Nachricht an
+            einen frei zusammengestellten Verteiler — etwa eine Terminänderung oder den
+            Zugangslink zu einem Webinar.
+          </p>
+          <p>
+            <strong>Empfänger</strong> kommen aus zwei Quellen, die sich mischen lassen:
+            eingetippte oder aus Outlook kopierte Adressen und die Teilnehmer ausgewählter
+            Veranstaltungen. Wer in mehreren Listen steht, bekommt die Mail trotzdem nur
+            einmal.
+          </p>
+          <p>
+            <strong>Zwei Versandwege.</strong> Bei <em>Blindkopie (BCC)</em> geht eine Mail
+            an alle, die Empfänger sehen einander nicht — schnell, aber ohne persönliche
+            Anrede. Bei <em>Einzeln mit Anrede</em> bekommt jede Person eine eigene Mail,
+            in der <code>{"{firstName}"}</code> und <code>{"{lastName}"}</code> ersetzt
+            werden; das dauert länger und ist auf 300 Adressen begrenzt.
+          </p>
+          <p>
+            Im Text funktionieren <code>**fett**</code>, <code># Überschrift</code>,
+            <code>- Aufzählung</code> und <code>[Text](https://…)</code>. Links und
+            Mailadressen werden automatisch verlinkt. Die Vorschau rechts zeigt beim
+            Tippen, wie die Mail ankommt.
+          </p>
+          <p>
+            Logo, Farbe und Fußzeile stammen aus <strong>Administration → Mail-Design</strong>.
+            Dort stellst du auch ein, ob der Kopfbereich ein farbiges Band ist oder weiß
+            mit Farbstreifen — ein farbiges Logo braucht den weißen Kopf, sonst verschwindet
+            es im Band.
+          </p>
+          <p>
+            Vor dem Versand lohnt sich <strong>„Testmail an mich"</strong>. Jede verschickte
+            Rundmail wird unten auf der Seite protokolliert: Betreff, Zeitpunkt, Absender
+            und Empfängerzahl.
+          </p>
+        </Section>
+        )}
 
         <Section id="anmeldung" title="Öffentliche Anmeldeseite (WordPress / Direktlink)">
           <p>

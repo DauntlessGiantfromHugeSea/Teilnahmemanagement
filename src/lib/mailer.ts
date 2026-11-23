@@ -74,6 +74,15 @@ function configKey(): string {
 
 export type MailTransportKind = "graph" | "smtp" | "none";
 
+/**
+ * Die Adresse, unter der die Anwendung verschickt. Wird fuer Rundmails
+ * gebraucht: dort steht sie im To-Feld, waehrend die eigentlichen
+ * Empfaenger im BCC stehen.
+ */
+export function mailSenderAddress(): string | undefined {
+  return graphSender();
+}
+
 function graphSender(): string | undefined {
   const explicit = process.env.MAIL_GRAPH_SENDER?.trim();
   if (explicit) return explicit;

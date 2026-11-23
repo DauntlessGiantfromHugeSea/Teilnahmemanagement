@@ -59,6 +59,7 @@ export async function POST(req: Request) {
     logoUrl,
     logoWidth: Math.min(400, Math.max(40, Number(f.get("logoWidth") ?? 150) || 150)),
     accentColor: str("accentColor", DEFAULT_COMPANY_SIGNATURE.accentColor),
+    headerStyle: String(f.get("headerStyle") ?? "") === "band" ? "band" : "plain",
     footerName: str("footerName", DEFAULT_COMPANY_SIGNATURE.footerName),
     footerEmail: String(f.get("footerEmail") ?? "").trim(),
     footerPhone: String(f.get("footerPhone") ?? "").trim(),

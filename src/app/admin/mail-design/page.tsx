@@ -130,6 +130,22 @@ export default async function MailDesignPage({
                 Kopfbereich der Mail, Icons und Links in der Signatur.
               </p>
             </div>
+            <div>
+              <label className="block text-xs text-slate-500 mb-1">Kopfbereich in Rundmails</label>
+              <select
+                name="headerStyle"
+                defaultValue={company.headerStyle}
+                className="input text-sm w-full"
+              >
+                <option value="plain">Weiß mit Farbstreifen darunter</option>
+                <option value="band">Farbiges Band in der Akzentfarbe</option>
+              </select>
+              <p className="text-xs text-slate-400 mt-1">
+                Das farbige Band braucht ein Logo, das auf der Akzentfarbe lesbar bleibt —
+                ein türkises Logo auf türkisem Grund verschwindet. Die Vorschau unter{" "}
+                <span className="font-medium">Rundmail</span> zeigt es sofort.
+              </p>
+            </div>
           </section>
 
           <section className="space-y-3 border-t border-slate-100 pt-4">

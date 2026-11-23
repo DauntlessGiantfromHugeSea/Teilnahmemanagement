@@ -80,6 +80,16 @@ export function canUseTickets(s: SessionPayload | null) {
   return s?.role === Role.ADMIN || s?.role === Role.EDITOR || s?.role === Role.EVENTMANAGER;
 }
 
+// Rundmail an einen frei zusammengestellten Verteiler (/mailing).
+// Bewusst enger als die Rundmail einer einzelnen Veranstaltung: dort ist der
+// Verteiler durch die Teilnehmerliste vorgegeben und die Freigabe entscheidet,
+// hier kann jede beliebige Adresse eingetippt werden. Deshalb nur die beiden
+// global zustaendigen Rollen. EVENTMANAGER behaelt die Rundmail je
+// Veranstaltung (canManageEvent).
+export function canSendBroadcast(s: SessionPayload | null) {
+  return s?.role === Role.ADMIN || s?.role === Role.EDITOR;
+}
+
 export async function requireSessionOrThrow(): Promise<SessionPayload> {
   const s = await getSession();
   if (!s) throw new Response("Unauthorized", { status: 401 });
